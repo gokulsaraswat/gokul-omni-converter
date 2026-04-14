@@ -1,0 +1,10 @@
+Pillow
+PyMuPDF
+pdfplumber
+python-docx
+openpyxl
+pypdf
+reportlab
+python-pptx
+xlrd
+pytesseract

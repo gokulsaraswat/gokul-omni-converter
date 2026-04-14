@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Gokul Omni Convert Lite
+Comment=Desktop conversion and PDF toolkit
+Exec=GokulOmniConvertLite
+Icon=gokul-omni-convert-lite
+Terminal=false
+Categories=Office;Utility;
+StartupNotify=true

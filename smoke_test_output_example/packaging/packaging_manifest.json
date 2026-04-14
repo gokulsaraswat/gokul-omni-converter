@@ -1,0 +1,78 @@
+{
+  "app_name": "Gokul Omni Convert Lite",
+  "app_version": "0.10.0 Patch 9",
+  "generated_at": "2026-04-14 15:15:30",
+  "platform": {
+    "system": "Linux",
+    "release": "4.4.0",
+    "python": "3.13.5"
+  },
+  "tools": {
+    "pyinstaller_cli": "",
+    "pyinstaller_module": false,
+    "inno_setup_cli": ""
+  },
+  "paths": {
+    "project_dir": "/mnt/data/gokul_omni_convert_lite_patch9",
+    "installer_dir": "/mnt/data/gokul_omni_convert_lite_patch9/installer"
+  },
+  "files": {
+    "spec": {
+      "path": "/mnt/data/gokul_omni_convert_lite_patch9/installer/gokul_omni_convert_lite.spec",
+      "exists": true,
+      "size": 1357
+    },
+    "build_notes": {
+      "path": "/mnt/data/gokul_omni_convert_lite_patch9/installer/BUILDING.md",
+      "exists": true,
+      "size": 2175
+    },
+    "icon_png": {
+      "path": "/mnt/data/gokul_omni_convert_lite_patch9/assets/gokul_omni_convert_lite.png",
+      "exists": true,
+      "size": 27906
+    },
+    "icon_ico": {
+      "path": "/mnt/data/gokul_omni_convert_lite_patch9/assets/gokul_omni_convert_lite.ico",
+      "exists": true,
+      "size": 42886
+    },
+    "inno_script": {
+      "path": "/mnt/data/gokul_omni_convert_lite_patch9/installer/GokulOmniConvertLite.iss",
+      "exists": true,
+      "size": 1221
+    },
+    "build_windows": {
+      "path": "/mnt/data/gokul_omni_convert_lite_patch9/installer/build_windows.bat",
+      "exists": true,
+      "size": 115
+    },
+    "build_linux": {
+      "path": "/mnt/data/gokul_omni_convert_lite_patch9/installer/build_linux.sh",
+      "exists": true,
+      "size": 143
+    },
+    "build_macos": {
+      "path": "/mnt/data/gokul_omni_convert_lite_patch9/installer/build_macos.sh",
+      "exists": true,
+      "size": 143
+    },
+    "build_installer_windows": {
+      "path": "/mnt/data/gokul_omni_convert_lite_patch9/installer/build_installer_windows.bat",
+      "exists": true,
+      "size": 469
+    },
+    "build_requirements": {
+      "path": "/mnt/data/gokul_omni_convert_lite_patch9/installer/requirements-build.txt",
+      "exists": true,
+      "size": 12
+    },
+    "about_profile": {
+      "path": "/mnt/data/gokul_omni_convert_lite_patch9/about_profile.json",
+      "exists": true,
+      "size": 906
+    }
+  },
+  "missing": [],
+  "recommended_release_dir": "/mnt/data/gokul_omni_convert_lite_patch9/release_output"
+}

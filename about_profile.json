@@ -1,0 +1,31 @@
+{
+  "name": "Gokul Saraswat",
+  "title": "Software Engineer",
+  "subtitle": "Creator of Gokul Omni Convert Lite",
+  "email": "gokul.saraswat@oracle.com",
+  "handle": "@gokul.saraswat",
+  "bio": "This About profile is editable. Replace the image, update the links, and edit this JSON to personalize the app before packaging it as your installer build.",
+  "image_path": "assets/gokul_profile_placeholder.png",
+  "links": [
+    {
+      "label": "Email",
+      "url": "mailto:gokul.saraswat@oracle.com?subject=Gokul%20Omni%20Convert%20Lite"
+    },
+    {
+      "label": "LinkedIn",
+      "url": ""
+    },
+    {
+      "label": "GitHub",
+      "url": ""
+    },
+    {
+      "label": "X",
+      "url": ""
+    },
+    {
+      "label": "Website",
+      "url": ""
+    }
+  ]
+}

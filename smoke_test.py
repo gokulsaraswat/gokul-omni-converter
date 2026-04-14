@@ -1,0 +1,793 @@
+from __future__ import annotations
+
+import shutil
+import tempfile
+from pathlib import Path
+
+import fitz
+from docx import Document
+from openpyxl import Workbook
+from PIL import Image, ImageDraw, ImageFont
+from reportlab.pdfgen import canvas
+
+try:
+    from pypdf import PdfReader
+except Exception:  # pragma: no cover - local compatibility fallback
+    from PyPDF2 import PdfReader  # type: ignore
+
+from app_state import APP_NAME, APP_STATE_PATH
+from automation_core import (
+    add_fingerprints,
+    bundle_paths_as_zip,
+    discover_watch_candidates,
+    export_presets_to_json,
+    import_presets_from_json,
+    write_run_report,
+)
+from build_support import export_diagnostics_report, export_state_snapshot, import_state_snapshot
+from converter_core import (
+    BatchConfig,
+    PdfToolConfig,
+    ENGINE_PURE_PYTHON,
+    MODE_ANY_TO_PDF,
+    MODE_DOCS_TO_PDF,
+    MODE_HTML_TO_DOCX,
+    MODE_MD_TO_DOCX,
+    MODE_MD_TO_HTML,
+    MODE_PDF_TO_DOCX,
+    MODE_PDF_TO_HTML,
+    MODE_PDF_TO_IMAGES,
+    MODE_PDF_TO_PPTX,
+    MODE_PDF_TO_XLSX,
+    MODE_PRESENTATIONS_TO_PDF,
+    MODE_SHEETS_TO_PDF,
+    MODE_TEXT_TO_PDF,
+    PDF_TOOL_COMPRESS,
+    PDF_TOOL_EDIT_METADATA,
+    PDF_TOOL_EXTRACT_PAGES,
+    PDF_TOOL_IMAGE_OVERLAY,
+    PDF_TOOL_LOCK,
+    PDF_TOOL_MERGE,
+    PDF_TOOL_REDACT_TEXT,
+    PDF_TOOL_REMOVE_PAGES,
+    PDF_TOOL_REORDER_PAGES,
+    PDF_TOOL_SIGN_VISIBLE,
+    PDF_TOOL_SPLIT_EVERY_N,
+    PDF_TOOL_SPLIT_RANGES,
+    PDF_TOOL_TEXT_OVERLAY,
+    PDF_TOOL_UNLOCK,
+    PDF_TOOL_WATERMARK_IMAGE,
+    PDF_TOOL_WATERMARK_TEXT,
+    dependency_status,
+    build_conversion_route_preview,
+    process_batch,
+    process_pdf_tool,
+)
+
+
+from mail_core import SMTPSettings, build_email_message, build_eml_draft, create_mailto_url
+from ocr_core import OcrConfig, detect_tesseract_status, extract_text_with_ocr, image_to_searchable_pdf, pdf_to_searchable_pdf
+from organizer_core import (
+    build_default_sequence,
+    duplicate_positions,
+    export_pages_as_images as organizer_export_pages_as_images,
+    extract_selected_pdf as organizer_extract_selected_pdf,
+    move_positions_down,
+    pdf_summary as organizer_pdf_summary,
+    rotate_positions,
+    save_sequence_as_pdf as organizer_save_sequence_as_pdf,
+)
+
+
+def create_sample_files(root: Path) -> dict[str, Path]:
+    paths: dict[str, Path] = {}
+
+    img1 = root / "image_1.png"
+    img2 = root / "image_2.png"
+    for index, path in enumerate([img1, img2], start=1):
+        image = Image.new("RGB", (900, 600), "white")
+        draw = ImageDraw.Draw(image)
+        draw.text((40, 40), f"Sample Image {index}", fill="black")
+        image.save(path)
+    paths["img1"] = img1
+    paths["img2"] = img2
+
+    ocr_image = root / "ocr_sample.png"
+    ocr_canvas = Image.new("RGB", (1500, 420), "white")
+    ocr_draw = ImageDraw.Draw(ocr_canvas)
+    try:
+        ocr_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 86)
+    except Exception:
+        ocr_font = ImageFont.load_default()
+    ocr_draw.text((70, 120), "INVOICE 12345", fill="black", font=ocr_font)
+    ocr_canvas.save(ocr_image)
+    paths["ocr_image"] = ocr_image
+
+    ocr_pdf = root / "ocr_sample.pdf"
+    ocr_doc = fitz.open()
+    ocr_page = ocr_doc.new_page(width=1500, height=420)
+    ocr_page.insert_image(ocr_page.rect, filename=str(ocr_image))
+    ocr_doc.save(str(ocr_pdf))
+    ocr_doc.close()
+    paths["ocr_pdf"] = ocr_pdf
+
+    docx_path = root / "sample.docx"
+    doc = Document()
+    doc.add_heading("Sample DOCX", level=0)
+    doc.add_paragraph("Hello from the sample DOCX file.")
+    doc.add_paragraph("First bullet item", style="List Bullet")
+    doc.add_paragraph("Second bullet item", style="List Bullet")
+    table = doc.add_table(rows=2, cols=2)
+    table.cell(0, 0).text = "Header A"
+    table.cell(0, 1).text = "Header B"
+    table.cell(1, 0).text = "Value 1"
+    table.cell(1, 1).text = "Value 2"
+    doc.save(docx_path)
+    paths["docx"] = docx_path
+
+    xlsx_path = root / "sample.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Data"
+    ws.append(["Name", "Value"])
+    ws.append(["Alpha", 10])
+    ws.append(["Beta", 20])
+    summary = wb.create_sheet("Summary")
+    summary.append(["Metric", "Result"])
+    summary.append(["Rows", 2])
+    summary.append(["Status", "Ready"])
+    wb.save(xlsx_path)
+    paths["xlsx"] = xlsx_path
+
+    md_path = root / "sample.md"
+    md_path.write_text("# Sample Markdown\n\n- one\n- two\n\n**bold text**\n\n> quoted line\n\n```python\nprint(\'hi\')\n```\n", encoding="utf-8")
+    paths["md"] = md_path
+
+    txt_path = root / "sample.txt"
+    txt_path.write_text("Plain text file\nSecond line\nThird line\n", encoding="utf-8")
+    paths["txt"] = txt_path
+
+    html_path = root / "sample.html"
+    html_path.write_text(
+        """<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8" /><title>Sample HTML</title></head>
+<body>
+  <h1>Sample HTML</h1>
+  <p>This is a <strong>sample</strong> HTML document for conversion.</p>
+  <ul><li>Alpha</li><li>Beta</li></ul>
+  <table>
+    <tr><th>Name</th><th>Value</th></tr>
+    <tr><td>Row A</td><td>10</td></tr>
+    <tr><td>Row B</td><td>20</td></tr>
+  </table>
+</body>
+</html>
+""",
+        encoding="utf-8",
+    )
+    paths["html"] = html_path
+
+    pdf_path = root / "sample.pdf"
+    pdf = canvas.Canvas(str(pdf_path))
+    pdf.drawString(72, 780, "Sample PDF for extraction")
+    pdf.drawString(72, 760, "Row 1    Value 10")
+    pdf.drawString(72, 740, "Row 2    Value 20")
+    pdf.save()
+    paths["pdf"] = pdf_path
+
+    multi_pdf_path = root / "sample_multi.pdf"
+    multi = canvas.Canvas(str(multi_pdf_path))
+    for page_number in range(1, 7):
+        multi.setFont("Helvetica", 18)
+        multi.drawString(72, 780, f"Sample multi-page PDF page {page_number}")
+        multi.setFont("Helvetica", 12)
+        multi.drawString(72, 748, f"Page marker: {page_number}")
+        multi.drawString(72, 728, f"Data row {page_number}A    Value {page_number * 10}")
+        multi.drawString(72, 708, f"Data row {page_number}B    Value {page_number * 20}")
+        multi.showPage()
+    multi.save()
+    paths["pdf_multi"] = multi_pdf_path
+
+    watermark_path = root / "watermark.png"
+    watermark = Image.new("RGBA", (700, 220), (255, 255, 255, 0))
+    draw = ImageDraw.Draw(watermark)
+    draw.rounded_rectangle((10, 10, 690, 210), radius=24, fill=(30, 144, 255, 100))
+    draw.text((80, 80), "GOKUL OMNI", fill=(255, 255, 255, 210))
+    watermark.save(watermark_path)
+    paths["watermark"] = watermark_path
+
+    try:
+        from pptx import Presentation
+        from pptx.util import Inches
+
+        pptx_path = root / "sample_presentation.pptx"
+        presentation = Presentation()
+        blank_layout = presentation.slide_layouts[6] if len(presentation.slide_layouts) > 6 else presentation.slide_layouts[-1]
+        slide = presentation.slides.add_slide(blank_layout)
+        textbox = slide.shapes.add_textbox(Inches(1), Inches(1), Inches(8), Inches(1.5))
+        textbox.text_frame.text = "Sample PPTX Slide"
+        slide.shapes.add_picture(str(img1), Inches(1), Inches(2), width=Inches(5.5))
+        presentation.save(str(pptx_path))
+        paths["pptx"] = pptx_path
+    except Exception:
+        pass
+
+    return paths
+
+
+def build_conversion_jobs(sample: dict[str, Path]) -> tuple[list[BatchConfig], list[str]]:
+    deps = dependency_status()
+    jobs: list[BatchConfig] = []
+    skipped: list[str] = []
+
+    jobs.append(
+        BatchConfig(
+            mode=MODE_ANY_TO_PDF,
+            files=[sample["img1"], sample["img2"], sample["txt"]],
+            output_dir=Path("outputs") / "any_to_pdf",
+            merge_to_one_pdf=True,
+            merged_output_name="combined",
+        )
+    )
+    jobs.append(BatchConfig(mode=MODE_TEXT_TO_PDF, files=[sample["txt"]], output_dir=Path("outputs") / "text_to_pdf"))
+    jobs.append(
+        BatchConfig(
+            mode=MODE_PDF_TO_IMAGES,
+            files=[sample["pdf"]],
+            output_dir=Path("outputs") / "pdf_to_images",
+            image_format="png",
+            image_scale=1.5,
+        )
+    )
+    jobs.append(BatchConfig(mode=MODE_PDF_TO_DOCX, files=[sample["pdf"]], output_dir=Path("outputs") / "pdf_to_docx"))
+    jobs.append(BatchConfig(mode=MODE_PDF_TO_XLSX, files=[sample["pdf"]], output_dir=Path("outputs") / "pdf_to_xlsx"))
+    jobs.append(BatchConfig(mode=MODE_PDF_TO_HTML, files=[sample["pdf_multi"]], output_dir=Path("outputs") / "pdf_to_html"))
+    jobs.append(
+        BatchConfig(
+            mode=MODE_PDF_TO_PPTX,
+            files=[sample["pdf"]],
+            output_dir=Path("outputs") / "pdf_to_pptx",
+            image_scale=1.7,
+        )
+    )
+    jobs.append(BatchConfig(mode=MODE_HTML_TO_DOCX, files=[sample["html"]], output_dir=Path("outputs") / "html_to_docx"))
+    jobs.append(BatchConfig(mode=MODE_MD_TO_HTML, files=[sample["md"]], output_dir=Path("outputs") / "md_to_html"))
+    jobs.append(BatchConfig(mode=MODE_MD_TO_DOCX, files=[sample["md"]], output_dir=Path("outputs") / "md_to_docx"))
+
+    # Pure-Python engine checks added in Patch 5.
+    jobs.append(
+        BatchConfig(
+            mode=MODE_DOCS_TO_PDF,
+            files=[sample["docx"]],
+            output_dir=Path("outputs") / "docx_to_pdf_pure_python",
+            engine_mode=ENGINE_PURE_PYTHON,
+        )
+    )
+    jobs.append(
+        BatchConfig(
+            mode=MODE_SHEETS_TO_PDF,
+            files=[sample["xlsx"]],
+            output_dir=Path("outputs") / "sheets_to_pdf_pure_python",
+            engine_mode=ENGINE_PURE_PYTHON,
+        )
+    )
+    jobs.append(
+        BatchConfig(
+            mode=MODE_TEXT_TO_PDF,
+            files=[sample["md"]],
+            output_dir=Path("outputs") / "markdown_to_pdf_pure_python",
+            engine_mode=ENGINE_PURE_PYTHON,
+        )
+    )
+    jobs.append(
+        BatchConfig(
+            mode=MODE_TEXT_TO_PDF,
+            files=[sample["html"]],
+            output_dir=Path("outputs") / "html_to_pdf_pure_python",
+            engine_mode=ENGINE_PURE_PYTHON,
+        )
+    )
+    if sample.get("pptx"):
+        jobs.append(
+            BatchConfig(
+                mode=MODE_PRESENTATIONS_TO_PDF,
+                files=[sample["pptx"]],
+                output_dir=Path("outputs") / "presentations_to_pdf_pure_python",
+                engine_mode=ENGINE_PURE_PYTHON,
+            )
+        )
+
+    if deps.get("LibreOffice"):
+        jobs.append(
+            BatchConfig(
+                mode=MODE_DOCS_TO_PDF,
+                files=[sample["docx"]],
+                output_dir=Path("outputs") / "docx_to_pdf_libreoffice",
+            )
+        )
+    else:
+        skipped.append("LibreOffice not found. Optional high-fidelity Office conversion path was not smoke tested.")
+
+    return jobs, skipped
+
+
+def build_pdf_tool_jobs(sample: dict[str, Path]) -> list[PdfToolConfig]:
+    return [
+        PdfToolConfig(
+            tool=PDF_TOOL_MERGE,
+            files=[sample["pdf"], sample["pdf_multi"]],
+            output_dir=Path("outputs") / "pdf_tool_merge",
+            output_name="merged_tool_output",
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_SPLIT_RANGES,
+            files=[sample["pdf_multi"]],
+            output_dir=Path("outputs") / "pdf_tool_split_ranges",
+            page_spec="1-2; 3-4; 5-6",
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_SPLIT_EVERY_N,
+            files=[sample["pdf_multi"]],
+            output_dir=Path("outputs") / "pdf_tool_split_every_n",
+            every_n_pages=2,
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_EXTRACT_PAGES,
+            files=[sample["pdf_multi"]],
+            output_dir=Path("outputs") / "pdf_tool_extract",
+            page_spec="1,3,5",
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_REMOVE_PAGES,
+            files=[sample["pdf_multi"]],
+            output_dir=Path("outputs") / "pdf_tool_remove",
+            page_spec="2,4,6",
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_REORDER_PAGES,
+            files=[sample["pdf_multi"]],
+            output_dir=Path("outputs") / "pdf_tool_reorder",
+            page_spec="3,1,2,2",
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_WATERMARK_TEXT,
+            files=[sample["pdf_multi"]],
+            output_dir=Path("outputs") / "pdf_tool_watermark_text",
+            watermark_text="CONFIDENTIAL",
+            watermark_font_size=40,
+            watermark_rotation=45,
+            watermark_opacity=0.16,
+            watermark_position="center",
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_WATERMARK_IMAGE,
+            files=[sample["pdf_multi"]],
+            output_dir=Path("outputs") / "pdf_tool_watermark_image",
+            watermark_image=sample["watermark"],
+            watermark_opacity=0.28,
+            watermark_position="bottom-right",
+            watermark_image_scale_percent=28,
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_TEXT_OVERLAY,
+            files=[sample["pdf"]],
+            output_dir=Path("outputs") / "pdf_tool_text_overlay",
+            page_spec="1",
+            watermark_text="REVIEWED",
+            watermark_font_size=24,
+            watermark_rotation=0,
+            watermark_opacity=0.92,
+            watermark_position="top-right",
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_IMAGE_OVERLAY,
+            files=[sample["pdf"]],
+            output_dir=Path("outputs") / "pdf_tool_image_overlay",
+            page_spec="1",
+            watermark_image=sample["watermark"],
+            watermark_opacity=0.95,
+            watermark_position="top-left",
+            watermark_image_scale_percent=18,
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_REDACT_TEXT,
+            files=[sample["pdf_multi"]],
+            output_dir=Path("outputs") / "pdf_tool_redact_text",
+            watermark_text="Page marker",
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_SIGN_VISIBLE,
+            files=[sample["pdf"]],
+            output_dir=Path("outputs") / "pdf_tool_sign_visible",
+            watermark_text="Gokul Saraswat",
+            watermark_image=sample["watermark"],
+            watermark_opacity=0.98,
+            watermark_position="bottom-right",
+            watermark_image_scale_percent=16,
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_EDIT_METADATA,
+            files=[sample["pdf"]],
+            output_dir=Path("outputs") / "pdf_tool_edit_metadata",
+            metadata_title="Patch 5 Sample Title",
+            metadata_author="Gokul Omni Convert Lite",
+            metadata_subject="Smoke test metadata",
+            metadata_keywords="patch5,metadata,smoke",
+            metadata_clear_existing=True,
+        ),
+    ]
+
+
+def validate_advanced_outputs(tool_outputs: dict[str, list[Path]]) -> None:
+    redacted_files = tool_outputs.get(PDF_TOOL_REDACT_TEXT, [])
+    if not redacted_files:
+        raise AssertionError("Redaction output was not created.")
+    with fitz.open(str(redacted_files[0])) as document:
+        text = "\n".join(page.get_text("text") for page in document)
+    if "Page marker" in text:
+        raise AssertionError("Redacted PDF still contains the redacted phrase.")
+
+    metadata_files = tool_outputs.get(PDF_TOOL_EDIT_METADATA, [])
+    if not metadata_files:
+        raise AssertionError("Metadata output was not created.")
+    with fitz.open(str(metadata_files[0])) as document:
+        metadata = document.metadata
+    assert metadata.get("title") == "Patch 5 Sample Title"
+    assert metadata.get("author") == "Gokul Omni Convert Lite"
+    assert metadata.get("subject") == "Smoke test metadata"
+
+    for required_tool in (PDF_TOOL_TEXT_OVERLAY, PDF_TOOL_IMAGE_OVERLAY, PDF_TOOL_SIGN_VISIBLE):
+        if not tool_outputs.get(required_tool):
+            raise AssertionError(f"Expected output for {required_tool} was not created.")
+
+
+def validate_security_outputs(lock_output: Path, unlock_output: Path, compress_output: Path, original_pdf: Path) -> None:
+    with fitz.open(str(lock_output)) as locked_doc:
+        if not locked_doc.needs_pass:
+            raise AssertionError("Locked PDF should require a password.")
+        if locked_doc.authenticate("secret123") <= 0:
+            raise AssertionError("Could not authenticate the locked PDF with the expected password.")
+        if locked_doc.page_count < 1:
+            raise AssertionError("Locked PDF did not expose pages after authentication.")
+
+    with fitz.open(str(unlock_output)) as unlocked_doc:
+        if unlocked_doc.needs_pass:
+            raise AssertionError("Unlocked PDF should not remain encrypted.")
+        if unlocked_doc.page_count < 1:
+            raise AssertionError("Unlocked PDF should contain at least one page.")
+
+    if not compress_output.exists() or compress_output.stat().st_size <= 0:
+        raise AssertionError("Compressed PDF output was not created correctly.")
+
+    with fitz.open(str(original_pdf)) as original_doc, fitz.open(str(compress_output)) as compressed_doc:
+        if original_doc.page_count != compressed_doc.page_count:
+            raise AssertionError("Compressed PDF page count changed unexpectedly.")
+
+
+def validate_organizer_outputs(
+    original_pdf: Path,
+    organized_output: Path,
+    extracted_output: Path,
+    image_outputs: list[Path],
+) -> None:
+    summary = organizer_pdf_summary(original_pdf)
+    if summary.page_count != 6:
+        raise AssertionError("Organizer summary did not report the expected page count.")
+
+    with fitz.open(str(organized_output)) as organized_doc:
+        if organized_doc.page_count != 7:
+            raise AssertionError("Organizer save output should contain seven pages after duplication.")
+        first_page_text = organized_doc[0].get_text()
+        second_page_text = organized_doc[1].get_text()
+        third_page_text = organized_doc[2].get_text()
+        if "Page marker: 2" not in first_page_text:
+            raise AssertionError("Organizer ordering did not move the first page down as expected.")
+        if "Page marker: 1" not in second_page_text or "Page marker: 1" not in third_page_text:
+            raise AssertionError("Organizer duplication did not preserve the expected page text.")
+        if organized_doc[2].rotation != 90:
+            raise AssertionError("Organizer rotation did not persist in the saved PDF.")
+
+    with fitz.open(str(extracted_output)) as extracted_doc:
+        if extracted_doc.page_count != 3:
+            raise AssertionError("Organizer extract output should contain the selected subset only.")
+        extracted_first = extracted_doc[0].get_text()
+        if "Page marker: 2" not in extracted_first:
+            raise AssertionError("Organizer extract output did not follow the current organized order.")
+
+    if len(image_outputs) != 2:
+        raise AssertionError("Organizer image export should create exactly two images in the smoke test.")
+    for image_path in image_outputs:
+        if not image_path.exists() or image_path.stat().st_size <= 0:
+            raise AssertionError(f"Organizer image export output is missing or empty: {image_path}")
+
+
+def run() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        root = Path(temp_dir)
+        inputs = root / "inputs"
+        outputs = root / "outputs"
+        inputs.mkdir()
+        outputs.mkdir()
+        sample = create_sample_files(inputs)
+        conversion_jobs, skipped = build_conversion_jobs(sample)
+        pdf_tool_jobs = build_pdf_tool_jobs(sample)
+
+        all_outputs: list[Path] = []
+        tool_outputs: dict[str, list[Path]] = {}
+
+        for job in conversion_jobs:
+            job.output_dir = outputs / job.output_dir.name
+            all_outputs.extend(process_batch(job))
+
+        for job in pdf_tool_jobs:
+            job.output_dir = outputs / job.output_dir.name
+            created = process_pdf_tool(job)
+            tool_outputs[job.tool] = created
+            all_outputs.extend(created)
+
+        lock_job = PdfToolConfig(
+            tool=PDF_TOOL_LOCK,
+            files=[sample["pdf"]],
+            output_dir=outputs / "pdf_tool_lock",
+            pdf_password="secret123",
+            pdf_owner_password="owner123",
+        )
+        locked_outputs = process_pdf_tool(lock_job)
+        tool_outputs[lock_job.tool] = locked_outputs
+        all_outputs.extend(locked_outputs)
+
+        unlock_job = PdfToolConfig(
+            tool=PDF_TOOL_UNLOCK,
+            files=locked_outputs,
+            output_dir=outputs / "pdf_tool_unlock",
+            pdf_password="secret123",
+        )
+        unlocked_outputs = process_pdf_tool(unlock_job)
+        tool_outputs[unlock_job.tool] = unlocked_outputs
+        all_outputs.extend(unlocked_outputs)
+
+        compress_job = PdfToolConfig(
+            tool=PDF_TOOL_COMPRESS,
+            files=[sample["pdf_multi"]],
+            output_dir=outputs / "pdf_tool_compress",
+            compression_profile="balanced",
+        )
+        compressed_outputs = process_pdf_tool(compress_job)
+        tool_outputs[compress_job.tool] = compressed_outputs
+        all_outputs.extend(compressed_outputs)
+
+        organizer_sequence = build_default_sequence(6)
+        organizer_sequence, moved_positions = move_positions_down(organizer_sequence, [0])
+        organizer_sequence, duplicated_positions = duplicate_positions(organizer_sequence, moved_positions)
+        organizer_sequence = rotate_positions(organizer_sequence, duplicated_positions, 90)
+
+        organizer_save_output = outputs / "organizer_save" / "sample_multi_organized.pdf"
+        organizer_save_output.parent.mkdir(parents=True, exist_ok=True)
+        organizer_save_sequence_as_pdf(sample["pdf_multi"], organizer_sequence, organizer_save_output)
+
+        organizer_extract_output = outputs / "organizer_extract" / "sample_multi_selected.pdf"
+        organizer_extract_output.parent.mkdir(parents=True, exist_ok=True)
+        organizer_extract_selected_pdf(sample["pdf_multi"], organizer_sequence, [0, 2, 6], organizer_extract_output)
+
+        organizer_image_output_dir = outputs / "organizer_export_images"
+        organizer_image_outputs = organizer_export_pages_as_images(
+            sample["pdf_multi"],
+            organizer_sequence,
+            [0, 2],
+            organizer_image_output_dir,
+        )
+        all_outputs.extend([organizer_save_output, organizer_extract_output, *organizer_image_outputs])
+
+        validate_advanced_outputs(tool_outputs)
+        validate_security_outputs(locked_outputs[0], unlocked_outputs[0], compressed_outputs[0], sample["pdf_multi"])
+        validate_organizer_outputs(sample["pdf_multi"], organizer_save_output, organizer_extract_output, organizer_image_outputs)
+
+        html_output = outputs / "pdf_to_html" / "sample_multi.html"
+        if not html_output.exists():
+            raise AssertionError("PDF -> HTML output was not created.")
+        html_text = html_output.read_text(encoding="utf-8")
+        if "Page 1" not in html_text or "Sample multi-page PDF page 1" not in html_text:
+            raise AssertionError("PDF -> HTML output did not contain expected page text.")
+
+        md_html_output = outputs / "md_to_html" / "sample.html"
+        if not md_html_output.exists():
+            raise AssertionError("Markdown -> HTML output was not created.")
+
+        pptx_output = outputs / "pdf_to_pptx" / "sample.pptx"
+        if not pptx_output.exists():
+            raise AssertionError("PDF -> PPTX output was not created.")
+        try:
+            from pptx import Presentation
+
+            presentation = Presentation(str(pptx_output))
+            if len(presentation.slides) != 1:
+                raise AssertionError("PDF -> PPTX output should contain one slide for the one-page sample PDF.")
+        except Exception as exc:
+            raise AssertionError(f"Could not validate PDF -> PPTX output: {exc}") from exc
+
+        html_docx_output = outputs / "html_to_docx" / "sample.docx"
+        if not html_docx_output.exists():
+            raise AssertionError("HTML -> DOCX output was not created.")
+
+        pure_docx_pdf = outputs / "docx_to_pdf_pure_python" / "sample.pdf"
+        pure_sheet_pdf = outputs / "sheets_to_pdf_pure_python" / "sample.pdf"
+        pure_md_pdf = outputs / "markdown_to_pdf_pure_python" / "sample.pdf"
+        pure_html_pdf = outputs / "html_to_pdf_pure_python" / "sample.pdf"
+        if not pure_docx_pdf.exists() or not pure_sheet_pdf.exists() or not pure_md_pdf.exists() or not pure_html_pdf.exists():
+            raise AssertionError("Pure Python Patch 6 outputs were not created.")
+
+        with fitz.open(str(pure_docx_pdf)) as docx_pdf_doc:
+            extracted = "\n".join(page.get_text() for page in docx_pdf_doc)
+            if "Header A" not in extracted or "Second bullet item" not in extracted:
+                raise AssertionError("Pure Python DOCX PDF did not include the expected rich content.")
+
+        with fitz.open(str(pure_sheet_pdf)) as sheet_pdf_doc:
+            extracted = "\n".join(page.get_text() for page in sheet_pdf_doc)
+            if "Summary" not in extracted or "Metric" not in extracted:
+                raise AssertionError("Pure Python spreadsheet PDF did not include the expected sheet structure.")
+
+        with fitz.open(str(pure_md_pdf)) as md_pdf_doc:
+            extracted = "\n".join(page.get_text() for page in md_pdf_doc)
+            if "Sample Markdown" not in extracted or "quoted line" not in extracted:
+                raise AssertionError("Pure Python Markdown PDF did not include expected structured content.")
+
+        with fitz.open(str(pure_html_pdf)) as html_pdf_doc:
+            extracted = "\n".join(page.get_text() for page in html_pdf_doc)
+            if "Sample HTML" not in extracted or "Row A" not in extracted:
+                raise AssertionError("Pure Python HTML PDF did not include expected structured content.")
+
+        route_preview = build_conversion_route_preview(MODE_TEXT_TO_PDF, [sample["md"], sample["html"]], engine_mode=ENGINE_PURE_PYTHON)
+        if "structured markdown" not in route_preview.lower() or "structure-aware" not in route_preview.lower():
+            raise AssertionError("Route preview did not expose the expected Patch 6 fidelity labels.")
+
+        watch_root = root / "watch_inputs"
+        watch_root.mkdir(parents=True, exist_ok=True)
+        watch_txt = watch_root / "watch_sample.txt"
+        watch_md = watch_root / "watch_sample.md"
+        watch_txt.write_text("watch text", encoding="utf-8")
+        watch_md.write_text("# watch markdown", encoding="utf-8")
+        watch_files, watch_fingerprints = discover_watch_candidates(watch_root, MODE_TEXT_TO_PDF, True, [])
+        if len(watch_files) != 2 or len(watch_fingerprints) != 2:
+            raise AssertionError("Automation watch discovery did not find the expected files.")
+        seen = add_fingerprints([], watch_fingerprints)
+        repeat_files, _ = discover_watch_candidates(watch_root, MODE_TEXT_TO_PDF, True, seen)
+        if repeat_files:
+            raise AssertionError("Automation watch discovery should skip already-seen files.")
+
+        report_path = write_run_report(
+            {
+                "timestamp": "2026-04-14 12:00:00",
+                "status": "Completed",
+                "mode": MODE_TEXT_TO_PDF,
+                "job_type": "convert",
+                "file_count": 2,
+                "output_count": 1,
+                "output_dir": str(outputs / "automation_report"),
+                "inputs_preview": [str(watch_txt), str(watch_md)],
+                "outputs_preview": [str(pure_md_pdf)],
+            },
+            outputs / "automation_report" / "last_run_report.txt",
+        )
+        if not report_path.exists() or "Gokul Omni Convert Lite Run Report" not in report_path.read_text(encoding="utf-8"):
+            raise AssertionError("Automation report helper did not create the expected report file.")
+
+        bundle_path = bundle_paths_as_zip([pure_md_pdf, pure_html_pdf, report_path], outputs / "automation_bundle" / "outputs_bundle.zip")
+        if not bundle_path.exists():
+            raise AssertionError("Automation ZIP bundle helper did not create the bundle.")
+
+        preset_export = outputs / "automation_presets" / "presets.json"
+        export_presets_to_json(
+            [
+                {
+                    "name": "Docs to PDF",
+                    "mode": MODE_DOCS_TO_PDF,
+                    "engine_mode": ENGINE_PURE_PYTHON,
+                    "merge_to_one_pdf": False,
+                },
+                {
+                    "name": "Markdown bundle",
+                    "mode": MODE_TEXT_TO_PDF,
+                    "engine_mode": ENGINE_PURE_PYTHON,
+                    "merge_to_one_pdf": True,
+                },
+            ],
+            preset_export,
+        )
+        imported_presets = import_presets_from_json(preset_export)
+        if len(imported_presets) != 2 or {item["name"] for item in imported_presets} != {"Docs to PDF", "Markdown bundle"}:
+            raise AssertionError("Preset export/import helpers did not round-trip correctly.")
+
+        state_snapshot = export_state_snapshot(
+            outputs / "state_snapshot" / "settings_snapshot.json",
+            {
+                "theme": "dark",
+                "output_dir": str(outputs / "state_snapshot_output"),
+                "smtp_settings": SMTPSettings(host="smtp.example.com", port=587, sender="sender@example.com").to_state_dict(),
+            },
+        )
+        imported_state = import_state_snapshot(state_snapshot)
+        if imported_state.get("theme") != "dark" or "smtp_settings" not in imported_state:
+            raise AssertionError("State snapshot export/import helpers did not round-trip correctly.")
+
+        diagnostics_path = export_diagnostics_report(
+            outputs / "diagnostics" / "diagnostics.json",
+            app_name=APP_NAME,
+            app_version="1.1.0 Patch 11",
+            state_path=APP_STATE_PATH,
+            about_profile_path=Path("about_profile.json"),
+            notes_path=Path("footer_notes.md"),
+            installer_dir=Path("installer"),
+            output_dir=outputs,
+            selected_files=[str(sample["docx"])],
+            last_outputs=[str(pure_md_pdf), str(pure_html_pdf)],
+            dependency_status=dependency_status(),
+            smtp_summary=SMTPSettings(host="smtp.example.com", port=587, sender="sender@example.com").sanitized_dict(),
+            extra={"smoke": True},
+        )
+        diagnostics_text = diagnostics_path.read_text(encoding="utf-8")
+        if "installer_assets" not in diagnostics_text or "smtp" not in diagnostics_text:
+            raise AssertionError("Diagnostics export did not include the expected Patch 9 sections.")
+
+        message = build_email_message(
+            sender="sender@example.com",
+            recipients=["receiver@example.com"],
+            subject="Patch 11 smoke",
+            body="Testing attachment generation.",
+            attachments=[pure_md_pdf],
+        )
+        if "receiver@example.com" not in str(message["To"]) or not message.is_multipart():
+            raise AssertionError("Patch 11 email message builder did not create the expected MIME message.")
+
+        eml_draft = build_eml_draft(
+            outputs / "mail" / "latest_outputs.eml",
+            sender="sender@example.com",
+            recipients=["receiver@example.com"],
+            subject="Patch 11 EML",
+            body="Testing EML draft generation.",
+            attachments=[pure_md_pdf, pure_html_pdf],
+        )
+        eml_text = eml_draft.read_text(encoding="utf-8", errors="replace")
+        if "latest_outputs.eml" == eml_draft.name and "sample.pdf" not in eml_text:
+            raise AssertionError("Patch 11 EML draft did not include the expected attachment references.")
+
+        mailto_url = create_mailto_url(["receiver@example.com"], subject="Patch11", body="Hello from Patch 11")
+        if not mailto_url.startswith("mailto:"):
+            raise AssertionError("Patch 11 mailto helper did not build a mailto URL.")
+
+        tesseract = detect_tesseract_status()
+        if tesseract.get("available"):
+            ocr_cfg = OcrConfig(language="eng", dpi=220, psm=6)
+            ocr_output_dir = outputs / "ocr"
+            image_searchable = image_to_searchable_pdf(sample["ocr_image"], ocr_output_dir / "ocr_image_searchable.pdf", config=ocr_cfg)
+            pdf_searchable = pdf_to_searchable_pdf(sample["ocr_pdf"], ocr_output_dir / "ocr_pdf_searchable.pdf", config=ocr_cfg)
+            ocr_text_path = extract_text_with_ocr(sample["ocr_image"], ocr_output_dir / "ocr_image.txt", config=ocr_cfg)
+            for path in (image_searchable, pdf_searchable, ocr_text_path):
+                if not path.exists():
+                    raise AssertionError(f"OCR output was not created: {path}")
+            ocr_text = ocr_text_path.read_text(encoding="utf-8", errors="replace").upper()
+            if "INVOICE" not in ocr_text:
+                raise AssertionError(f"OCR text extraction did not recover the expected text: {ocr_text}")
+            with fitz.open(str(image_searchable)) as searchable_doc:
+                searchable_text = "\n".join(page.get_text("text") for page in searchable_doc).upper()
+            if "INVOICE" not in searchable_text:
+                raise AssertionError("Image -> searchable PDF did not contain searchable OCR text.")
+            all_outputs.extend([image_searchable, pdf_searchable, ocr_text_path])
+        else:
+            skipped.append("Tesseract not found. OCR smoke tests were skipped.")
+
+        print("Patch 11 smoke test completed successfully.")
+        for note in skipped:
+            print(f"SKIP: {note}")
+        for path in all_outputs:
+            print(path)
+
+        mirror = Path.cwd() / "smoke_test_output_example"
+        if mirror.exists():
+            shutil.rmtree(mirror)
+        shutil.copytree(outputs, mirror)
+        print(f"Example outputs copied to: {mirror}")
+
+
+if __name__ == "__main__":
+    run()

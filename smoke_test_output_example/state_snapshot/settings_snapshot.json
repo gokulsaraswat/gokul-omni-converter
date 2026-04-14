@@ -1,0 +1,19 @@
+{
+  "created_at": "2026-04-14T16:14:42",
+  "state": {
+    "theme": "dark",
+    "output_dir": "/tmp/tmpztdvbs10/outputs/state_snapshot_output",
+    "smtp_settings": {
+      "host": "smtp.example.com",
+      "port": 587,
+      "username": "",
+      "password": "",
+      "sender": "sender@example.com",
+      "default_to": "",
+      "use_ssl": false,
+      "use_starttls": true,
+      "timeout_seconds": 12,
+      "save_password": false
+    }
+  }
+}
