@@ -5,6 +5,7 @@ import os
 import shutil
 import tempfile
 import threading
+import zipfile
 from functools import partial
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from datetime import datetime, timedelta
@@ -22,6 +23,7 @@ except Exception:  # pragma: no cover - local compatibility fallback
     from PyPDF2 import PdfReader  # type: ignore
 
 from app_state import APP_NAME, APP_STATE_PATH, AppStateStore
+from recovery_support import latest_state_backup, state_backup_dir
 from about_profile import load_about_profile
 from automation_core import (
     add_fingerprints,
@@ -31,7 +33,14 @@ from automation_core import (
     import_presets_from_json,
     write_run_report,
 )
-from build_support import export_diagnostics_report, export_state_snapshot, import_state_snapshot, export_text_file
+from build_support import (
+    export_diagnostics_report,
+    export_state_snapshot,
+    import_state_snapshot,
+    export_text_file,
+    render_activity_report_html,
+    export_support_bundle,
+)
 from release_support import build_example_update_manifest, check_for_updates, export_workspace_bundle, import_workspace_bundle
 from engagement_core import ensure_install_date, should_show_first_launch_splash, should_show_login_popup
 from converter_core import (
@@ -88,9 +97,12 @@ from organizer_core import (
     export_pages_as_images as organizer_export_pages_as_images,
     extract_selected_pdf as organizer_extract_selected_pdf,
     move_positions_down,
+    move_positions_to_index,
     pdf_summary as organizer_pdf_summary,
     rotate_positions,
     save_sequence_as_pdf as organizer_save_sequence_as_pdf,
+    sequence_from_payload,
+    sequence_to_payload,
 )
 
 
@@ -563,6 +575,29 @@ def validate_organizer_outputs(
             raise AssertionError(f"Organizer image export output is missing or empty: {image_path}")
 
 
+
+
+def validate_patch19_organizer_layout_helpers() -> None:
+    sequence = build_default_sequence(5)
+    reordered, selected = move_positions_to_index(sequence, [0, 1], 4)
+    expected = [2, 3, 0, 1, 4]
+    if [page.source_index for page in reordered] != expected:
+        raise AssertionError("Organizer drag-style reorder helper did not place the selected block at the expected slot.")
+    if selected != [2, 3]:
+        raise AssertionError("Organizer drag-style reorder helper did not return the updated selected positions.")
+
+    rotated = rotate_positions(reordered, selected, 90)
+    payload = sequence_to_payload(
+        rotated,
+        source_pdf="sample.pdf",
+        page_count=5,
+        selected_positions=selected,
+    )
+    restored_sequence, restored_selected = sequence_from_payload(payload, 5)
+    if restored_sequence != rotated or restored_selected != selected:
+        raise AssertionError("Organizer layout payload round-trip did not preserve the page sequence and selection.")
+
+
 def validate_patch14_state_and_logs(outputs: Path) -> None:
     state_path = outputs / "state" / "app_state.json"
     store = AppStateStore(state_path)
@@ -693,13 +728,13 @@ def run_patch16_release_smoke(outputs: Path) -> list[Path]:
     build_notes = installer_dir / "BUILDING.md"
     build_notes.write_text("# Build notes\n\nPatch 16 release workspace smoke.\n", encoding="utf-8")
 
-    manifest_path = build_example_update_manifest(installer_dir / "update_manifest.example.json", "1.6.0 Patch 16")
+    manifest_path = build_example_update_manifest(installer_dir / "update_manifest.example.json", "1.8.0 Patch 18")
     manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest_payload["version"] = "1.6.1 Patch 16"
+    manifest_payload["version"] = "1.8.1 Patch 18"
     manifest_payload["notes"] = "Patch 16 smoke manifest."
     manifest_path.write_text(json.dumps(manifest_payload, indent=2), encoding="utf-8")
 
-    update_result = check_for_updates("1.6.0 Patch 16", str(manifest_path))
+    update_result = check_for_updates("1.8.0 Patch 18", str(manifest_path))
     if not update_result.get("has_update"):
         raise AssertionError(f"Patch 16 update checker did not detect the newer manifest: {update_result}")
 
@@ -724,6 +759,66 @@ def run_patch16_release_smoke(outputs: Path) -> list[Path]:
         raise AssertionError("Patch 16 workspace import did not include the bundle manifest file.")
 
     return [manifest_path, bundle_path, import_root / "workspace_manifest.json"]
+
+
+
+def run_patch18_accessibility_smoke(outputs: Path) -> list[Path]:
+    patch_dir = outputs / "patch18_accessibility"
+    patch_dir.mkdir(parents=True, exist_ok=True)
+    state_path = patch_dir / "app_state.json"
+    store = AppStateStore(path=state_path)
+    store.update(
+        theme="dark",
+        compact_ui=True,
+        ui_scale="125%",
+        high_contrast=True,
+        reduced_motion=True,
+        state_backup_enabled=True,
+        state_backup_keep=6,
+        output_dir=str(outputs / "patch18_scaled"),
+    )
+    store.update(start_page="settings", last_page="settings", support_bundle_dir=str(outputs / "support"))
+    store.update(last_update_check="2026-04-15 11:00:00")
+    backup_path = latest_state_backup(state_path)
+    if backup_path is None or not backup_path.exists():
+        raise AssertionError("Patch 18 automatic state backup did not create a backup file.")
+    if store.get("ui_scale") != "125%" or not store.get("high_contrast") or not store.get("reduced_motion"):
+        raise AssertionError("Patch 18 accessibility flags did not persist in AppStateStore.")
+    backup_root = state_backup_dir(state_path)
+    if not backup_root.exists():
+        raise AssertionError("Patch 18 backup directory helper did not resolve an existing folder.")
+
+    state_path.write_text("{broken json", encoding="utf-8")
+    recovered = AppStateStore(path=state_path)
+    if recovered.get("ui_scale") != "125%" or not recovered.get("high_contrast"):
+        raise AssertionError("Patch 18 backup recovery did not restore the latest valid state.")
+    if str(recovered.get("start_page")) != "settings":
+        raise AssertionError("Patch 18 backup recovery lost the persisted start page.")
+
+    shortcuts_path = Path(__file__).with_name("keyboard_shortcuts.md")
+    if not shortcuts_path.exists():
+        raise AssertionError("Patch 18 shortcut guide file is missing.")
+    shortcuts_text = shortcuts_path.read_text(encoding="utf-8")
+    if "Ctrl+Enter" not in shortcuts_text or "F1" not in shortcuts_text:
+        raise AssertionError("Patch 18 shortcut guide did not contain the expected default shortcuts.")
+
+    backup_report = patch_dir / "backup_report.json"
+    backup_report.write_text(
+        json.dumps(
+            {
+                "backup_dir": str(backup_root),
+                "latest_backup": str(backup_path),
+                "restored_theme": recovered.get("theme"),
+                "ui_scale": recovered.get("ui_scale"),
+                "high_contrast": recovered.get("high_contrast"),
+                "reduced_motion": recovered.get("reduced_motion"),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    return [backup_path, backup_report, shortcuts_path]
+
 
 
 def run() -> None:
@@ -844,6 +939,7 @@ def run() -> None:
         validate_advanced_outputs(tool_outputs)
         validate_security_outputs(locked_outputs[0], unlocked_outputs[0], compressed_outputs[0], sample["pdf_multi"])
         validate_organizer_outputs(sample["pdf_multi"], organizer_save_output, organizer_extract_output, organizer_image_outputs)
+        validate_patch19_organizer_layout_helpers()
 
         html_output = outputs / "pdf_to_html" / "sample_multi.html"
         if not html_output.exists():
@@ -1002,10 +1098,13 @@ def run() -> None:
         patch16_outputs = run_patch16_release_smoke(outputs)
         all_outputs.extend(patch16_outputs)
 
+        patch18_outputs = run_patch18_accessibility_smoke(outputs)
+        all_outputs.extend(patch18_outputs)
+
         diagnostics_path = export_diagnostics_report(
             outputs / "diagnostics" / "diagnostics.json",
             app_name=APP_NAME,
-            app_version="1.6.0 Patch 16",
+            app_version="1.8.0 Patch 18",
             state_path=APP_STATE_PATH,
             about_profile_path=Path("about_profile.json"),
             notes_path=Path("footer_notes.md"),
@@ -1020,6 +1119,47 @@ def run() -> None:
         diagnostics_text = diagnostics_path.read_text(encoding="utf-8")
         if "installer_assets" not in diagnostics_text or "smtp" not in diagnostics_text:
             raise AssertionError("Diagnostics export did not include the expected Patch 9 sections.")
+
+        activity_report = render_activity_report_html(
+            outputs / "reports" / "activity_report.html",
+            app_name=APP_NAME,
+            app_version="1.8.0 Patch 18",
+            recent_jobs=[
+                {
+                    "timestamp": "2026-04-15 11:30:00",
+                    "status": "Completed",
+                    "mode": MODE_TEXT_TO_PDF,
+                    "file_count": 2,
+                    "output_count": 2,
+                    "output_dir": str(outputs),
+                }
+            ],
+            recent_outputs=[str(pure_md_pdf), str(pure_html_pdf)],
+            failed_jobs=[],
+            dependency_status=dependency_status(),
+            notes="Patch 17 smoke report.",
+        )
+        if not activity_report.exists() or "Activity Report" not in activity_report.read_text(encoding="utf-8"):
+            raise AssertionError("Patch 17 activity report export did not create the expected HTML output.")
+
+        support_bundle = export_support_bundle(
+            outputs / "reports" / "support_bundle.zip",
+            diagnostics_report=diagnostics_path,
+            state_snapshot=state_snapshot,
+            activity_report=activity_report,
+            logs_path=report_path,
+            notes_path=Path(__file__).with_name("footer_notes.md"),
+            about_profile_path=Path(__file__).with_name("about_profile.json"),
+            installer_dir=Path(__file__).with_name("installer"),
+            extra_files=[Path(__file__).with_name("README.md")],
+        )
+        if not support_bundle.exists():
+            raise AssertionError("Patch 17 support bundle export did not create the ZIP file.")
+        with zipfile.ZipFile(support_bundle) as archive:
+            names = set(archive.namelist())
+            required = {"manifest.json", "reports/activity_report.html", "reports/diagnostics.json", "reports/state_snapshot.json"}
+            if not required.issubset(names):
+                raise AssertionError(f"Patch 17 support bundle is missing expected files: {required - names}")
 
         message = build_email_message(
             sender="sender@example.com",
@@ -1068,7 +1208,7 @@ def run() -> None:
         else:
             skipped.append("Tesseract not found. OCR smoke tests were skipped.")
 
-        print("Patch 16 smoke test completed successfully.")
+        print("Patch 19 smoke test completed successfully.")
         for note in skipped:
             print(f"SKIP: {note}")
         for path in all_outputs:

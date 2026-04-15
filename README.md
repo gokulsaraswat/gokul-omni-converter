@@ -3,6 +3,109 @@
 A local Python desktop app for batch conversion, PDF workflows, integrated OCR, visual page organization, automation presets, and installer-ready packaging prep.
 
 
+## Patch 19 highlights
+
+Patch 19 upgrades the visual organizer without removing any earlier Patch 1–18 capability.
+
+New in Patch 19:
+- **drag-and-drop page cards** in the Organizer screen for direct visual reordering
+- **Undo / Redo** history for organizer actions such as reorder, rotate, duplicate, remove, reverse, and layout loads
+- **layout snapshot export/import**:
+  - save the current organizer order/rotation/selection as JSON
+  - reload the same layout later for the matching PDF
+- improved organizer usability:
+  - drop-target highlighting while dragging
+  - focused organizer shortcuts for `Ctrl+Z`, `Ctrl+Y`, `Ctrl+A`, and `Delete`
+  - safer reset of drag state on reload and after changes
+- smoke tests expanded for:
+  - drag-style reorder helper logic
+  - organizer layout payload save/load round-trip
+
+The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
+
+
+## Patch 18 highlights
+
+Patch 18 focuses on accessibility, resilience, and developer-friendly recovery tools without removing any Patch 1–17 capability.
+
+New in Patch 18:
+- new **accessibility controls** in Settings:
+  - UI scale presets (`90%`, `100%`, `110%`, `125%`, `140%`)
+  - **high contrast** toggle
+  - **reduced motion** toggle for startup splash and login reminder
+- new **automatic state backup** system:
+  - timestamped JSON backups before saves
+  - configurable keep count
+  - manual **Create backup now**
+  - **Restore latest backup**
+  - **Open backup folder**
+- new **keyboard shortcut guide**:
+  - in-app Markdown viewer for `keyboard_shortcuts.md`
+  - Help menu entry and `F1` shortcut
+  - customizable by editing the local Markdown file
+- **Build Center** expanded again with:
+  - backup actions
+  - shortcut-guide entry
+  - accessibility and recovery summary
+- support/workspace exports now include:
+  - shortcut guide file
+  - latest state backup when available
+- state persistence expanded for:
+  - UI scale
+  - high contrast
+  - reduced motion
+  - state-backup preferences
+  - last backup path
+- smoke tests expanded for:
+  - state backup creation
+  - backup recovery from corrupted state JSON
+  - shortcut guide presence
+
+The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
+
+
+## Patch 17 highlights
+
+Patch 17 focuses on support readiness, compact-mode UX cleanup, startup control, and richer reporting without removing any Patch 1–16 capability.
+
+New in Patch 17:
+- new **compact UI mode** in Settings with denser spacing and tighter tables/buttons
+- new **start page** setting so launch can prefer Home, Convert, PDF Tools, OCR, Organizer, Automation, History, Settings, or About
+- new **activity report export**:
+  - polished HTML summary of recent jobs, outputs, failed retries, and dependency signals
+  - available from File menu, Build Center, Settings, Quick Actions, and CLI
+- new **support bundle export**:
+  - ZIP package with diagnostics JSON
+  - state snapshot
+  - app logs
+  - activity report
+  - footer notes
+  - About profile
+  - installer assets
+  - optional profile image / splash asset when available
+- **Build Center** expanded with:
+  - export activity report
+  - export support bundle
+  - open app state folder
+  - compact/start-page summary
+- **History page** improved with:
+  - instant filter/search
+  - export selected run report
+  - export activity report shortcut
+- new **headless CLI hooks**:
+  - `python app.py --export-activity-report out.html`
+  - `python app.py --export-support-bundle out.zip`
+- state persistence expanded for:
+  - compact UI preference
+  - preferred start page
+  - default activity report folder
+  - default support bundle folder
+- smoke tests expanded for:
+  - activity report rendering
+  - support bundle creation
+
+The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
+
 
 ## Patch 16 highlights
 
@@ -379,7 +482,6 @@ Patch 9 smoke coverage includes:
 - `PDF -> PPTX` prioritizes page fidelity by placing each PDF page on a slide as an image.
 - complex layouts and scanned documents may not round-trip perfectly
 - OCR depends on a working **Tesseract OCR** installation
-- the visible organizer does not yet support drag-and-drop page cards
 - overlay tools are page-overlay based; they are useful for labels, stamps, and approvals but they are not full Acrobat-style paragraph reflow editing
 - mail draft support opens your default mail client with a prepared message; you still attach files manually from the output folder
 - direct SMTP send depends on a valid mail server, credentials when required, and provider attachment-size limits
@@ -387,14 +489,14 @@ Patch 9 smoke coverage includes:
 
 ## Project files
 
-- `app.py` - desktop GUI shell and Patch 9 delivery, build-center, and About-editor flows
+- `app.py` - desktop GUI shell, conversion workspaces, packaging helpers, and Patch 19 organizer/diagnostics flows
 - `mail_core.py` - SMTP configuration, connection tests, mailto helpers, and EML draft generation
 - `ocr_core.py` - OCR engine and Tesseract integration for searchable PDFs and OCR text extraction
 - `build_support.py` - diagnostics export and settings snapshot helpers
 - `converter_core.py` - conversion engine and PDF tool engine
 - `pure_python_renderers.py` - built-in DOCX/XLSX/PPTX/HTML/Markdown renderers
 - `organizer_core.py` - organizer backend for page sequencing, save, extract, and image export
-- `page_organizer.py` - organizer UI panel and preview window
+- `page_organizer.py` - organizer UI panel with drag-and-drop, layout snapshots, undo/redo, and preview window
 - `automation_core.py` - Patch 8 watch-folder, preset import/export, report, and ZIP helper functions
 - `app_state.py` - local settings, history, presets, and watch-folder state
 - `ui_theme.py` - theme and widget styling helpers

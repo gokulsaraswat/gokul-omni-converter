@@ -1,0 +1,8 @@
+{
+  "backup_dir": "/tmp/tmp49acb9_q/outputs/patch18_accessibility/backups",
+  "latest_backup": "/tmp/tmp49acb9_q/outputs/patch18_accessibility/backups/app_state_20260415_144023_142011.json",
+  "restored_theme": "dark",
+  "ui_scale": "125%",
+  "high_contrast": true,
+  "reduced_motion": true
+}

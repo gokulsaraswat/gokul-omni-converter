@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Gokul Omni Convert Lite Activity Report</title>
+<style>
+:root {
+  --bg: #0f172a;
+  --panel: #111827;
+  --panel2: #1f2937;
+  --text: #f8fafc;
+  --muted: #cbd5e1;
+  --line: #334155;
+  --accent: #3b82f6;
+  --good: #22c55e;
+  --bad: #ef4444;
+  --neutral: #64748b;
+}
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: linear-gradient(135deg, #0b1220, var(--bg));
+  color: var(--text);
+}
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px 24px 56px;
+}
+.header {
+  background: rgba(17,24,39,0.9);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 24px 26px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.22);
+}
+h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+}
+.subtitle {
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+.card {
+  background: rgba(17,24,39,0.92);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+}
+.metric {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 8px 0 0;
+}
+.label {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+.section {
+  margin-top: 18px;
+  background: rgba(17,24,39,0.92);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+}
+.section h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+th, td {
+  text-align: left;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(148,163,184,0.16);
+  vertical-align: top;
+}
+th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+tr:hover td {
+  background: rgba(59,130,246,0.08);
+}
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.badge.good { background: rgba(34,197,94,0.18); color: #86efac; }
+.badge.bad { background: rgba(239,68,68,0.18); color: #fca5a5; }
+.badge.neutral { background: rgba(100,116,139,0.22); color: #cbd5e1; }
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+ul {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+.notes {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(59,130,246,0.10);
+  border: 1px solid rgba(59,130,246,0.28);
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+.footer {
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Gokul Omni Convert Lite Activity Report</h1>
+      <p class="subtitle">Generated 2026-04-15 14:40:23 · 1.8.0 Patch 18. This report summarizes recent jobs, outputs, queued retries, and dependency signals from the local workspace.</p>
+      <div class='notes'>Patch 17 smoke report.</div>
+      <div class="grid">
+        <div class="card"><div class="label">Recent jobs</div><div class="metric">1</div></div>
+        <div class="card"><div class="label">Successful</div><div class="metric">0</div></div>
+        <div class="card"><div class="label">Failed / other</div><div class="metric">1</div></div>
+        <div class="card"><div class="label">Recent outputs</div><div class="metric">2</div></div>
+        <div class="card"><div class="label">Queued retries</div><div class="metric">0</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Recent jobs</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Status</th>
+            <th>Mode</th>
+            <th>Files</th>
+            <th>Outputs</th>
+            <th>Output folder</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>2026-04-15 11:30:00</td><td><span class='badge good'>Completed</span></td><td>Text / Markdown / HTML -&gt; PDF</td><td>2</td><td>2</td><td>/tmp/tmp49acb9_q/outputs</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="two-col">
+      <div class="section">
+        <h2>Recent outputs</h2>
+        <ul><li>/tmp/tmp49acb9_q/outputs/markdown_to_pdf_pure_python/sample.pdf</li><li>/tmp/tmp49acb9_q/outputs/html_to_pdf_pure_python/sample.pdf</li></ul>
+      </div>
+      <div class="section">
+        <h2>Failed jobs ready for retry</h2>
+        <ul><li>No failed jobs queued.</li></ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Dependency summary</h2>
+      <ul><li><strong>LibreOffice</strong>: True</li><li><strong>Pandoc</strong>: True</li><li><strong>pdftotext</strong>: True</li><li><strong>python-pptx</strong>: True</li><li><strong>xlrd</strong>: False</li></ul>
+    </div>
+
+    <div class="footer">Keep Pure Python as the default engine and use LibreOffice only when you explicitly configure and select it.</div>
+  </div>
+</body>
+</html>

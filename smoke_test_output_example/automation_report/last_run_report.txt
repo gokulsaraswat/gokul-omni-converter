@@ -7,11 +7,11 @@ mode: Text / Markdown / HTML -> PDF
 job_type: convert
 file_count: 2
 output_count: 1
-output_dir: /tmp/tmpfogsqy83/outputs/automation_report
+output_dir: /tmp/tmp49acb9_q/outputs/automation_report
 
 Inputs preview:
-- /tmp/tmpfogsqy83/watch_inputs/watch_sample.txt
-- /tmp/tmpfogsqy83/watch_inputs/watch_sample.md
+- /tmp/tmp49acb9_q/watch_inputs/watch_sample.txt
+- /tmp/tmp49acb9_q/watch_inputs/watch_sample.md
 
 Outputs preview:
-- /tmp/tmpfogsqy83/outputs/markdown_to_pdf_pure_python/sample.pdf
+- /tmp/tmp49acb9_q/outputs/markdown_to_pdf_pure_python/sample.pdf

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import tkinter as tk
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from tkinter import font as tkfont, ttk
 
 
@@ -67,6 +67,47 @@ LIGHT_THEME = ThemePalette(
     danger="#b91c1c",
 )
 
+HIGH_CONTRAST_DARK_THEME = replace(
+    DARK_THEME,
+    name="dark-high-contrast",
+    root_bg="#000000",
+    surface="#04070d",
+    surface_alt="#0d1523",
+    sidebar="#000000",
+    border="#5b728f",
+    text="#ffffff",
+    text_muted="#dfe9f6",
+    accent="#5ea7ff",
+    accent_hover="#7db9ff",
+    selection="#1f6feb",
+    input_bg="#000000",
+    code_bg="#000000",
+    success="#33dd77",
+    warning="#ffb020",
+    danger="#ff6363",
+)
+
+HIGH_CONTRAST_LIGHT_THEME = replace(
+    LIGHT_THEME,
+    name="light-high-contrast",
+    root_bg="#ffffff",
+    surface="#ffffff",
+    surface_alt="#eef2f7",
+    sidebar="#f5f7fb",
+    border="#44556a",
+    text="#000000",
+    text_muted="#1f2937",
+    accent="#0047cc",
+    accent_hover="#0039a3",
+    accent_text="#ffffff",
+    selection="#cfe0ff",
+    input_bg="#ffffff",
+    code_bg="#ffffff",
+    success="#0f7a36",
+    warning="#945200",
+    danger="#a40f1a",
+)
+
 
 def detect_system_theme() -> str:
     if os.name == "nt":
@@ -84,24 +125,47 @@ def detect_system_theme() -> str:
     return "light"
 
 
-def resolve_palette(theme_choice: str) -> ThemePalette:
+def resolve_palette(theme_choice: str, high_contrast: bool = False) -> ThemePalette:
     choice = (theme_choice or "dark").strip().lower()
     if choice == "system":
         choice = detect_system_theme()
+    if high_contrast:
+        return HIGH_CONTRAST_DARK_THEME if choice == "dark" else HIGH_CONTRAST_LIGHT_THEME
     return DARK_THEME if choice == "dark" else LIGHT_THEME
 
 
-def _configure_fonts() -> None:
+def _scaled(value: int, scale: float) -> int:
+    return max(1, int(round(value * scale)))
+
+
+def _scaled_padding(value: tuple[int, int], scale: float) -> tuple[int, int]:
+    return (_scaled(value[0], scale), _scaled(value[1], scale))
+
+
+def _configure_fonts(compact: bool = False, scale: float = 1.0) -> None:
+    scale = min(max(float(scale or 1.0), 0.85), 1.6)
+    base_size = _scaled(9 if compact else 10, scale)
     default_font = tkfont.nametofont("TkDefaultFont")
-    default_font.configure(size=10)
+    default_font.configure(size=base_size)
     text_font = tkfont.nametofont("TkTextFont")
-    text_font.configure(size=10)
+    text_font.configure(size=base_size)
     heading_font = tkfont.nametofont("TkHeadingFont")
-    heading_font.configure(size=10, weight="bold")
+    heading_font.configure(size=base_size, weight="bold")
+    try:
+        fixed_font = tkfont.nametofont("TkFixedFont")
+        fixed_font.configure(size=base_size)
+    except Exception:
+        pass
+    try:
+        menu_font = tkfont.nametofont("TkMenuFont")
+        menu_font.configure(size=base_size)
+    except Exception:
+        pass
 
 
-def apply_ttk_theme(root: tk.Misc, palette: ThemePalette) -> ttk.Style:
-    _configure_fonts()
+def apply_ttk_theme(root: tk.Misc, palette: ThemePalette, compact: bool = False, scale: float = 1.0) -> ttk.Style:
+    scale = min(max(float(scale or 1.0), 0.85), 1.6)
+    _configure_fonts(compact=compact, scale=scale)
     style = ttk.Style(root)
     try:
         style.theme_use("clam")
@@ -110,6 +174,18 @@ def apply_ttk_theme(root: tk.Misc, palette: ThemePalette) -> ttk.Style:
 
     root.configure(background=palette.root_bg)
     root.option_add("*tearOff", False)
+
+    title_size = _scaled(16 if compact else 18, scale)
+    subtitle_size = _scaled(9 if compact else 10, scale)
+    hero_title_size = _scaled(14 if compact else 16, scale)
+    body_size = _scaled(9 if compact else 10, scale)
+    button_padding = _scaled_padding((8, 5) if compact else (10, 7), scale)
+    primary_padding = _scaled_padding((10, 6) if compact else (12, 8), scale)
+    nav_padding = _scaled_padding((12, 8) if compact else (14, 10), scale)
+    entry_padding = _scaled_padding((7, 4) if compact else (8, 6), scale)
+    combo_padding = _scaled_padding((5, 4) if compact else (6, 6), scale)
+    frame_padding = _scaled(10 if compact else 12, scale)
+    row_height = _scaled(24 if compact else 28, scale)
 
     style.configure("TFrame", background=palette.root_bg)
     style.configure("Surface.TFrame", background=palette.surface)
@@ -121,15 +197,15 @@ def apply_ttk_theme(root: tk.Misc, palette: ThemePalette) -> ttk.Style:
     style.configure("Sidebar.TLabel", background=palette.sidebar, foreground=palette.text_muted)
     style.configure("Muted.TLabel", background=palette.surface, foreground=palette.text_muted)
     style.configure("SidebarMuted.TLabel", background=palette.sidebar, foreground=palette.text_muted)
-    style.configure("Title.TLabel", background=palette.root_bg, foreground=palette.text, font=("Segoe UI", 18, "bold"))
-    style.configure("Subtitle.TLabel", background=palette.root_bg, foreground=palette.text_muted, font=("Segoe UI", 10))
-    style.configure("HeroTitle.TLabel", background=palette.surface, foreground=palette.text, font=("Segoe UI", 16, "bold"))
-    style.configure("HeroBody.TLabel", background=palette.surface, foreground=palette.text_muted, font=("Segoe UI", 10))
-    style.configure("CardTitle.TLabel", background=palette.surface, foreground=palette.text, font=("Segoe UI", 12, "bold"))
-    style.configure("CardBody.TLabel", background=palette.surface, foreground=palette.text_muted)
-    style.configure("StatusGood.TLabel", background=palette.surface, foreground=palette.success)
-    style.configure("StatusWarn.TLabel", background=palette.surface, foreground=palette.warning)
-    style.configure("StatusBad.TLabel", background=palette.surface, foreground=palette.danger)
+    style.configure("Title.TLabel", background=palette.root_bg, foreground=palette.text, font=("Segoe UI", title_size, "bold"))
+    style.configure("Subtitle.TLabel", background=palette.root_bg, foreground=palette.text_muted, font=("Segoe UI", subtitle_size))
+    style.configure("HeroTitle.TLabel", background=palette.surface, foreground=palette.text, font=("Segoe UI", hero_title_size, "bold"))
+    style.configure("HeroBody.TLabel", background=palette.surface, foreground=palette.text_muted, font=("Segoe UI", body_size))
+    style.configure("CardTitle.TLabel", background=palette.surface, foreground=palette.text, font=("Segoe UI", _scaled(11 if compact else 12, scale), "bold"))
+    style.configure("CardBody.TLabel", background=palette.surface, foreground=palette.text_muted, font=("Segoe UI", body_size))
+    style.configure("StatusGood.TLabel", background=palette.surface, foreground=palette.success, font=("Segoe UI", body_size))
+    style.configure("StatusWarn.TLabel", background=palette.surface, foreground=palette.warning, font=("Segoe UI", body_size))
+    style.configure("StatusBad.TLabel", background=palette.surface, foreground=palette.danger, font=("Segoe UI", body_size))
 
     style.configure(
         "TButton",
@@ -138,7 +214,7 @@ def apply_ttk_theme(root: tk.Misc, palette: ThemePalette) -> ttk.Style:
         bordercolor=palette.border,
         lightcolor=palette.surface_alt,
         darkcolor=palette.surface_alt,
-        padding=(10, 7),
+        padding=button_padding,
     )
     style.map(
         "TButton",
@@ -153,7 +229,7 @@ def apply_ttk_theme(root: tk.Misc, palette: ThemePalette) -> ttk.Style:
         bordercolor=palette.accent,
         lightcolor=palette.accent,
         darkcolor=palette.accent,
-        padding=(12, 8),
+        padding=primary_padding,
     )
     style.map(
         "Primary.TButton",
@@ -169,7 +245,7 @@ def apply_ttk_theme(root: tk.Misc, palette: ThemePalette) -> ttk.Style:
         lightcolor=palette.sidebar,
         darkcolor=palette.sidebar,
         anchor="w",
-        padding=(14, 10),
+        padding=nav_padding,
     )
     style.map(
         "Nav.TButton",
@@ -184,7 +260,7 @@ def apply_ttk_theme(root: tk.Misc, palette: ThemePalette) -> ttk.Style:
         lightcolor=palette.accent,
         darkcolor=palette.accent,
         anchor="w",
-        padding=(14, 10),
+        padding=nav_padding,
     )
     style.map(
         "NavActive.TButton",
@@ -198,7 +274,7 @@ def apply_ttk_theme(root: tk.Misc, palette: ThemePalette) -> ttk.Style:
         foreground=palette.text,
         bordercolor=palette.border,
         insertcolor=palette.text,
-        padding=(8, 6),
+        padding=entry_padding,
     )
     style.map("TEntry", bordercolor=[("focus", palette.accent)])
     style.configure(
@@ -207,8 +283,8 @@ def apply_ttk_theme(root: tk.Misc, palette: ThemePalette) -> ttk.Style:
         foreground=palette.text,
         background=palette.surface_alt,
         bordercolor=palette.border,
-        arrowsize=14,
-        padding=(6, 6),
+        arrowsize=_scaled(14, scale),
+        padding=combo_padding,
     )
     style.map(
         "TCombobox",
@@ -227,9 +303,9 @@ def apply_ttk_theme(root: tk.Misc, palette: ThemePalette) -> ttk.Style:
         foreground=palette.text,
         bordercolor=palette.border,
         relief="solid",
-        padding=12,
+        padding=frame_padding,
     )
-    style.configure("TLabelframe.Label", background=palette.surface, foreground=palette.text, font=("Segoe UI", 10, "bold"))
+    style.configure("TLabelframe.Label", background=palette.surface, foreground=palette.text, font=("Segoe UI", body_size, "bold"))
 
     style.configure(
         "Horizontal.TProgressbar",
@@ -246,7 +322,7 @@ def apply_ttk_theme(root: tk.Misc, palette: ThemePalette) -> ttk.Style:
         fieldbackground=palette.input_bg,
         foreground=palette.text,
         bordercolor=palette.border,
-        rowheight=28,
+        rowheight=row_height,
     )
     style.map("Treeview", background=[("selected", palette.selection)], foreground=[("selected", palette.accent_text)])
     style.configure(
@@ -255,7 +331,7 @@ def apply_ttk_theme(root: tk.Misc, palette: ThemePalette) -> ttk.Style:
         foreground=palette.text,
         relief="flat",
         bordercolor=palette.border,
-        font=("Segoe UI", 10, "bold"),
+        font=("Segoe UI", body_size, "bold"),
     )
     style.map("Treeview.Heading", background=[("active", palette.surface_alt)])
 

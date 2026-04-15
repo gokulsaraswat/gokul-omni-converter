@@ -1,9 +1,13 @@
 {
   "theme": "dark",
-  "output_dir": "/mnt/data/patch16_work/gokul_omni_convert_lite_patch16/converted_output",
+  "output_dir": "/mnt/data/patch19_work/gokul_omni_convert_lite_patch19/converted_output",
   "recursive_scan": true,
   "conversion_engine": "pure_python",
   "performance_mode": "balanced",
+  "compact_ui": false,
+  "ui_scale": "100%",
+  "high_contrast": false,
+  "reduced_motion": false,
   "soffice_path": "",
   "tesseract_path": "",
   "ocr_language": "eng",
@@ -17,7 +21,7 @@
   "watch_config": {},
   "watch_seen_fingerprints": [],
   "automation_events": [],
-  "install_date": "2026-04-15T06:04:01",
+  "install_date": "2026-04-15T14:40:22",
   "login_popup_dismissed": false,
   "login_popup_completed": false,
   "login_popup_last_shown": "",
@@ -35,13 +39,13 @@
   "restore_last_session": true,
   "cleanup_temp_on_exit": true,
   "recent_outputs": [
-    "/tmp/tmpfogsqy83/outputs/two.pdf",
-    "/tmp/tmpfogsqy83/outputs/one.pdf"
+    "/tmp/tmp49acb9_q/outputs/two.pdf",
+    "/tmp/tmp49acb9_q/outputs/one.pdf"
   ],
   "failed_jobs": [
     {
-      "id": "failed_20260415_060401_620685",
-      "timestamp": "2026-04-15 06:04:01",
+      "id": "failed_20260415_144022_568927",
+      "timestamp": "2026-04-15 14:40:22",
       "mode": "PDF Tool -> Compress",
       "job_type": "pdf_tool",
       "input_files": [
@@ -60,6 +64,12 @@
   "update_manifest_url": "",
   "last_update_result": "",
   "workspace_backup_dir": "",
+  "support_bundle_dir": "",
+  "activity_report_dir": "",
+  "state_backup_enabled": true,
+  "state_backup_keep": 12,
+  "last_state_backup": "/tmp/tmp49acb9_q/outputs/state/backups/app_state_20260415_144022_577394.json",
+  "start_page": "home",
   "window_geometry": "",
   "last_page": "home"
 }

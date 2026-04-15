@@ -7,12 +7,14 @@ from typing import Any, Iterable
 
 from automation_core import add_fingerprints, normalize_preset_record, normalize_watch_config
 from engagement_core import ensure_install_date, parse_datetime
+from recovery_support import backup_state_file, latest_state_backup, load_latest_backup_json, restore_state_backup, state_backup_dir
 
 APP_NAME = "Gokul Omni Convert Lite"
 APP_STATE_DIR = Path.home() / ".gokul_omni_convert_lite"
 APP_STATE_PATH = APP_STATE_DIR / "app_state.json"
 MAX_RECENT_JOBS = 30
 MAX_AUTOMATION_EVENTS = 120
+UI_SCALE_OPTIONS = {"90%", "100%", "110%", "125%", "140%"}
 
 
 DEFAULT_STATE: dict[str, Any] = {
@@ -21,6 +23,10 @@ DEFAULT_STATE: dict[str, Any] = {
     "recursive_scan": True,
     "conversion_engine": "pure_python",
     "performance_mode": "balanced",
+    "compact_ui": False,
+    "ui_scale": "100%",
+    "high_contrast": False,
+    "reduced_motion": False,
     "soffice_path": "",
     "tesseract_path": "",
     "ocr_language": "eng",
@@ -59,6 +65,12 @@ DEFAULT_STATE: dict[str, Any] = {
     "update_manifest_url": "",
     "last_update_result": "",
     "workspace_backup_dir": "",
+    "support_bundle_dir": "",
+    "activity_report_dir": "",
+    "state_backup_enabled": True,
+    "state_backup_keep": 12,
+    "last_state_backup": "",
+    "start_page": "home",
     "window_geometry": "",
     "last_page": "home",
 }
@@ -78,9 +90,26 @@ class AppStateStore:
             self.save()
             return self.state
 
+        data: dict[str, Any] | None = None
         try:
-            data = json.loads(self.path.read_text(encoding="utf-8"))
+            raw = json.loads(self.path.read_text(encoding="utf-8"))
+            if isinstance(raw, dict):
+                data = raw
         except (OSError, json.JSONDecodeError):
+            data = None
+
+        if data is None:
+            backup_data = load_latest_backup_json(self.path)
+            if isinstance(backup_data, dict):
+                try:
+                    backup_path = latest_state_backup(self.path)
+                    if backup_path:
+                        restore_state_backup(backup_path, self.path)
+                    data = backup_data
+                except Exception:
+                    data = backup_data
+
+        if data is None:
             self.state = dict(DEFAULT_STATE)
             ensure_install_date(self.state)
             self.save()
@@ -102,7 +131,16 @@ class AppStateStore:
             merged["smtp_settings"] = {}
         if parse_datetime(merged.get("install_date")) is None:
             ensure_install_date(merged)
-        for key in ("login_popup_dismissed", "login_popup_completed", "login_popup_enabled", "splash_enabled", "splash_seen"):
+        for key in (
+            "login_popup_dismissed",
+            "login_popup_completed",
+            "login_popup_enabled",
+            "splash_enabled",
+            "splash_seen",
+            "high_contrast",
+            "reduced_motion",
+            "state_backup_enabled",
+        ):
             merged[key] = bool(merged.get(key, DEFAULT_STATE[key]))
         if not isinstance(merged.get("login_popup_last_shown"), str):
             merged["login_popup_last_shown"] = ""
@@ -110,6 +148,12 @@ class AppStateStore:
             merged["splash_gif_path"] = DEFAULT_STATE["splash_gif_path"]
         if not isinstance(merged.get("link_cache_dir"), str):
             merged["link_cache_dir"] = DEFAULT_STATE["link_cache_dir"]
+        merged["compact_ui"] = bool(merged.get("compact_ui", DEFAULT_STATE["compact_ui"]))
+        if not isinstance(merged.get("ui_scale"), str):
+            merged["ui_scale"] = DEFAULT_STATE["ui_scale"]
+        merged["ui_scale"] = str(merged.get("ui_scale", DEFAULT_STATE["ui_scale"])).strip() or DEFAULT_STATE["ui_scale"]
+        if merged["ui_scale"] not in UI_SCALE_OPTIONS:
+            merged["ui_scale"] = DEFAULT_STATE["ui_scale"]
         if not isinstance(merged.get("performance_mode"), str):
             merged["performance_mode"] = DEFAULT_STATE["performance_mode"]
         merged["performance_mode"] = str(merged.get("performance_mode", DEFAULT_STATE["performance_mode"])).strip().lower() or DEFAULT_STATE["performance_mode"]
@@ -144,6 +188,20 @@ class AppStateStore:
             merged["last_update_result"] = DEFAULT_STATE["last_update_result"]
         if not isinstance(merged.get("workspace_backup_dir"), str):
             merged["workspace_backup_dir"] = DEFAULT_STATE["workspace_backup_dir"]
+        if not isinstance(merged.get("support_bundle_dir"), str):
+            merged["support_bundle_dir"] = DEFAULT_STATE["support_bundle_dir"]
+        if not isinstance(merged.get("activity_report_dir"), str):
+            merged["activity_report_dir"] = DEFAULT_STATE["activity_report_dir"]
+        try:
+            merged["state_backup_keep"] = max(3, min(60, int(merged.get("state_backup_keep", DEFAULT_STATE["state_backup_keep"]))))
+        except Exception:
+            merged["state_backup_keep"] = DEFAULT_STATE["state_backup_keep"]
+        if not isinstance(merged.get("last_state_backup"), str):
+            merged["last_state_backup"] = DEFAULT_STATE["last_state_backup"]
+        if not isinstance(merged.get("start_page"), str):
+            merged["start_page"] = DEFAULT_STATE["start_page"]
+        elif merged["start_page"] not in {"home", "convert", "pdf_tools", "ocr", "organizer", "automation", "history", "settings", "about"}:
+            merged["start_page"] = DEFAULT_STATE["start_page"]
         if not isinstance(merged.get("window_geometry"), str):
             merged["window_geometry"] = DEFAULT_STATE["window_geometry"]
         if not isinstance(merged.get("last_page"), str):
@@ -163,7 +221,21 @@ class AppStateStore:
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        if self.path.exists() and bool(self.state.get("state_backup_enabled", DEFAULT_STATE["state_backup_enabled"])):
+            try:
+                backup_path = backup_state_file(self.path, keep=int(self.state.get("state_backup_keep", DEFAULT_STATE["state_backup_keep"])))
+                if backup_path is not None:
+                    self.state["last_state_backup"] = str(backup_path)
+            except Exception:
+                pass
         self.path.write_text(json.dumps(self.state, indent=2), encoding="utf-8")
+
+    def state_backups_dir(self) -> Path:
+        return state_backup_dir(self.path)
+
+    def state_backups(self, limit: int = 50) -> list[Path]:
+        from recovery_support import list_state_backups
+        return list_state_backups(self.path, limit=limit)
 
     def get(self, key: str, default: Any = None) -> Any:
         return self.state.get(key, default)
@@ -319,7 +391,6 @@ class AppStateStore:
         events.insert(0, record)
         self.state["automation_events"] = events[:MAX_AUTOMATION_EVENTS]
         self.save()
-
 
     def recent_outputs(self) -> list[str]:
         items = self.state.get("recent_outputs", [])

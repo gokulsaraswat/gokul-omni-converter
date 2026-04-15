@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence
 
 import fitz  # PyMuPDF
 from PIL import Image
@@ -139,6 +139,88 @@ def move_positions_down(sequence: Sequence[OrganizedPage], positions: Sequence[i
             items[pos + 1], items[pos] = items[pos], items[pos + 1]
     new_selected = [min(pos + 1, len(items) - 1) if pos < len(items) - 1 and (pos + 1) not in selected_set else pos for pos in selected]
     return items, new_selected
+
+
+def move_positions_to_index(
+    sequence: Sequence[OrganizedPage],
+    positions: Sequence[int],
+    target_index: int,
+) -> tuple[list[OrganizedPage], list[int]]:
+    selected = sanitize_positions(positions, len(sequence))
+    if not selected:
+        return list(sequence), []
+
+    items = list(sequence)
+    selected_set = set(selected)
+    block = [items[index] for index in selected]
+
+    if int(target_index) < 0:
+        insert_before = 0
+    elif int(target_index) >= len(items):
+        insert_before = len(items)
+    else:
+        insert_before = int(target_index)
+        for index in selected:
+            if index < insert_before:
+                insert_before -= 1
+
+    remaining = [page for index, page in enumerate(items) if index not in selected_set]
+    insert_before = max(0, min(insert_before, len(remaining)))
+    reordered = remaining[:insert_before] + block + remaining[insert_before:]
+    new_selected = list(range(insert_before, insert_before + len(block)))
+    return reordered, new_selected
+
+
+def sequence_to_payload(
+    sequence: Sequence[OrganizedPage],
+    *,
+    source_pdf: str = "",
+    page_count: int | None = None,
+    selected_positions: Sequence[int] | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "source_pdf": str(source_pdf or ""),
+        "page_count": int(page_count) if page_count is not None else len(sequence),
+        "sequence": [
+            {
+                "source_index": int(item.source_index),
+                "rotation": _normalize_rotation(int(item.rotation)),
+            }
+            for item in sequence
+        ],
+        "selected_positions": sanitize_positions(list(selected_positions or []), len(sequence)),
+    }
+    return payload
+
+
+def sequence_from_payload(payload: dict[str, Any], page_count: int) -> tuple[list[OrganizedPage], list[int]]:
+    if not isinstance(payload, dict):
+        raise OrganizerError("Layout payload must be a JSON object.")
+
+    raw_sequence = payload.get("sequence")
+    if not isinstance(raw_sequence, list) or not raw_sequence:
+        raise OrganizerError("Layout payload does not contain a valid page sequence.")
+
+    sequence: list[OrganizedPage] = []
+    for index, entry in enumerate(raw_sequence):
+        if not isinstance(entry, dict):
+            raise OrganizerError(f"Layout entry {index + 1} is not a valid object.")
+        try:
+            source_index = int(entry.get("source_index", -1))
+            rotation = _normalize_rotation(int(entry.get("rotation", 0)))
+        except Exception as exc:  # pragma: no cover - defensive conversion guard
+            raise OrganizerError(f"Layout entry {index + 1} is invalid: {exc}") from exc
+        if not 0 <= source_index < int(page_count):
+            raise OrganizerError(
+                f"Layout entry {index + 1} points to source page {source_index + 1}, but the loaded PDF only has {page_count} page(s)."
+            )
+        sequence.append(OrganizedPage(source_index=source_index, rotation=rotation))
+
+    raw_selected = payload.get("selected_positions", [])
+    if not isinstance(raw_selected, list):
+        raw_selected = []
+    selected = sanitize_positions([int(value) for value in raw_selected], len(sequence))
+    return sequence, selected
 
 
 def duplicate_positions(sequence: Sequence[OrganizedPage], positions: Sequence[int]) -> tuple[list[OrganizedPage], list[int]]:

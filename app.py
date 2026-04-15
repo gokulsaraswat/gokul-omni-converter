@@ -6,6 +6,7 @@ import os
 import queue
 import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 import traceback
@@ -21,7 +22,7 @@ from tkinter.scrolledtext import ScrolledText
 from PIL import Image, ImageTk
 
 from about_profile import ABOUT_PROFILE_PATH, load_about_profile, resolve_profile_image
-from app_state import APP_NAME, APP_STATE_PATH, AppStateStore
+from app_state import APP_NAME, APP_STATE_PATH, AppStateStore, UI_SCALE_OPTIONS
 from engagement_core import (
     ensure_install_date,
     iso_now,
@@ -41,13 +42,21 @@ from automation_core import (
     normalize_watch_config,
     write_run_report,
 )
-from build_support import export_diagnostics_report, export_state_snapshot, import_state_snapshot, export_text_file
+from build_support import (
+    export_diagnostics_report,
+    export_state_snapshot,
+    import_state_snapshot,
+    export_text_file,
+    render_activity_report_html,
+    export_support_bundle,
+)
 from release_support import (
     build_example_update_manifest,
     check_for_updates,
     export_workspace_bundle,
     import_workspace_bundle,
 )
+from recovery_support import latest_state_backup, restore_state_backup
 from converter_core import (
     BatchConfig,
     PdfToolConfig,
@@ -121,7 +130,7 @@ from ui_theme import (
     resolve_palette,
 )
 
-APP_VERSION = "1.6.0 Patch 16"
+APP_VERSION = "1.9.0 Patch 19"
 
 def open_path(path: str | Path) -> None:
     target = Path(path).expanduser()
@@ -172,11 +181,26 @@ PDF_TOOL_POSITIONS = ["center", "top-left", "top-right", "bottom-left", "bottom-
 
 
 class MarkdownNotesWindow(tk.Toplevel):
-    def __init__(self, master: tk.Misc, notes_path: Path, palette: ThemePalette) -> None:
+    def __init__(
+        self,
+        master: tk.Misc,
+        notes_path: Path,
+        palette: ThemePalette,
+        *,
+        window_title: str | None = None,
+        header_title: str = "Footer notes from Markdown",
+        description: str = "Edit footer_notes.md any time. Reload to reflect your latest content.",
+        open_button_text: str = "Open Markdown File",
+        empty_stub: str | None = None,
+    ) -> None:
         super().__init__(master)
         self.notes_path = notes_path
         self.palette = palette
-        self.title(f"{APP_NAME} - Footer Notes")
+        self.header_title = header_title
+        self.description = description
+        self.open_button_text = open_button_text
+        self.empty_stub = empty_stub or "# Notes\n\nUpdate this file with anything you want to show in this window.\n"
+        self.title(window_title or f"{APP_NAME} - Footer Notes")
         self.geometry("760x620")
         self.minsize(620, 420)
 
@@ -187,10 +211,10 @@ class MarkdownNotesWindow(tk.Toplevel):
         header.grid(row=0, column=0, sticky="nsew")
         header.grid_columnconfigure(0, weight=1)
 
-        ttk.Label(header, text="Footer notes from Markdown", style="CardTitle.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(header, text=self.header_title, style="CardTitle.TLabel").grid(row=0, column=0, sticky="w")
         ttk.Label(
             header,
-            text="Edit footer_notes.md any time. Reload to reflect your latest content.",
+            text=self.description,
             style="CardBody.TLabel",
             wraplength=560,
             justify="left",
@@ -199,7 +223,7 @@ class MarkdownNotesWindow(tk.Toplevel):
         actions = ttk.Frame(header, style="Surface.TFrame")
         actions.grid(row=0, column=1, rowspan=2, sticky="e")
         ttk.Button(actions, text="Reload", command=self.reload_notes).grid(row=0, column=0, padx=(0, 8))
-        ttk.Button(actions, text="Open Markdown File", command=self.open_notes_file).grid(row=0, column=1)
+        ttk.Button(actions, text=self.open_button_text, command=self.open_notes_file).grid(row=0, column=1)
 
         self.viewer = ScrolledText(self, wrap=tk.WORD, relief="flat", borderwidth=1, padx=16, pady=14)
         self.viewer.grid(row=1, column=0, sticky="nsew", padx=18, pady=(0, 18))
@@ -209,25 +233,46 @@ class MarkdownNotesWindow(tk.Toplevel):
         self.apply_theme(palette)
         self.reload_notes()
 
+    def _scale_factor(self) -> float:
+        master = self.master
+        if hasattr(master, "_ui_scale_factor"):
+            try:
+                return float(master._ui_scale_factor())  # type: ignore[attr-defined]
+            except Exception:
+                return 1.0
+        return 1.0
+
+    def _compact(self) -> bool:
+        master = self.master
+        if hasattr(master, "compact_ui_var"):
+            try:
+                return bool(master.compact_ui_var.get())  # type: ignore[attr-defined]
+            except Exception:
+                return False
+        return False
+
     def apply_theme(self, palette: ThemePalette) -> None:
         self.palette = palette
-        apply_ttk_theme(self, palette)
+        scale = self._scale_factor()
+        compact = self._compact()
+        apply_ttk_theme(self, palette, compact=compact, scale=scale)
         apply_text_widget_theme(self.viewer, palette)
-        self.viewer.configure(font=("Consolas", 10) if os.name == "nt" else ("TkFixedFont", 10))
-        self.viewer.tag_configure("h1", font=("Segoe UI", 16, "bold"), spacing1=14, spacing3=10)
-        self.viewer.tag_configure("h2", font=("Segoe UI", 13, "bold"), spacing1=12, spacing3=8)
+        fixed_family = "Consolas" if os.name == "nt" else "TkFixedFont"
+        body_size = max(10, int(round(10 * scale)))
+        h1_size = max(16, int(round(16 * scale)))
+        h2_size = max(13, int(round(13 * scale)))
+        self.viewer.configure(font=(fixed_family, body_size))
+        self.viewer.tag_configure("h1", font=("Segoe UI", h1_size, "bold"), spacing1=14, spacing3=10)
+        self.viewer.tag_configure("h2", font=("Segoe UI", h2_size, "bold"), spacing1=12, spacing3=8)
         self.viewer.tag_configure("body", lmargin1=4, lmargin2=4, spacing3=3)
         self.viewer.tag_configure("bullet", lmargin1=18, lmargin2=32, spacing3=2)
         self.viewer.tag_configure("quote", lmargin1=18, lmargin2=32, foreground=palette.text_muted)
-        self.viewer.tag_configure("code", background=palette.surface_alt, font=("Consolas", 10) if os.name == "nt" else ("TkFixedFont", 10))
+        self.viewer.tag_configure("code", background=palette.surface_alt, font=(fixed_family, body_size))
         self.viewer.tag_configure("muted", foreground=palette.text_muted)
 
     def reload_notes(self) -> None:
         if not self.notes_path.exists():
-            self.notes_path.write_text(
-                "# Footer Notes\n\nUpdate this file with anything you want to show in the footer notes window.\n",
-                encoding="utf-8",
-            )
+            self.notes_path.write_text(self.empty_stub, encoding="utf-8")
         content = self.notes_path.read_text(encoding="utf-8")
         self._render_markdown(content)
 
@@ -348,7 +393,7 @@ class SMTPSettingsWindow(tk.Toplevel):
 
     def apply_theme(self, palette: ThemePalette) -> None:
         self.palette = palette
-        apply_ttk_theme(self, palette)
+        apply_ttk_theme(self, palette, compact=bool(self.app.compact_ui_var.get()), scale=self.app._ui_scale_factor())
 
 
 class BuildCenterWindow(tk.Toplevel):
@@ -357,8 +402,8 @@ class BuildCenterWindow(tk.Toplevel):
         self.app = app
         self.palette = palette
         self.title(f"{APP_NAME} - Build Center")
-        self.geometry("820x700")
-        self.minsize(680, 540)
+        self.geometry("860x760")
+        self.minsize(720, 560)
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -366,15 +411,15 @@ class BuildCenterWindow(tk.Toplevel):
         header = ttk.Frame(self, style="Card.TFrame", padding=18)
         header.grid(row=0, column=0, sticky="ew", padx=18, pady=(18, 10))
         header.grid_columnconfigure(0, weight=1)
-        ttk.Label(header, text="Installer and release prep", style="CardTitle.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(header, text="Installer, support, and release prep", style="CardTitle.TLabel").grid(row=0, column=0, sticky="w")
         ttk.Label(
             header,
             text=(
-                "Build Center groups diagnostics, state snapshots, update-feed controls, workspace bundles, "
-                "and packaging shortcuts so release work stays organized."
+                "Build Center now includes state-backup recovery, accessibility-aware workspace controls, "
+                "support bundles, activity reporting, workspace bundles, and release-feed shortcuts so release work stays organized."
             ),
             style="CardBody.TLabel",
-            wraplength=680,
+            wraplength=720,
             justify="left",
         ).grid(row=1, column=0, sticky="w", pady=(8, 0))
 
@@ -382,7 +427,7 @@ class BuildCenterWindow(tk.Toplevel):
         body.grid(row=1, column=0, sticky="nsew", padx=18, pady=(0, 10))
         body.grid_columnconfigure(0, weight=1)
 
-        self.summary_label = ttk.Label(body, style="CardBody.TLabel", wraplength=700, justify="left")
+        self.summary_label = ttk.Label(body, style="CardBody.TLabel", wraplength=740, justify="left")
         self.summary_label.grid(row=0, column=0, sticky="w")
 
         actions = ttk.Frame(body, style="Surface.TFrame")
@@ -395,39 +440,60 @@ class BuildCenterWindow(tk.Toplevel):
         ttk.Button(actions, text="Import settings snapshot", command=self.app._import_state_snapshot_action).grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
         ttk.Button(actions, text="Export workspace bundle", command=self.app._export_workspace_bundle_action).grid(row=1, column=1, sticky="ew", pady=(8, 0))
         ttk.Button(actions, text="Import workspace bundle", command=self.app._import_workspace_bundle_action).grid(row=2, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
-        ttk.Button(actions, text="Check for updates", command=self.app._check_for_updates_placeholder).grid(row=2, column=1, sticky="ew", pady=(8, 0))
-        ttk.Button(actions, text="Choose manifest file", command=self.app._browse_update_manifest_source).grid(row=3, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
-        ttk.Button(actions, text="Open manifest example", command=self.app._open_update_manifest_example).grid(row=3, column=1, sticky="ew", pady=(8, 0))
-        ttk.Button(actions, text="Open installer folder", command=self.app._open_installer_folder).grid(row=4, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
-        ttk.Button(actions, text="Open build notes", command=lambda: open_path(self.app.build_notes_path)).grid(row=4, column=1, sticky="ew", pady=(8, 0))
-        ttk.Button(actions, text="Open SMTP settings", command=self.app._open_smtp_window).grid(row=5, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
-        ttk.Button(actions, text="Open About editor", command=self.app._open_about_editor_window).grid(row=5, column=1, sticky="ew", pady=(8, 0))
-        ttk.Button(actions, text="Refresh summary", command=self.refresh_summary).grid(row=6, column=0, columnspan=2, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Export support bundle", command=self.app._export_support_bundle_action).grid(row=2, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Export activity report", command=self.app._export_activity_report_action).grid(row=3, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
+        ttk.Button(actions, text="Check for updates", command=self.app._check_for_updates_placeholder).grid(row=3, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Choose manifest file", command=self.app._browse_update_manifest_source).grid(row=4, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
+        ttk.Button(actions, text="Open manifest example", command=self.app._open_update_manifest_example).grid(row=4, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Open installer folder", command=self.app._open_installer_folder).grid(row=5, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
+        ttk.Button(actions, text="Open build notes", command=lambda: open_path(self.app.build_notes_path)).grid(row=5, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Open app state folder", command=self.app._open_app_state_folder).grid(row=6, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
+        ttk.Button(actions, text="Open SMTP settings", command=self.app._open_smtp_window).grid(row=6, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Open About editor", command=self.app._open_about_editor_window).grid(row=7, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
+        ttk.Button(actions, text="Open shortcut guide", command=self.app._open_shortcuts_window).grid(row=7, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Create state backup", command=self.app._backup_state_now).grid(row=8, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
+        ttk.Button(actions, text="Restore latest backup", command=self.app._restore_latest_state_backup_action).grid(row=8, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Open backup folder", command=self.app._open_state_backup_dir).grid(row=9, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
+        ttk.Button(actions, text="Refresh summary", command=self.refresh_summary).grid(row=9, column=1, sticky="ew", pady=(8, 0))
 
         self.protocol("WM_DELETE_WINDOW", self.destroy)
         self.apply_theme(palette)
         self.refresh_summary()
 
     def refresh_summary(self) -> None:
+        self.app._refresh_backup_status()
         installer_root = self.app.build_notes_path.parent
         asset_count = sum(1 for path in installer_root.rglob("*") if path.is_file()) if installer_root.exists() else 0
+        activity_dir = self.app.activity_report_dir_var.get().strip() or self.app.output_dir_var.get().strip()
+        support_dir = self.app.support_bundle_dir_var.get().strip() or self.app.output_dir_var.get().strip()
         summary = [
             f"Version: {APP_VERSION}",
             f"Installer assets found: {asset_count}",
             f"App state file: {APP_STATE_PATH}",
             f"Current output folder: {self.app.output_dir_var.get().strip()}",
             f"Latest outputs tracked: {len(self.app.last_outputs)}",
+            f"Recent jobs stored: {len(self.app.state_store.recent_jobs())}",
+            f"Compact UI: {'On' if bool(self.app.compact_ui_var.get()) else 'Off'}",
+            f"UI scale: {self.app.ui_scale_var.get().strip() or '100%'}",
+            f"High contrast: {'On' if bool(self.app.high_contrast_var.get()) else 'Off'}",
+            f"Reduced motion: {'On' if bool(self.app.reduced_motion_var.get()) else 'Off'}",
+            f"Start page: {self.app.start_page_var.get().strip() or 'home'}",
+            f"State backups: {'On' if bool(self.app.state_backup_enabled_var.get()) else 'Off'}",
+            f"Backup keep count: {self.app._state_backup_keep_count()}",
+            f"Last state backup: {self.app.last_state_backup_var.get().strip() or 'None yet'}",
             f"Dependency summary: {self.app.dependency_var.get().strip()}",
             f"Update manifest: {self.app.update_manifest_url_var.get().strip() or self.app.update_manifest_example_path}",
             f"Last update check: {self.app.last_update_check_var.get().strip() or 'Never'}",
             f"Last update result: {self.app.last_update_result_var.get().strip() or 'No checks yet.'}",
             f"Workspace bundle folder: {self.app.workspace_backup_dir_var.get().strip() or APP_STATE_PATH.parent}",
+            f"Support bundle folder: {support_dir}",
+            f"Activity report folder: {activity_dir}",
         ]
         self.summary_label.configure(text="\n\n".join(summary))
 
     def apply_theme(self, palette: ThemePalette) -> None:
         self.palette = palette
-        apply_ttk_theme(self, palette)
+        apply_ttk_theme(self, palette, compact=bool(self.app.compact_ui_var.get()), scale=self.app._ui_scale_factor())
 
 
 class AboutProfileEditorWindow(tk.Toplevel):
@@ -602,7 +668,7 @@ class AboutProfileEditorWindow(tk.Toplevel):
 
     def apply_theme(self, palette: ThemePalette) -> None:
         self.palette = palette
-        apply_ttk_theme(self, palette)
+        apply_ttk_theme(self, palette, compact=bool(self.app.compact_ui_var.get()), scale=self.app._ui_scale_factor())
         apply_text_widget_theme(self.bio_text, palette)
 
 
@@ -619,6 +685,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.state_store.save()
 
         self.notes_path = Path(__file__).with_name("footer_notes.md")
+        self.shortcuts_path = Path(__file__).with_name("keyboard_shortcuts.md")
         self.about_profile_path = ABOUT_PROFILE_PATH
         self.build_notes_path = Path(__file__).with_name("installer") / "BUILDING.md"
         self.static_about_profile_path = Path(__file__).with_name("installer") / "about_static.json"
@@ -644,6 +711,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.running = False
         self.active_run_kind = ""
         self.notes_window: MarkdownNotesWindow | None = None
+        self.shortcuts_window: MarkdownNotesWindow | None = None
         self.smtp_window: SMTPSettingsWindow | None = None
         self.build_center_window: BuildCenterWindow | None = None
         self.about_editor_window: AboutProfileEditorWindow | None = None
@@ -701,6 +769,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.engine_help_var = tk.StringVar(value=ENGINE_HELP.get(str(self.state_store.get("conversion_engine", ENGINE_AUTO)), ""))
         self.active_engine_var = tk.StringVar(value="")
         self.history_detail_var = tk.StringVar(value="Select a recent job to inspect details or re-use settings.")
+        self.history_filter_var = tk.StringVar(value="")
         self.pdf_tool_var = tk.StringVar(value=PDF_TOOL_MERGE)
         self.pdf_tool_help_var = tk.StringVar(value=PDF_TOOL_HELP[PDF_TOOL_MERGE])
         self.pdf_tool_output_name_var = tk.StringVar(value="merged_pdfs")
@@ -765,6 +834,11 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.link_auto_start_pending = False
 
         self.performance_mode_var = tk.StringVar(value=str(self.state_store.get("performance_mode", "balanced")))
+        self.compact_ui_var = tk.BooleanVar(value=bool(self.state_store.get("compact_ui", False)))
+        self.ui_scale_var = tk.StringVar(value=str(self.state_store.get("ui_scale", "100%")))
+        self.high_contrast_var = tk.BooleanVar(value=bool(self.state_store.get("high_contrast", False)))
+        self.reduced_motion_var = tk.BooleanVar(value=bool(self.state_store.get("reduced_motion", False)))
+        self.start_page_var = tk.StringVar(value=str(self.state_store.get("start_page", "home")))
         self.favorite_preset_summary_var = tk.StringVar(value="Favorite presets will appear here after you star them.")
 
         self.splash_enabled_var = tk.BooleanVar(value=bool(self.state_store.get("splash_enabled", True)))
@@ -780,6 +854,12 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.update_manifest_url_var = tk.StringVar(value=str(self.state_store.get("update_manifest_url", "")))
         self.last_update_result_var = tk.StringVar(value=str(self.state_store.get("last_update_result", "")))
         self.workspace_backup_dir_var = tk.StringVar(value=str(self.state_store.get("workspace_backup_dir", "")))
+        self.support_bundle_dir_var = tk.StringVar(value=str(self.state_store.get("support_bundle_dir", "")))
+        self.activity_report_dir_var = tk.StringVar(value=str(self.state_store.get("activity_report_dir", "")))
+        self.state_backup_enabled_var = tk.BooleanVar(value=bool(self.state_store.get("state_backup_enabled", True)))
+        self.state_backup_keep_var = tk.StringVar(value=str(self.state_store.get("state_backup_keep", 12)))
+        self.last_state_backup_var = tk.StringVar(value=str(self.state_store.get("last_state_backup", "")))
+        self.backup_summary_var = tk.StringVar(value="Backup health not checked yet.")
 
         smtp_config = SMTPSettings.from_dict(self.state_store.get("smtp_settings", {}))
         self.smtp_host_var = tk.StringVar(value=smtp_config.host)
@@ -817,9 +897,14 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self._update_pdf_tool_controls()
         self._refresh_history_views()
         self._apply_theme(initial=True)
-        startup_page = str(self.state_store.get("last_page", "home")).strip() or "home"
+        preferred_page = str(self.state_store.get("start_page", "home")).strip() or "home"
+        remember_last_page = bool(self.state_store.get("restore_last_session", True))
+        startup_page = str(self.state_store.get("last_page", preferred_page if remember_last_page else "home")).strip() or preferred_page
+        if not remember_last_page:
+            startup_page = preferred_page
         self._show_page(startup_page if startup_page in self.pages else "home")
         self._update_login_popup_state()
+        self._refresh_backup_status()
         self._refresh_recent_links_summary()
         self._refresh_link_cache_summary()
         self._sync_static_about_profile()
@@ -843,6 +928,9 @@ class GokulOmniConvertLiteApp(tk.Tk):
                 gif_path=self._resolve_splash_gif_path(),
                 palette=self.palette,
                 on_close=self._on_splash_closed,
+                reduced_motion=bool(self.reduced_motion_var.get()),
+                compact=bool(self.compact_ui_var.get()),
+                scale=self._ui_scale_factor(),
             )
             return
 
@@ -880,6 +968,9 @@ class GokulOmniConvertLiteApp(tk.Tk):
                 palette=self.palette,
                 on_dismiss=self._dismiss_login_popup,
                 on_complete=self._complete_login_popup,
+                reduced_motion=bool(self.reduced_motion_var.get()),
+                compact=bool(self.compact_ui_var.get()),
+                scale=self._ui_scale_factor(),
             )
             self._update_login_popup_state()
 
@@ -921,6 +1012,77 @@ class GokulOmniConvertLiteApp(tk.Tk):
         snapshot["login_popup_enabled"] = bool(self.login_popup_enabled_var.get())
         self.login_popup_state_var.set(summarize_login_popup_state(snapshot))
 
+    def _ui_scale_factor(self) -> float:
+        raw = str(self.ui_scale_var.get()).strip().replace("%", "")
+        try:
+            value = float(raw) / 100.0
+        except Exception:
+            value = 1.0
+        return min(max(value, 0.85), 1.6)
+
+    def _current_palette(self) -> ThemePalette:
+        return resolve_palette(self.theme_choice_var.get(), high_contrast=bool(self.high_contrast_var.get()))
+
+    def _state_backup_keep_count(self) -> int:
+        try:
+            return max(3, min(60, int(str(self.state_backup_keep_var.get()).strip() or "12")))
+        except Exception:
+            return 12
+
+    def _refresh_backup_status(self) -> None:
+        backup_dir = self.state_store.state_backups_dir()
+        backups = self.state_store.state_backups(limit=20)
+        last_backup = str(self.state_store.get("last_state_backup", "")).strip()
+        if not last_backup and backups:
+            last_backup = str(backups[0])
+            self.last_state_backup_var.set(last_backup)
+        enabled = bool(self.state_backup_enabled_var.get())
+        if backups:
+            latest = backups[0]
+            count = len(backups)
+            summary = (
+                f"Backups: {'On' if enabled else 'Off'} • {count} saved • "
+                f"latest {latest.name} • folder {backup_dir}"
+            )
+        else:
+            summary = f"Backups: {'On' if enabled else 'Off'} • no backup copies saved yet • folder {backup_dir}"
+        self.backup_summary_var.set(summary)
+
+    def _open_state_backup_dir(self) -> None:
+        backup_dir = self.state_store.state_backups_dir()
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        self._refresh_backup_status()
+        open_path(backup_dir)
+
+    def _backup_state_now(self) -> None:
+        latest_before = latest_state_backup(APP_STATE_PATH)
+        self._persist_state()
+        latest_after = latest_state_backup(APP_STATE_PATH)
+        latest_path = latest_after or latest_before
+        if latest_path is not None:
+            self.last_state_backup_var.set(str(latest_path))
+            self.status_var.set(f"State backup created: {latest_path.name}")
+        else:
+            self.status_var.set("State backup skipped because no state file was available yet.")
+        self._refresh_backup_status()
+        self._refresh_build_center_summary()
+
+    def _restore_latest_state_backup_action(self) -> None:
+        latest = latest_state_backup(APP_STATE_PATH)
+        if latest is None:
+            messagebox.showinfo("Restore backup", "No saved state backup was found yet.")
+            return
+        if not messagebox.askyesno("Restore backup", f"Restore the latest backup to the live app state file?\n\n{latest}"):
+            return
+        restore_state_backup(latest, APP_STATE_PATH)
+        self.state_store.load()
+        self.last_state_backup_var.set(str(latest))
+        self._apply_state_snapshot(dict(self.state_store.state), announce=False)
+        self._refresh_backup_status()
+        self.status_var.set(f"Restored state backup: {latest.name}")
+        self._refresh_build_center_summary()
+        messagebox.showinfo("Restore backup", f"Restored the latest backup:\n{latest}")
+
     def _resolve_splash_gif_path(self) -> Path:
         value = self.splash_gif_path_var.get().strip() or "assets/gokul_splash.gif"
         path = Path(value).expanduser()
@@ -937,6 +1099,9 @@ class GokulOmniConvertLiteApp(tk.Tk):
             gif_path=self._resolve_splash_gif_path(),
             palette=self.palette,
             on_close=self._on_preview_splash_closed,
+            reduced_motion=bool(self.reduced_motion_var.get()),
+            compact=bool(self.compact_ui_var.get()),
+            scale=self._ui_scale_factor(),
         )
 
     def _on_preview_splash_closed(self) -> None:
@@ -1103,7 +1268,13 @@ class GokulOmniConvertLiteApp(tk.Tk):
         file_menu.add_command(label="Export Settings Snapshot", command=self._export_state_snapshot_action)
         file_menu.add_command(label="Import Settings Snapshot", command=self._import_state_snapshot_action)
         file_menu.add_command(label="Export Diagnostics JSON", command=self._export_diagnostics_report_action)
+        file_menu.add_command(label="Export Activity Report", command=self._export_activity_report_action)
+        file_menu.add_command(label="Export Support Bundle", command=self._export_support_bundle_action)
         file_menu.add_command(label="Export App Logs", command=self._export_current_logs_action)
+        file_menu.add_command(label="Open App State Folder", command=self._open_app_state_folder)
+        file_menu.add_command(label="Open Backup Folder", command=self._open_state_backup_dir)
+        file_menu.add_command(label="Create State Backup", command=self._backup_state_now, accelerator="Ctrl+Shift+B")
+        file_menu.add_command(label="Restore Latest Backup", command=self._restore_latest_state_backup_action)
         file_menu.add_separator()
         file_menu.add_command(label="Exit", command=self._on_close)
         menu_bar.add_cascade(label="File", menu=file_menu)
@@ -1163,11 +1334,16 @@ class GokulOmniConvertLiteApp(tk.Tk):
 
         help_menu = tk.Menu(menu_bar)
         help_menu.add_command(label="Open Footer Notes", command=self._open_notes_window)
+        help_menu.add_command(label="Keyboard Shortcuts", command=self._open_shortcuts_window, accelerator="F1")
+        help_menu.add_command(label="Create State Backup", command=self._backup_state_now)
+        help_menu.add_command(label="Restore Latest Backup", command=self._restore_latest_state_backup_action)
         help_menu.add_command(label="Open Organizer", command=lambda: self._show_page("organizer"))
         help_menu.add_command(label="Open OCR", command=lambda: self._show_page("ocr"))
         help_menu.add_command(label="Open Markdown File", command=lambda: open_path(self.notes_path))
         help_menu.add_command(label="Open SMTP Delivery", command=self._open_smtp_window)
         help_menu.add_command(label="Open Build Center", command=self._open_build_center_window)
+        help_menu.add_command(label="Export Activity Report", command=self._export_activity_report_action)
+        help_menu.add_command(label="Export Support Bundle", command=self._export_support_bundle_action)
         help_menu.add_command(label="Quick actions", command=self._open_command_palette)
         help_menu.add_command(label="Check for updates", command=self._check_for_updates_placeholder)
         help_menu.add_separator()
@@ -1186,6 +1362,8 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.bind_all("<Control-Shift-L>", lambda _event: self._focus_link_input())
         self.bind_all("<Control-k>", lambda _event: self._open_command_palette())
         self.bind_all("<Control-comma>", lambda _event: self._show_page("settings"))
+        self.bind_all("<Control-B>", lambda _event: self._backup_state_now())
+        self.bind_all("<F1>", lambda _event: self._open_shortcuts_window())
         self.bind_all("<F5>", lambda _event: self._refresh_dependency_status())
 
     def _build_home_page(self) -> None:
@@ -1372,7 +1550,14 @@ class GokulOmniConvertLiteApp(tk.Tk):
             QuickAction("Open OCR", lambda: self._show_page("ocr"), hint="Searchable PDF and OCR text tools", keywords="scan text"),
             QuickAction("Open Automation", lambda: self._show_page("automation"), hint="Presets and watch folder tools", keywords="presets watch"),
             QuickAction("Open Build Center", self._open_build_center_window, hint="Diagnostics and release prep", keywords="installer diagnostics"),
+            QuickAction("Open shortcut guide", self._open_shortcuts_window, hint="Show the in-app keyboard shortcut reference", keywords="keyboard shortcuts help f1"),
+            QuickAction("Create state backup", self._backup_state_now, hint="Save a timestamped backup copy of app state", keywords="backup recovery"),
+            QuickAction("Restore latest backup", self._restore_latest_state_backup_action, hint="Restore the latest saved app-state backup", keywords="backup restore state"),
+            QuickAction("Open backup folder", self._open_state_backup_dir, hint="Open the local folder that stores state backups", keywords="backup folder"),
             QuickAction("Open SMTP Delivery", self._open_smtp_window, hint="Draft or send outputs by email", keywords="mail email"),
+            QuickAction("Export activity report", self._export_activity_report_action, hint="Generate a polished HTML activity report", keywords="report html jobs history"),
+            QuickAction("Export support bundle", self._export_support_bundle_action, hint="Package diagnostics, logs, settings, and profile files", keywords="support bundle zip"),
+            QuickAction("Open app state folder", self._open_app_state_folder, hint="Inspect local state, cache, and profile files", keywords="state folder"),
             QuickAction("Check for updates", self._check_for_updates_placeholder, hint="Check a local or remote release manifest", keywords="release update manifest"),
         ]
 
@@ -1380,7 +1565,13 @@ class GokulOmniConvertLiteApp(tk.Tk):
         if self.command_palette_window and self.command_palette_window.winfo_exists():
             self.command_palette_window.lift()
             return
-        self.command_palette_window = CommandPaletteWindow(self, actions=self._build_quick_actions(), palette=self.palette)
+        self.command_palette_window = CommandPaletteWindow(
+            self,
+            actions=self._build_quick_actions(),
+            palette=self.palette,
+            compact=bool(self.compact_ui_var.get()),
+            scale=self._ui_scale_factor(),
+        )
         self.command_palette_window.bind("<Destroy>", lambda _event: setattr(self, "command_palette_window", None), add="+")
 
     def _attach_tooltip(self, widget: tk.Widget, text: str) -> None:
@@ -2379,7 +2570,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
 
         self.organizer_panel = PageOrganizerPanel(
             page,
-            palette=resolve_palette(self.theme_choice_var.get()),
+            palette=self._current_palette(),
             set_status=self.status_var.set,
             on_recent_job=self._record_external_job,
             on_loaded_pdf=self._remember_organizer_pdf,
@@ -2712,6 +2903,162 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.status_var.set(f"Exported logs: {path}")
         open_path(path)
 
+
+    def _dependency_status_payload(self) -> dict[str, object]:
+        runtime_dependencies = dependency_status(self.soffice_path_var.get().strip())
+        tesseract_runtime = detect_tesseract_status(self.tesseract_path_var.get().strip())
+        runtime_dependencies["Tesseract"] = bool(tesseract_runtime.get("available"))
+        return runtime_dependencies
+
+    def _resolve_activity_report_dir(self) -> Path:
+        raw = self.activity_report_dir_var.get().strip() or self.output_dir_var.get().strip() or str(Path.cwd())
+        path = Path(raw).expanduser()
+        path.mkdir(parents=True, exist_ok=True)
+        self.activity_report_dir_var.set(str(path))
+        return path
+
+    def _resolve_support_bundle_dir(self) -> Path:
+        raw = self.support_bundle_dir_var.get().strip() or self.output_dir_var.get().strip() or str(Path.cwd())
+        path = Path(raw).expanduser()
+        path.mkdir(parents=True, exist_ok=True)
+        self.support_bundle_dir_var.set(str(path))
+        return path
+
+    def _open_app_state_folder(self) -> None:
+        open_path(APP_STATE_PATH.parent)
+
+    def _open_activity_report_dir(self) -> None:
+        open_path(self._resolve_activity_report_dir())
+
+    def _open_support_bundle_dir(self) -> None:
+        open_path(self._resolve_support_bundle_dir())
+
+    def _remember_exported_output(self, path: Path) -> None:
+        if path not in self.last_outputs:
+            self.last_outputs = [path, *[item for item in self.last_outputs if item != path]][:40]
+        self.last_output_dir = path.parent
+        self.state_store.remember_outputs(self.last_outputs)
+        self._refresh_recent_outputs_view()
+
+    def _build_activity_report_notes(self) -> str:
+        return (
+            f"Current mode: {self.mode_var.get().strip() or MODE_ANY_TO_PDF}; "
+            f"Engine: {self.engine_mode_var.get().strip() or ENGINE_PURE_PYTHON}; "
+            f"Output folder: {self.output_dir_var.get().strip() or Path.cwd()}"
+        )
+
+    def _export_activity_report_action(self) -> None:
+        self._persist_state()
+        base_dir = self._resolve_activity_report_dir()
+        filename = f"gokul_omni_convert_activity_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+        target = filedialog.asksaveasfilename(
+            title="Export activity report",
+            defaultextension=".html",
+            initialdir=str(base_dir),
+            initialfile=filename,
+            filetypes=[("HTML files", "*.html"), ("All files", "*.*")],
+        )
+        if not target:
+            return
+        destination = render_activity_report_html(
+            Path(target),
+            app_name=APP_NAME,
+            app_version=APP_VERSION,
+            recent_jobs=self.state_store.recent_jobs(),
+            recent_outputs=[str(path) for path in self.last_outputs],
+            failed_jobs=self.state_store.failed_jobs(),
+            dependency_status=self._dependency_status_payload(),
+            notes=self._build_activity_report_notes(),
+        )
+        self._remember_exported_output(destination)
+        self.status_var.set(f"Activity report exported: {destination.name}")
+        self._refresh_build_center_summary()
+        open_path(destination)
+
+    def _export_support_bundle_action(self) -> None:
+        self._persist_state()
+        base_dir = self._resolve_support_bundle_dir()
+        filename = f"gokul_omni_convert_support_bundle_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+        target = filedialog.asksaveasfilename(
+            title="Export support bundle",
+            defaultextension=".zip",
+            initialdir=str(base_dir),
+            initialfile=filename,
+            filetypes=[("ZIP files", "*.zip"), ("All files", "*.*")],
+        )
+        if not target:
+            return
+
+        bundle_temp_dir = self.session_temp_root / "support_bundle"
+        bundle_temp_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            diagnostics_path = export_diagnostics_report(
+                bundle_temp_dir / "diagnostics.json",
+                app_name=APP_NAME,
+                app_version=APP_VERSION,
+                state_path=APP_STATE_PATH,
+                about_profile_path=self.about_profile_path,
+                notes_path=self.notes_path,
+                installer_dir=self.build_notes_path.parent,
+                output_dir=Path(self.output_dir_var.get().strip() or Path.cwd() / "converted_output"),
+                selected_files=[str(path) for path in self.selected_files],
+                last_outputs=[str(path) for path in self.last_outputs],
+                dependency_status=self._dependency_status_payload(),
+                smtp_summary=self._smtp_settings_from_vars().sanitized_dict(),
+                extra={
+                    "recent_job_count": len(self.state_store.recent_jobs()),
+                    "preset_count": len(self.state_store.presets()),
+                    "recent_link_count": len(self.state_store.recent_links()),
+                    "recent_output_count": len(self.state_store.recent_outputs()),
+                    "failed_job_count": len(self.state_store.failed_jobs()),
+                },
+            )
+        except Exception:
+            diagnostics_path = export_text_file(bundle_temp_dir / "diagnostics_error.txt", traceback.format_exc())
+
+        state_snapshot_path = export_state_snapshot(bundle_temp_dir / "state_snapshot.json", self.state_store.state)
+        logs_path = export_text_file(bundle_temp_dir / "app_logs.txt", self._collect_log_sections())
+        activity_report_path = render_activity_report_html(
+            bundle_temp_dir / "activity_report.html",
+            app_name=APP_NAME,
+            app_version=APP_VERSION,
+            recent_jobs=self.state_store.recent_jobs(),
+            recent_outputs=[str(path) for path in self.last_outputs],
+            failed_jobs=self.state_store.failed_jobs(),
+            dependency_status=self._dependency_status_payload(),
+            notes=self._build_activity_report_notes(),
+        )
+
+        extra_files: list[Path] = [self.update_manifest_example_path]
+        if self.shortcuts_path.exists():
+            extra_files.append(self.shortcuts_path)
+        profile_image = resolve_profile_image(self.about_profile, self.about_profile_path.parent)
+        if profile_image.exists():
+            extra_files.append(profile_image)
+        splash_asset = self._resolve_splash_gif_path()
+        if splash_asset.exists():
+            extra_files.append(splash_asset)
+        latest_backup = latest_state_backup(APP_STATE_PATH)
+        if latest_backup and latest_backup.exists():
+            extra_files.append(latest_backup)
+
+        destination = export_support_bundle(
+            Path(target),
+            diagnostics_report=diagnostics_path,
+            state_snapshot=state_snapshot_path,
+            activity_report=activity_report_path,
+            logs_path=logs_path,
+            notes_path=self.notes_path,
+            about_profile_path=self.about_profile_path,
+            installer_dir=self.build_notes_path.parent,
+            extra_files=extra_files,
+        )
+        self._remember_exported_output(destination)
+        self.status_var.set(f"Support bundle exported: {destination.name}")
+        self._refresh_build_center_summary()
+        open_path(destination)
+
     def _refresh_build_center_summary(self) -> None:
         if self.build_center_window and self.build_center_window.winfo_exists():
             self.build_center_window.refresh_summary()
@@ -2797,6 +3144,11 @@ class GokulOmniConvertLiteApp(tk.Tk):
             extras.append(profile_image)
         if self.update_manifest_example_path.exists() and self.update_manifest_example_path.is_file():
             extras.append(self.update_manifest_example_path)
+        if self.shortcuts_path.exists() and self.shortcuts_path.is_file():
+            extras.append(self.shortcuts_path)
+        latest_backup = latest_state_backup(APP_STATE_PATH)
+        if latest_backup and latest_backup.exists() and latest_backup.is_file():
+            extras.append(latest_backup)
         return extras
 
     def _export_workspace_bundle_action(self) -> None:
@@ -2866,15 +3218,24 @@ class GokulOmniConvertLiteApp(tk.Tk):
         left = ttk.LabelFrame(page, text="Recent jobs")
         left.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         left.grid_columnconfigure(0, weight=1)
-        left.grid_rowconfigure(1, weight=1)
+        left.grid_rowconfigure(2, weight=1)
 
         ttk.Label(
             left,
-            text="This view stores job summaries locally so you can inspect past runs and load the same settings again.",
+            text="This view stores job summaries locally so you can inspect past runs, filter them instantly, and load the same settings again.",
             style="CardBody.TLabel",
             wraplength=720,
             justify="left",
         ).grid(row=0, column=0, sticky="w", pady=(0, 10))
+
+        history_filter_row = ttk.Frame(left)
+        history_filter_row.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        history_filter_row.grid_columnconfigure(1, weight=1)
+        ttk.Label(history_filter_row, text="Filter:", style="Surface.TLabel").grid(row=0, column=0, sticky="w")
+        history_filter_entry = ttk.Entry(history_filter_row, textvariable=self.history_filter_var)
+        history_filter_entry.grid(row=0, column=1, sticky="ew", padx=(8, 8))
+        history_filter_entry.bind("<KeyRelease>", lambda _event: self._refresh_history_views())
+        ttk.Button(history_filter_row, text="Clear", command=self._clear_history_filter).grid(row=0, column=2, sticky="e")
 
         self.history_tree = ttk.Treeview(
             left,
@@ -2891,7 +3252,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         ):
             self.history_tree.heading(col, text=title)
             self.history_tree.column(col, width=width, anchor="w")
-        self.history_tree.grid(row=1, column=0, sticky="nsew")
+        self.history_tree.grid(row=2, column=0, sticky="nsew")
         self.history_tree.bind("<<TreeviewSelect>>", self._on_history_selected)
 
         right = ttk.LabelFrame(page, text="Selected job details")
@@ -2911,8 +3272,10 @@ class GokulOmniConvertLiteApp(tk.Tk):
         action_row.grid_columnconfigure(0, weight=1)
         ttk.Button(action_row, text="Load selected settings", command=self._load_selected_history_settings).grid(row=0, column=0, sticky="ew")
         ttk.Button(action_row, text="Open selected output folder", command=self._open_selected_history_output).grid(row=1, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(action_row, text="Export logs", command=self._export_current_logs_action).grid(row=2, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(action_row, text="Clear history", command=self._clear_history).grid(row=3, column=0, sticky="ew", pady=(8, 0))
+        ttk.Button(action_row, text="Export selected run report", command=self._export_selected_history_report).grid(row=2, column=0, sticky="ew", pady=(8, 0))
+        ttk.Button(action_row, text="Export activity report", command=self._export_activity_report_action).grid(row=3, column=0, sticky="ew", pady=(8, 0))
+        ttk.Button(action_row, text="Export logs", command=self._export_current_logs_action).grid(row=4, column=0, sticky="ew", pady=(8, 0))
+        ttk.Button(action_row, text="Clear history", command=self._clear_history).grid(row=5, column=0, sticky="ew", pady=(8, 0))
 
         right.grid_rowconfigure(3, weight=1)
         lower_panels = ttk.Frame(right)
@@ -2970,7 +3333,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         ttk.Label(
             header,
             text=(
-                "Patch 15 adds workflow acceleration on top of the startup polish from earlier patches, including favorite presets, a quick-actions palette, link pause/resume, cache controls, and performance tuning while keeping pure Python as the default engine."
+                "Patch 19 keeps the accessibility and recovery upgrades, and now adds organizer drag-and-drop, undo/redo history, and layout snapshots while keeping Pure Python as the default engine."
             ),
             style="CardBody.TLabel",
             wraplength=980,
@@ -3045,6 +3408,63 @@ class GokulOmniConvertLiteApp(tk.Tk):
             wraplength=460,
             justify="left",
         ).grid(row=11, column=0, columnspan=3, sticky="w", pady=(8, 0))
+
+        ttk.Checkbutton(appearance, text="Use compact UI spacing", variable=self.compact_ui_var, command=self._apply_theme).grid(
+            row=12, column=0, columnspan=3, sticky="w", pady=(12, 0)
+        )
+        ttk.Label(appearance, text="Start page:", style="Surface.TLabel").grid(row=13, column=0, sticky="w", pady=(12, 0))
+        ttk.Combobox(
+            appearance,
+            textvariable=self.start_page_var,
+            values=["home", "convert", "pdf_tools", "ocr", "organizer", "automation", "history", "settings", "about"],
+            state="readonly",
+            width=18,
+        ).grid(row=13, column=1, sticky="w", padx=(8, 0), pady=(12, 0))
+        ttk.Label(
+            appearance,
+            text="Choose which page should open first when session restore is off or when no last-page snapshot is available.",
+            style="CardBody.TLabel",
+            wraplength=460,
+            justify="left",
+        ).grid(row=14, column=0, columnspan=3, sticky="w", pady=(8, 0))
+
+        ttk.Label(appearance, text="UI scale:", style="Surface.TLabel").grid(row=15, column=0, sticky="w", pady=(12, 0))
+        self.ui_scale_combo = ttk.Combobox(
+            appearance,
+            textvariable=self.ui_scale_var,
+            values=sorted(UI_SCALE_OPTIONS, key=lambda item: int(item.rstrip("%"))),
+            state="readonly",
+            width=12,
+        )
+        self.ui_scale_combo.grid(row=15, column=1, sticky="w", padx=(8, 0), pady=(12, 0))
+        self.ui_scale_combo.bind("<<ComboboxSelected>>", lambda _event: self._apply_theme())
+        ttk.Checkbutton(appearance, text="High contrast", variable=self.high_contrast_var, command=self._apply_theme).grid(
+            row=16, column=0, sticky="w", pady=(10, 0)
+        )
+        ttk.Checkbutton(appearance, text="Reduced motion", variable=self.reduced_motion_var).grid(
+            row=16, column=1, sticky="w", padx=(8, 0), pady=(10, 0)
+        )
+        ttk.Label(
+            appearance,
+            text="High contrast boosts readability. Reduced motion tones down splash and reminder animations. UI scale helps on smaller or higher-DPI screens.",
+            style="CardBody.TLabel",
+            wraplength=460,
+            justify="left",
+        ).grid(row=17, column=0, columnspan=3, sticky="w", pady=(8, 0))
+
+        ttk.Checkbutton(appearance, text="Create automatic state backups before saves", variable=self.state_backup_enabled_var).grid(
+            row=18, column=0, columnspan=3, sticky="w", pady=(12, 0)
+        )
+        ttk.Label(appearance, text="Keep backups:", style="Surface.TLabel").grid(row=19, column=0, sticky="w", pady=(10, 0))
+        ttk.Entry(appearance, textvariable=self.state_backup_keep_var, width=10).grid(row=19, column=1, sticky="w", padx=(8, 0), pady=(10, 0))
+        ttk.Label(appearance, textvariable=self.backup_summary_var, style="CardBody.TLabel", wraplength=460, justify="left").grid(
+            row=20, column=0, columnspan=3, sticky="w", pady=(10, 0)
+        )
+        backup_actions = ttk.Frame(appearance)
+        backup_actions.grid(row=21, column=0, columnspan=3, sticky="w", pady=(10, 0))
+        ttk.Button(backup_actions, text="Create backup now", command=self._backup_state_now).grid(row=0, column=0, padx=(0, 8))
+        ttk.Button(backup_actions, text="Restore latest", command=self._restore_latest_state_backup_action).grid(row=0, column=1, padx=(0, 8))
+        ttk.Button(backup_actions, text="Open backup folder", command=self._open_state_backup_dir).grid(row=0, column=2)
 
         engine_frame = ttk.LabelFrame(content, text="Conversion engine")
         engine_frame.grid(row=0, column=1, sticky="nsew", pady=(0, 10))
@@ -3173,42 +3593,84 @@ class GokulOmniConvertLiteApp(tk.Tk):
         ttk.Label(files_frame, text="Link timeout (seconds):", style="Surface.TLabel").grid(row=12, column=0, sticky="w", pady=(10, 0))
         ttk.Entry(files_frame, textvariable=self.link_timeout_var).grid(row=12, column=1, sticky="w", padx=(8, 8), pady=(10, 0))
 
+        ttk.Label(files_frame, text="Activity report folder:", style="Surface.TLabel").grid(row=13, column=0, sticky="w", pady=(10, 0))
+        ttk.Entry(files_frame, textvariable=self.activity_report_dir_var).grid(row=13, column=1, sticky="ew", padx=(8, 8), pady=(10, 0))
+        activity_actions = ttk.Frame(files_frame)
+        activity_actions.grid(row=13, column=2, sticky="e", pady=(10, 0))
+        ttk.Button(activity_actions, text="Open", command=self._open_activity_report_dir).grid(row=0, column=0, padx=(0, 8))
+        ttk.Button(activity_actions, text="Export", command=self._export_activity_report_action).grid(row=0, column=1)
+
+        ttk.Label(files_frame, text="Support bundle folder:", style="Surface.TLabel").grid(row=14, column=0, sticky="w", pady=(10, 0))
+        ttk.Entry(files_frame, textvariable=self.support_bundle_dir_var).grid(row=14, column=1, sticky="ew", padx=(8, 8), pady=(10, 0))
+        support_actions = ttk.Frame(files_frame)
+        support_actions.grid(row=14, column=2, sticky="e", pady=(10, 0))
+        ttk.Button(support_actions, text="Open", command=self._open_support_bundle_dir).grid(row=0, column=0, padx=(0, 8))
+        ttk.Button(support_actions, text="Bundle", command=self._export_support_bundle_action).grid(row=0, column=1)
+
+        ttk.Label(files_frame, text="Shortcut guide file:", style="Surface.TLabel").grid(row=15, column=0, sticky="w", pady=(10, 0))
+        self.shortcuts_path_entry = ttk.Entry(files_frame)
+        self.shortcuts_path_entry.grid(row=15, column=1, sticky="ew", padx=(8, 8), pady=(10, 0))
+        self.shortcuts_path_entry.insert(0, str(self.shortcuts_path))
+        self.shortcuts_path_entry.state(["readonly"])
+        ttk.Button(files_frame, text="Open file", command=lambda: open_path(self.shortcuts_path)).grid(row=15, column=2, sticky="e", pady=(10, 0))
+
+        ttk.Label(files_frame, text="Last state backup:", style="Surface.TLabel").grid(row=16, column=0, sticky="w", pady=(10, 0))
+        ttk.Entry(files_frame, textvariable=self.last_state_backup_var, state="readonly").grid(row=16, column=1, sticky="ew", padx=(8, 8), pady=(10, 0))
+        backup_file_actions = ttk.Frame(files_frame)
+        backup_file_actions.grid(row=16, column=2, sticky="e", pady=(10, 0))
+        ttk.Button(backup_file_actions, text="Open folder", command=self._open_state_backup_dir).grid(row=0, column=0, padx=(0, 8))
+        ttk.Button(backup_file_actions, text="Restore", command=self._restore_latest_state_backup_action).grid(row=0, column=1)
+
         ttk.Label(
             files_frame,
-            text="Edit footer_notes.md or about_profile.json later, export settings snapshots when you want backups, and open installer/BUILDING.md when you want to prepare a packaged build.",
+            text="Edit footer_notes.md or about_profile.json later, open keyboard_shortcuts.md when you want to tailor the in-app guide, and use local state backups for quick recovery before packaging builds.",
             style="CardBody.TLabel",
             wraplength=460,
             justify="left",
-        ).grid(row=13, column=0, columnspan=3, sticky="w", pady=(14, 0))
+        ).grid(row=17, column=0, columnspan=3, sticky="w", pady=(14, 0))
 
         actions_frame = ttk.LabelFrame(content, text="Quick actions")
         actions_frame.grid(row=1, column=1, sticky="nsew")
         actions_frame.grid_columnconfigure(0, weight=1)
-        ttk.Button(actions_frame, text="Open OCR page", command=lambda: self._show_page("ocr")).grid(row=0, column=0, sticky="ew")
-        ttk.Button(actions_frame, text="Quick actions palette", command=self._open_command_palette).grid(row=1, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Preview splash", command=self._preview_splash).grid(row=2, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Reset login reminder", command=self._reset_login_popup_state).grid(row=3, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Test Tesseract", command=self._test_tesseract_path).grid(row=4, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Open organizer", command=lambda: self._show_page("organizer")).grid(row=5, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Open footer notes", command=self._open_notes_window).grid(row=6, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Open About page", command=self._show_about).grid(row=7, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Edit About profile", command=self._open_about_editor_window).grid(row=8, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Open SMTP delivery", command=self._open_smtp_window).grid(row=9, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Open link cache", command=self._open_link_cache_dir).grid(row=10, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Clear link cache", command=self._clear_link_cache).grid(row=11, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Send latest outputs", command=self._send_last_outputs_via_smtp).grid(row=12, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Save EML draft", command=self._save_eml_draft_for_last_outputs).grid(row=13, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Open Build Center", command=self._open_build_center_window).grid(row=14, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Open build notes", command=lambda: open_path(self.build_notes_path)).grid(row=15, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Export settings snapshot", command=self._export_state_snapshot_action).grid(row=16, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Import settings snapshot", command=self._import_state_snapshot_action).grid(row=17, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Export diagnostics report", command=self._export_diagnostics_report_action).grid(row=18, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Export app logs", command=self._export_current_logs_action).grid(row=19, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Check for updates", command=self._check_for_updates_placeholder).grid(row=20, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Reload About profile", command=self._refresh_about_profile).grid(row=20, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Refresh history view", command=self._refresh_history_views).grid(row=21, column=0, sticky="ew", pady=(8, 0))
-        ttk.Button(actions_frame, text="Clear local history", command=self._clear_history).grid(row=20, column=0, sticky="ew", pady=(8, 0))
-        ttk.Label(actions_frame, textvariable=self.smtp_status_var, style="CardBody.TLabel", wraplength=320, justify="left").grid(row=21, column=0, sticky="w", pady=(12, 0))
+
+        quick_buttons = [
+            ("Open OCR page", lambda: self._show_page("ocr")),
+            ("Quick actions palette", self._open_command_palette),
+            ("Preview splash", self._preview_splash),
+            ("Reset login reminder", self._reset_login_popup_state),
+            ("Test Tesseract", self._test_tesseract_path),
+            ("Open organizer", lambda: self._show_page("organizer")),
+            ("Open footer notes", self._open_notes_window),
+            ("Open shortcut guide", self._open_shortcuts_window),
+            ("Create state backup", self._backup_state_now),
+            ("Restore latest backup", self._restore_latest_state_backup_action),
+            ("Open About page", self._show_about),
+            ("Edit About profile", self._open_about_editor_window),
+            ("Open SMTP delivery", self._open_smtp_window),
+            ("Open link cache", self._open_link_cache_dir),
+            ("Clear link cache", self._clear_link_cache),
+            ("Open activity report folder", self._open_activity_report_dir),
+            ("Open support bundle folder", self._open_support_bundle_dir),
+            ("Export activity report", self._export_activity_report_action),
+            ("Export support bundle", self._export_support_bundle_action),
+            ("Send latest outputs", self._send_last_outputs_via_smtp),
+            ("Save EML draft", self._save_eml_draft_for_last_outputs),
+            ("Open Build Center", self._open_build_center_window),
+            ("Open build notes", lambda: open_path(self.build_notes_path)),
+            ("Export settings snapshot", self._export_state_snapshot_action),
+            ("Import settings snapshot", self._import_state_snapshot_action),
+            ("Export diagnostics report", self._export_diagnostics_report_action),
+            ("Export app logs", self._export_current_logs_action),
+            ("Check for updates", self._check_for_updates_placeholder),
+            ("Reload About profile", self._refresh_about_profile),
+            ("Refresh history view", self._refresh_history_views),
+            ("Clear local history", self._clear_history),
+        ]
+        for row_index, (label, command) in enumerate(quick_buttons):
+            ttk.Button(actions_frame, text=label, command=command).grid(row=row_index, column=0, sticky="ew", pady=(0 if row_index == 0 else 8, 0))
+        ttk.Label(actions_frame, textvariable=self.smtp_status_var, style="CardBody.TLabel", wraplength=320, justify="left").grid(
+            row=len(quick_buttons), column=0, sticky="w", pady=(12, 0)
+        )
 
 
     def _build_about_page(self) -> None:
@@ -4372,6 +4834,23 @@ class GokulOmniConvertLiteApp(tk.Tk):
 
     def _refresh_history_views(self) -> None:
         jobs = self.state_store.recent_jobs()
+        query = self.history_filter_var.get().strip().lower() if hasattr(self, "history_filter_var") else ""
+        if query:
+            filtered: list[dict[str, object]] = []
+            for job in jobs:
+                haystack = " ".join(
+                    [
+                        str(job.get("timestamp", "")),
+                        str(job.get("status", "")),
+                        str(job.get("mode", "")),
+                        str(job.get("output_dir", "")),
+                        " ".join(str(item) for item in (job.get("inputs_preview", []) or [])),
+                        " ".join(str(item) for item in (job.get("outputs_preview", []) or [])),
+                    ]
+                ).lower()
+                if query in haystack:
+                    filtered.append(job)
+            jobs = filtered
         self.home_history_item_ids.clear()
         self.history_item_ids.clear()
 
@@ -4380,7 +4859,8 @@ class GokulOmniConvertLiteApp(tk.Tk):
                 tree.delete(item)
 
         for index, job in enumerate(jobs):
-            tag = "success" if job.get("status") == "Completed" else "error"
+            status_text = str(job.get("status", "")).strip().lower()
+            tag = "success" if status_text in {"completed", "success"} else "error"
             item_id = f"job_{index}"
             values_home = (
                 job.get("timestamp", ""),
@@ -4394,7 +4874,10 @@ class GokulOmniConvertLiteApp(tk.Tk):
             self.home_history_item_ids[f"home_{item_id}"] = job
             self.history_item_ids[f"hist_{item_id}"] = job
 
-        self.history_detail_var.set("Select a recent job to inspect details or re-use settings.")
+        default_text = "Select a recent job to inspect details or re-use settings."
+        if query and not jobs:
+            default_text = f"No history results for: {self.history_filter_var.get().strip()}"
+        self.history_detail_var.set(default_text)
         self._set_history_details_text("")
         self._refresh_recent_outputs_view()
         self._refresh_failed_jobs_view()
@@ -4413,6 +4896,31 @@ class GokulOmniConvertLiteApp(tk.Tk):
             return
         self.history_detail_var.set(self._job_summary_text(job))
         self._set_history_details_text(self._job_detail_text(job))
+
+    def _clear_history_filter(self) -> None:
+        self.history_filter_var.set("")
+        self._refresh_history_views()
+
+    def _export_selected_history_report(self) -> None:
+        item = self.history_tree.focus()
+        job = self.history_item_ids.get(item)
+        if not job:
+            messagebox.showinfo("History", "Select a job first to export its run report.")
+            return
+        output_dir = Path(str(job.get("output_dir", self.output_dir_var.get()))).expanduser()
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_name = f"history_run_{timestamp}.txt"
+        target = filedialog.asksaveasfilename(
+            title="Export selected run report",
+            defaultextension=".txt",
+            initialdir=str(output_dir if output_dir.exists() else Path.cwd()),
+            initialfile=base_name,
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+        )
+        if not target:
+            return
+        write_run_report(dict(job), Path(target))
+        self.status_var.set(f"Saved selected run report: {Path(target).name}")
 
     def _job_summary_text(self, job: dict[str, object]) -> str:
         return (
@@ -4643,9 +5151,11 @@ class GokulOmniConvertLiteApp(tk.Tk):
 
     def _apply_theme(self, initial: bool = False) -> None:
         choice = self.theme_choice_var.get().strip().lower() or "dark"
-        palette = resolve_palette(choice)
+        palette = self._current_palette()
         self.palette = palette
-        apply_ttk_theme(self, palette)
+        compact = bool(self.compact_ui_var.get())
+        scale = self._ui_scale_factor()
+        apply_ttk_theme(self, palette, compact=compact, scale=scale)
         self.option_add("*TCombobox*Listbox.background", palette.input_bg)
         self.option_add("*TCombobox*Listbox.foreground", palette.text)
         self.option_add("*TCombobox*Listbox.selectBackground", palette.selection)
@@ -4660,6 +5170,8 @@ class GokulOmniConvertLiteApp(tk.Tk):
         apply_treeview_tag_colors(self.history_tree, palette)
         if self.notes_window and self.notes_window.winfo_exists():
             self.notes_window.apply_theme(palette)
+        if self.shortcuts_window and self.shortcuts_window.winfo_exists():
+            self.shortcuts_window.apply_theme(palette)
         if self.smtp_window and self.smtp_window.winfo_exists():
             self.smtp_window.apply_theme(palette)
         if self.build_center_window and self.build_center_window.winfo_exists():
@@ -4667,21 +5179,42 @@ class GokulOmniConvertLiteApp(tk.Tk):
             self.build_center_window.refresh_summary()
         if self.about_editor_window and self.about_editor_window.winfo_exists():
             self.about_editor_window.apply_theme(palette)
+        if self.command_palette_window and self.command_palette_window.winfo_exists():
+            self.command_palette_window.apply_theme(palette, compact=compact, scale=scale)
         if self.splash_window and self.splash_window.winfo_exists():
-            apply_ttk_theme(self.splash_window, palette)
+            apply_ttk_theme(self.splash_window, palette, compact=compact, scale=scale)
         if self.login_popup_window and self.login_popup_window.winfo_exists():
-            apply_ttk_theme(self.login_popup_window, palette)
+            apply_ttk_theme(self.login_popup_window, palette, compact=compact, scale=scale)
         if not initial:
-            self.status_var.set(f"Theme changed to {choice}.")
+            contrast_note = " + high contrast" if bool(self.high_contrast_var.get()) else ""
+            self.status_var.set(f"Theme changed to {choice}{contrast_note} at {self.ui_scale_var.get().strip() or '100%'} scale.")
 
     def _open_notes_window(self) -> None:
-        palette = resolve_palette(self.theme_choice_var.get())
+        palette = self._current_palette()
         if self.notes_window and self.notes_window.winfo_exists():
             self.notes_window.lift()
             self.notes_window.focus_force()
             self.notes_window.reload_notes()
             return
         self.notes_window = MarkdownNotesWindow(self, self.notes_path, palette)
+
+    def _open_shortcuts_window(self) -> None:
+        palette = self._current_palette()
+        if self.shortcuts_window and self.shortcuts_window.winfo_exists():
+            self.shortcuts_window.lift()
+            self.shortcuts_window.focus_force()
+            self.shortcuts_window.reload_notes()
+            return
+        self.shortcuts_window = MarkdownNotesWindow(
+            self,
+            self.shortcuts_path,
+            palette,
+            window_title=f"{APP_NAME} - Keyboard Shortcuts",
+            header_title="Keyboard shortcuts",
+            description="Edit keyboard_shortcuts.md any time. Reload to refresh the in-app shortcut guide.",
+            open_button_text="Open shortcuts file",
+            empty_stub="# Keyboard Shortcuts\n\n- Ctrl+Enter — Start conversion\n- Ctrl+Shift+Enter — Run PDF tool\n- Ctrl+K — Quick actions\n",
+        )
 
     def _smtp_settings_from_vars(self) -> SMTPSettings:
         port_text = self.smtp_port_var.get().strip()
@@ -4788,7 +5321,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         messagebox.showinfo("SMTP send", f"Message sent successfully with {len(delivered)} attachment(s).")
 
     def _open_smtp_window(self) -> None:
-        palette = resolve_palette(self.theme_choice_var.get())
+        palette = self._current_palette()
         if self.smtp_window and self.smtp_window.winfo_exists():
             self.smtp_window.lift()
             self.smtp_window.focus_force()
@@ -4796,7 +5329,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.smtp_window = SMTPSettingsWindow(self, palette)
 
     def _open_build_center_window(self) -> None:
-        palette = resolve_palette(self.theme_choice_var.get())
+        palette = self._current_palette()
         if self.build_center_window and self.build_center_window.winfo_exists():
             self.build_center_window.lift()
             self.build_center_window.focus_force()
@@ -4805,7 +5338,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.build_center_window = BuildCenterWindow(self, palette)
 
     def _open_about_editor_window(self) -> None:
-        palette = resolve_palette(self.theme_choice_var.get())
+        palette = self._current_palette()
         if self.about_editor_window and self.about_editor_window.winfo_exists():
             self.about_editor_window.lift()
             self.about_editor_window.focus_force()
@@ -4830,14 +5363,20 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.status_var.set(f"Settings snapshot exported to {destination.name}.")
         messagebox.showinfo("Settings snapshot", f"Exported settings snapshot to:\n{destination}")
 
-    def _apply_state_snapshot(self, payload: dict[str, object]) -> None:
+    def _apply_state_snapshot(self, payload: dict[str, object], *, announce: bool = True) -> None:
         self.state_store.state = {**self.state_store.state, **payload}
         ensure_install_date(self.state_store.state)
         self.state_store.save()
         self.theme_choice_var.set(str(self.state_store.get("theme", "dark")))
+        self.compact_ui_var.set(bool(self.state_store.get("compact_ui", False)))
+        self.ui_scale_var.set(str(self.state_store.get("ui_scale", "100%")))
+        self.high_contrast_var.set(bool(self.state_store.get("high_contrast", False)))
+        self.reduced_motion_var.set(bool(self.state_store.get("reduced_motion", False)))
+        self.start_page_var.set(str(self.state_store.get("start_page", "home")))
         self.output_dir_var.set(str(self.state_store.get("output_dir", str(Path.cwd() / "converted_output"))))
         self.recursive_var.set(bool(self.state_store.get("recursive_scan", True)))
         self.engine_mode_var.set(str(self.state_store.get("conversion_engine", ENGINE_AUTO)))
+        self.performance_mode_var.set(str(self.state_store.get("performance_mode", "balanced")))
         self.soffice_path_var.set(str(self.state_store.get("soffice_path", "")))
         self.tesseract_path_var.set(str(self.state_store.get("tesseract_path", "")))
         self.ocr_language_var.set(str(self.state_store.get("ocr_language", "eng")))
@@ -4852,6 +5391,11 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.last_update_check_var.set(str(self.state_store.get("last_update_check", "")))
         self.last_update_result_var.set(str(self.state_store.get("last_update_result", "")))
         self.workspace_backup_dir_var.set(str(self.state_store.get("workspace_backup_dir", "")))
+        self.support_bundle_dir_var.set(str(self.state_store.get("support_bundle_dir", "")))
+        self.activity_report_dir_var.set(str(self.state_store.get("activity_report_dir", "")))
+        self.state_backup_enabled_var.set(bool(self.state_store.get("state_backup_enabled", True)))
+        self.state_backup_keep_var.set(str(self.state_store.get("state_backup_keep", 12)))
+        self.last_state_backup_var.set(str(self.state_store.get("last_state_backup", "")))
         smtp_config = SMTPSettings.from_dict(self.state_store.get("smtp_settings", {}))
         self.smtp_host_var.set(smtp_config.host)
         self.smtp_port_var.set(str(smtp_config.port))
@@ -4878,10 +5422,13 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.watch_mail_var.set(watch_config.open_mail_draft)
         self.watch_skip_existing_var.set(watch_config.skip_existing_on_start)
         self._update_login_popup_state()
+        self._refresh_backup_status()
         self._refresh_dependency_status()
         self._refresh_about_profile()
         self._refresh_history_views()
         self._apply_theme()
+        if announce:
+            self.status_var.set("State snapshot applied.")
 
     def _import_state_snapshot_action(self) -> None:
         source = filedialog.askopenfilename(
@@ -5902,6 +6449,10 @@ class GokulOmniConvertLiteApp(tk.Tk):
             recursive_scan=bool(self.recursive_var.get()),
             conversion_engine=self.engine_mode_var.get().strip().lower() or ENGINE_AUTO,
             performance_mode=self.performance_mode_var.get().strip().lower() or "balanced",
+            compact_ui=bool(self.compact_ui_var.get()),
+            ui_scale=self.ui_scale_var.get().strip() or "100%",
+            high_contrast=bool(self.high_contrast_var.get()),
+            reduced_motion=bool(self.reduced_motion_var.get()),
             soffice_path=self.soffice_path_var.get().strip(),
             tesseract_path=self.tesseract_path_var.get().strip(),
             ocr_language=self.ocr_language_var.get().strip() or "eng",
@@ -5931,13 +6482,21 @@ class GokulOmniConvertLiteApp(tk.Tk):
             update_manifest_url=self.update_manifest_url_var.get().strip(),
             last_update_result=self.last_update_result_var.get().strip(),
             workspace_backup_dir=self.workspace_backup_dir_var.get().strip(),
+            support_bundle_dir=self.support_bundle_dir_var.get().strip(),
+            activity_report_dir=self.activity_report_dir_var.get().strip(),
+            state_backup_enabled=bool(self.state_backup_enabled_var.get()),
+            state_backup_keep=self._state_backup_keep_count(),
+            last_state_backup=self.last_state_backup_var.get().strip(),
+            start_page=self.start_page_var.get().strip() or "home",
             recent_outputs=self.state_store.recent_outputs(),
             failed_jobs=self.state_store.failed_jobs(),
             session_snapshot=session_snapshot,
             window_geometry=self.geometry(),
             last_page=self.current_page,
         )
+        self.last_state_backup_var.set(str(self.state_store.get("last_state_backup", self.last_state_backup_var.get().strip())))
         self.state_store.set_watch_config(self._current_watch_config())
+        self._refresh_backup_status()
 
     def _on_close(self) -> None:
         if self.running and not messagebox.askyesno(
@@ -5974,6 +6533,8 @@ def main() -> None:
     parser.add_argument("--skip-startup-overlays", action="store_true", help="Skip splash and reminder overlays on startup.")
     parser.add_argument("--check-updates", nargs="?", const="__STATE__", metavar="MANIFEST", help="Run a headless update check using a local JSON path or URL.")
     parser.add_argument("--export-workspace", metavar="ZIP", help="Export a full workspace bundle without starting the GUI.")
+    parser.add_argument("--export-activity-report", metavar="HTML", help="Export an HTML activity report without starting the GUI.")
+    parser.add_argument("--export-support-bundle", metavar="ZIP", help="Export a support bundle ZIP without starting the GUI.")
     parser.add_argument("--import-workspace", metavar="ZIP", help="Import a workspace bundle into the chosen target folder without starting the GUI.")
     parser.add_argument("--workspace-target", metavar="DIR", help="Extraction target when used with --import-workspace.")
     args = parser.parse_args()
@@ -6026,6 +6587,88 @@ def main() -> None:
         summary = import_workspace_bundle(Path(args.import_workspace), target_root)
         print(json.dumps(summary, indent=2))
         return
+
+    if args.export_activity_report:
+        dependencies = dependency_status(str(state_store.get("soffice_path", "")))
+        tesseract_runtime = detect_tesseract_status(str(state_store.get("tesseract_path", "")))
+        dependencies["Tesseract"] = bool(tesseract_runtime.get("available"))
+        destination = render_activity_report_html(
+            Path(args.export_activity_report),
+            app_name=APP_NAME,
+            app_version=APP_VERSION,
+            recent_jobs=state_store.recent_jobs(),
+            recent_outputs=state_store.recent_outputs(),
+            failed_jobs=state_store.failed_jobs(),
+            dependency_status=dependencies,
+            notes="Headless export generated from stored state only.",
+        )
+        print(destination)
+        return
+
+    if args.export_support_bundle:
+        bundle_temp_dir = Path(tempfile.mkdtemp(prefix="gokul_support_bundle_"))
+        try:
+            dependencies = dependency_status(str(state_store.get("soffice_path", "")))
+            tesseract_runtime = detect_tesseract_status(str(state_store.get("tesseract_path", "")))
+            dependencies["Tesseract"] = bool(tesseract_runtime.get("available"))
+            smtp_summary = SMTPSettings.from_dict(state_store.get("smtp_settings", {})).sanitized_dict()
+            diagnostics_path = export_diagnostics_report(
+                bundle_temp_dir / "diagnostics.json",
+                app_name=APP_NAME,
+                app_version=APP_VERSION,
+                state_path=APP_STATE_PATH,
+                about_profile_path=about_profile_path,
+                notes_path=notes_path,
+                installer_dir=installer_dir,
+                output_dir=Path(str(state_store.get("output_dir", Path.cwd()))),
+                selected_files=[],
+                last_outputs=state_store.recent_outputs(),
+                dependency_status=dependencies,
+                smtp_summary=smtp_summary,
+                extra={
+                    "recent_job_count": len(state_store.recent_jobs()),
+                    "recent_link_count": len(state_store.recent_links()),
+                    "failed_job_count": len(state_store.failed_jobs()),
+                },
+            )
+            state_snapshot_path = export_state_snapshot(bundle_temp_dir / "state_snapshot.json", state_store.state)
+            activity_report_path = render_activity_report_html(
+                bundle_temp_dir / "activity_report.html",
+                app_name=APP_NAME,
+                app_version=APP_VERSION,
+                recent_jobs=state_store.recent_jobs(),
+                recent_outputs=state_store.recent_outputs(),
+                failed_jobs=state_store.failed_jobs(),
+                dependency_status=dependencies,
+                notes="Headless support bundle generated from stored state only.",
+            )
+            logs_text = "Headless support bundle export\n\nRecent jobs:\n" + "\n".join(
+                f"- {item.get('timestamp', '')} | {item.get('status', '')} | {item.get('mode', '')}"
+                for item in state_store.recent_jobs()[:30]
+            )
+            logs_path = export_text_file(bundle_temp_dir / "headless_logs.txt", logs_text)
+            profile = load_about_profile(about_profile_path)
+            extra_files: list[Path] = [example_manifest]
+            profile_image = resolve_profile_image(profile, about_profile_path.parent)
+            if profile_image.exists():
+                extra_files.append(profile_image)
+            if splash_asset.exists():
+                extra_files.append(splash_asset)
+            destination = export_support_bundle(
+                Path(args.export_support_bundle),
+                diagnostics_report=diagnostics_path,
+                state_snapshot=state_snapshot_path,
+                activity_report=activity_report_path,
+                logs_path=logs_path,
+                notes_path=notes_path,
+                about_profile_path=about_profile_path,
+                installer_dir=installer_dir,
+                extra_files=extra_files,
+            )
+            print(destination)
+            return
+        finally:
+            shutil.rmtree(bundle_temp_dir, ignore_errors=True)
 
     app = GokulOmniConvertLiteApp(skip_startup_overlays=args.skip_startup_overlays)
     app.mainloop()

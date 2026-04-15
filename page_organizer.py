@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import tkinter as tk
+from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from typing import Callable
@@ -16,6 +18,7 @@ from organizer_core import (
     export_pages_as_images,
     extract_selected_pdf,
     move_positions_down,
+    move_positions_to_index,
     move_positions_up,
     pdf_summary,
     remove_positions,
@@ -24,6 +27,8 @@ from organizer_core import (
     reverse_sequence,
     rotate_positions,
     save_sequence_as_pdf,
+    sequence_from_payload,
+    sequence_to_payload,
 )
 from ui_theme import ThemePalette
 
@@ -123,12 +128,20 @@ class PageOrganizerPanel(ttk.Frame):
         self.thumbnail_cache: dict[tuple[int, int], ImageTk.PhotoImage] = {}
         self.card_columns = 4
         self.preview_window: PreviewWindow | None = None
+        self.undo_stack: list[tuple[list[OrganizedPage], list[int]]] = []
+        self.redo_stack: list[tuple[list[OrganizedPage], list[int]]] = []
+        self.max_history = 40
+        self.drag_source_position: int | None = None
+        self.drag_target_position: int | None = None
+        self.drag_active = False
+        self.drag_start_xy: tuple[int, int] | None = None
+        self.drag_status_label: tk.Label | None = None
 
         self.file_var = tk.StringVar(value="No PDF loaded yet.")
         self.summary_var = tk.StringVar(value="Load a PDF to inspect metadata, page count, and live page thumbnails.")
         self.selection_var = tk.StringVar(value="Selection: 0 page(s)")
         self.hint_var = tk.StringVar(
-            value="Click thumbnails to toggle selection. Then move, rotate, duplicate, remove, extract, or save the organized PDF."
+            value="Click thumbnails to toggle selection. Drag a selected card to reorder, or use undo/redo and layout snapshots."
         )
 
         self._build_ui()
@@ -152,8 +165,8 @@ class PageOrganizerPanel(ttk.Frame):
         ttk.Label(
             hero,
             text=(
-                "Patch 8 keeps the thumbnail-driven PDF organizer so you can inspect a PDF visually, reorder pages, rotate pages, "
-                "duplicate pages, remove pages, extract a subset, and export selected pages as images without leaving the app."
+                "Patch 19 expands the visual PDF organizer with drag-and-drop reordering, undo/redo history, "
+                "layout snapshots, and the same visual rotate, duplicate, remove, extract, and export tools."
             ),
             style="HeroBody.TLabel",
             wraplength=900,
@@ -187,35 +200,43 @@ class PageOrganizerPanel(ttk.Frame):
 
         toolbar = ttk.Frame(workspace, style="Card.TFrame", padding=12)
         toolbar.grid(row=0, column=0, sticky="ew")
-        for column in range(11):
+        for column in range(15):
             toolbar.grid_columnconfigure(column, weight=0)
         ttk.Button(toolbar, text="Select all", command=self.select_all).grid(row=0, column=0, padx=(0, 8), pady=4)
         ttk.Button(toolbar, text="Clear", command=self.clear_selection).grid(row=0, column=1, padx=(0, 8), pady=4)
+        self.undo_button = ttk.Button(toolbar, text="Undo", command=self.undo_last_change)
+        self.undo_button.grid(row=0, column=2, padx=(0, 8), pady=4)
+        self.redo_button = ttk.Button(toolbar, text="Redo", command=self.redo_last_change)
+        self.redo_button.grid(row=0, column=3, padx=(0, 8), pady=4)
         self.move_up_button = ttk.Button(toolbar, text="Move up", command=self.move_selected_up)
-        self.move_up_button.grid(row=0, column=2, padx=(0, 8), pady=4)
+        self.move_up_button.grid(row=0, column=4, padx=(0, 8), pady=4)
         self.move_down_button = ttk.Button(toolbar, text="Move down", command=self.move_selected_down)
-        self.move_down_button.grid(row=0, column=3, padx=(0, 8), pady=4)
+        self.move_down_button.grid(row=0, column=5, padx=(0, 8), pady=4)
         self.rotate_left_button = ttk.Button(toolbar, text="Rotate left", command=lambda: self.rotate_selected(-90))
-        self.rotate_left_button.grid(row=0, column=4, padx=(0, 8), pady=4)
+        self.rotate_left_button.grid(row=0, column=6, padx=(0, 8), pady=4)
         self.rotate_right_button = ttk.Button(toolbar, text="Rotate right", command=lambda: self.rotate_selected(90))
-        self.rotate_right_button.grid(row=0, column=5, padx=(0, 8), pady=4)
+        self.rotate_right_button.grid(row=0, column=7, padx=(0, 8), pady=4)
         self.duplicate_button = ttk.Button(toolbar, text="Duplicate", command=self.duplicate_selected)
-        self.duplicate_button.grid(row=0, column=6, padx=(0, 8), pady=4)
+        self.duplicate_button.grid(row=0, column=8, padx=(0, 8), pady=4)
         self.remove_button = ttk.Button(toolbar, text="Remove", command=self.remove_selected)
-        self.remove_button.grid(row=0, column=7, padx=(0, 8), pady=4)
+        self.remove_button.grid(row=0, column=9, padx=(0, 8), pady=4)
         self.reverse_button = ttk.Button(toolbar, text="Reverse order", command=self.reverse_pages)
-        self.reverse_button.grid(row=0, column=8, padx=(0, 8), pady=4)
+        self.reverse_button.grid(row=0, column=10, padx=(0, 8), pady=4)
+        self.layout_save_button = ttk.Button(toolbar, text="Save layout", command=self.save_layout_snapshot)
+        self.layout_save_button.grid(row=0, column=11, padx=(0, 8), pady=4)
+        self.layout_load_button = ttk.Button(toolbar, text="Load layout", command=self.load_layout_snapshot)
+        self.layout_load_button.grid(row=0, column=12, padx=(0, 8), pady=4)
         self.extract_button = ttk.Button(toolbar, text="Extract selected PDF", command=self.extract_selected_pages)
-        self.extract_button.grid(row=0, column=9, padx=(0, 8), pady=4)
+        self.extract_button.grid(row=0, column=13, padx=(0, 8), pady=4)
         self.export_button = ttk.Button(toolbar, text="Export selected images", command=self.export_selected_images)
-        self.export_button.grid(row=0, column=10, pady=4)
+        self.export_button.grid(row=0, column=14, pady=4)
 
         thumb_shell = ttk.Frame(workspace, style="Card.TFrame", padding=0)
         thumb_shell.grid(row=1, column=0, sticky="nsew", pady=(14, 0))
         thumb_shell.grid_columnconfigure(0, weight=1)
         thumb_shell.grid_rowconfigure(0, weight=1)
 
-        self.thumb_canvas = tk.Canvas(thumb_shell, highlightthickness=0, borderwidth=0)
+        self.thumb_canvas = tk.Canvas(thumb_shell, highlightthickness=0, borderwidth=0, takefocus=1, cursor="arrow")
         self.thumb_canvas.grid(row=0, column=0, sticky="nsew")
         self.thumb_scroll = ttk.Scrollbar(thumb_shell, orient="vertical", command=self.thumb_canvas.yview)
         self.thumb_scroll.grid(row=0, column=1, sticky="ns")
@@ -228,6 +249,10 @@ class PageOrganizerPanel(ttk.Frame):
         self.thumb_canvas.bind_all("<MouseWheel>", self._on_mousewheel, add="+")
         self.thumb_canvas.bind_all("<Button-4>", self._on_mousewheel_linux, add="+")
         self.thumb_canvas.bind_all("<Button-5>", self._on_mousewheel_linux, add="+")
+        self.bind_all("<Control-z>", self._on_shortcut_undo, add="+")
+        self.bind_all("<Control-y>", self._on_shortcut_redo, add="+")
+        self.bind_all("<Control-a>", self._on_shortcut_select_all, add="+")
+        self.bind_all("<Delete>", self._on_shortcut_remove, add="+")
 
         self.empty_label = ttk.Label(
             self.thumb_inner,
@@ -267,6 +292,64 @@ class PageOrganizerPanel(ttk.Frame):
             except Exception:
                 current = None
         return False
+
+
+    def _widget_belongs_to_panel(self, widget: tk.Misc | None) -> bool:
+        current = widget
+        while current is not None:
+            if current == self:
+                return True
+            try:
+                parent_name = current.winfo_parent()
+                current = current.nametowidget(parent_name) if parent_name else None
+            except Exception:
+                current = None
+        return False
+
+    def _organizer_shortcuts_enabled(self) -> bool:
+        try:
+            focused = self.focus_get()
+        except Exception:
+            focused = None
+        if focused and self._widget_belongs_to_panel(focused):
+            return True
+        try:
+            pointer_widget = self.winfo_containing(self.winfo_pointerx(), self.winfo_pointery())
+        except Exception:
+            pointer_widget = None
+        return bool(pointer_widget and self._widget_belongs_to_panel(pointer_widget))
+
+    def _on_shortcut_undo(self, _event=None):
+        if not self._organizer_shortcuts_enabled():
+            return None
+        self.undo_last_change()
+        return "break"
+
+    def _on_shortcut_redo(self, _event=None):
+        if not self._organizer_shortcuts_enabled():
+            return None
+        self.redo_last_change()
+        return "break"
+
+    def _on_shortcut_select_all(self, _event=None):
+        if not self._organizer_shortcuts_enabled():
+            return None
+        self.select_all()
+        return "break"
+
+    def _on_shortcut_remove(self, _event=None):
+        if not self._organizer_shortcuts_enabled():
+            return None
+        if self.selected_positions:
+            self.remove_selected()
+            return "break"
+        return None
+
+    def _reset_drag_state(self) -> None:
+        self.drag_source_position = None
+        self.drag_target_position = None
+        self.drag_start_xy = None
+        self.drag_active = False
 
     def _on_mousewheel(self, event) -> None:
         try:
@@ -330,6 +413,9 @@ class PageOrganizerPanel(ttk.Frame):
         self.page_sequence = build_default_sequence(summary.page_count)
         self.selected_positions = []
         self.thumbnail_cache.clear()
+        self.undo_stack.clear()
+        self.redo_stack.clear()
+        self._reset_drag_state()
         self.file_var.set(str(pdf_path))
         meta_bits: list[str] = [f"Pages: {summary.page_count}", f"Size: {summary.file_size_label}"]
         if summary.title:
@@ -367,6 +453,8 @@ class PageOrganizerPanel(ttk.Frame):
         controls = [
             self.reload_button,
             self.save_button,
+            self.undo_button,
+            self.redo_button,
             self.move_up_button,
             self.move_down_button,
             self.rotate_left_button,
@@ -374,6 +462,8 @@ class PageOrganizerPanel(ttk.Frame):
             self.duplicate_button,
             self.remove_button,
             self.reverse_button,
+            self.layout_save_button,
+            self.layout_load_button,
             self.extract_button,
             self.export_button,
         ]
@@ -394,10 +484,17 @@ class PageOrganizerPanel(ttk.Frame):
             self.save_button.state(["!disabled"])
             self.reverse_button.state(["!disabled"])
             self.reload_button.state(["!disabled"])
+            self.layout_save_button.state(["!disabled"])
+            self.layout_load_button.state(["!disabled"])
         else:
             self.save_button.state(["disabled"])
             self.reverse_button.state(["disabled"])
             self.reload_button.state(["disabled"])
+            self.layout_save_button.state(["disabled"])
+            self.layout_load_button.state(["disabled"])
+
+        self.undo_button.state(["!disabled"] if self.undo_stack else ["disabled"])
+        self.redo_button.state(["!disabled"] if self.redo_stack else ["disabled"])
 
     def _render_page_cards(self) -> None:
         for child in self.thumb_inner.winfo_children():
@@ -427,48 +524,60 @@ class PageOrganizerPanel(ttk.Frame):
                 self.thumbnail_cache[cache_key] = photo
 
             selected = position in self.selected_positions
+            is_drop_target = self.drag_active and self.drag_target_position == position
             bg = self.palette.surface_alt if selected else self.palette.surface
+            if is_drop_target and not selected:
+                bg = self.palette.input_bg
             border = self.palette.accent if selected else self.palette.border
+            if is_drop_target:
+                border = self.palette.accent
             title_fg = self.palette.text
             meta_fg = self.palette.text_muted
+            card_cursor = "fleur" if selected else "hand2"
 
             card = tk.Frame(
                 self.thumb_inner,
                 bg=bg,
-                highlightthickness=2,
+                highlightthickness=3 if is_drop_target else 2,
                 highlightbackground=border,
                 highlightcolor=border,
                 bd=0,
                 padx=8,
                 pady=8,
-                cursor="hand2",
+                cursor=card_cursor,
             )
             row = position // columns
             column = position % columns
             card.grid(row=row, column=column, sticky="nsew", padx=10, pady=10)
 
-            image_label = tk.Label(card, image=photo, bg=bg, cursor="hand2")
+            image_label = tk.Label(card, image=photo, bg=bg, cursor=card_cursor)
             image_label.image = photo
             image_label.grid(row=0, column=0, sticky="nsew")
-            tk.Label(
+            title_text = f"Slot {position + 1}  •  Source page {item.source_index + 1}"
+            if is_drop_target:
+                title_text += "  •  Drop here"
+            title_label = tk.Label(
                 card,
-                text=f"Slot {position + 1}  •  Source page {item.source_index + 1}",
+                text=title_text,
                 bg=bg,
                 fg=title_fg,
                 anchor="w",
                 justify="left",
                 font=("Segoe UI", 10, "bold"),
                 wraplength=180,
-                cursor="hand2",
-            ).grid(row=1, column=0, sticky="ew", pady=(10, 2))
+                cursor=card_cursor,
+            )
+            title_label.grid(row=1, column=0, sticky="ew", pady=(10, 2))
             status_parts: list[str] = []
             if item.rotation:
                 status_parts.append(f"Rotation {item.rotation % 360}°")
             duplicate_count = sum(1 for other in self.page_sequence if other.source_index == item.source_index)
             if duplicate_count > 1:
                 status_parts.append("Duplicated source")
+            if is_drop_target:
+                status_parts.append("Release to place")
             status_text = "  |  ".join(status_parts) if status_parts else "Original page"
-            tk.Label(
+            status_label = tk.Label(
                 card,
                 text=status_text,
                 bg=bg,
@@ -476,15 +585,17 @@ class PageOrganizerPanel(ttk.Frame):
                 anchor="w",
                 justify="left",
                 wraplength=180,
-                cursor="hand2",
-            ).grid(row=2, column=0, sticky="ew")
+                cursor=card_cursor,
+            )
+            status_label.grid(row=2, column=0, sticky="ew")
 
-            for widget in (card, image_label):
-                widget.bind("<Button-1>", lambda _event, pos=position: self.toggle_selection(pos))
+            interactive_widgets = (card, image_label, title_label, status_label)
+            for widget in interactive_widgets:
+                widget._organizer_position = position  # type: ignore[attr-defined]
+                widget.bind("<ButtonPress-1>", lambda event, pos=position: self.on_card_press(event, pos))
+                widget.bind("<B1-Motion>", lambda event, pos=position: self.on_card_motion(event, pos))
+                widget.bind("<ButtonRelease-1>", lambda event, pos=position: self.on_card_release(event, pos))
                 widget.bind("<Double-Button-1>", lambda _event, pos=position: self.open_preview(pos))
-            for label in card.winfo_children()[1:]:
-                label.bind("<Button-1>", lambda _event, pos=position: self.toggle_selection(pos))
-                label.bind("<Double-Button-1>", lambda _event, pos=position: self.open_preview(pos))
 
         self.thumb_inner.update_idletasks()
         self.thumb_canvas.configure(scrollregion=self.thumb_canvas.bbox("all"))
@@ -494,6 +605,208 @@ class PageOrganizerPanel(ttk.Frame):
             messagebox.showinfo("Organizer", "Select at least one page thumbnail first.")
             return False
         return True
+
+
+    def _snapshot_sequence(self) -> tuple[list[OrganizedPage], list[int]]:
+        return (list(self.page_sequence), list(self.selected_positions))
+
+    def _push_undo_snapshot(self) -> None:
+        if not self.page_sequence:
+            return
+        self.undo_stack.append(self._snapshot_sequence())
+        if len(self.undo_stack) > self.max_history:
+            self.undo_stack = self.undo_stack[-self.max_history :]
+        self.redo_stack.clear()
+
+    def _restore_snapshot(self, snapshot: tuple[list[OrganizedPage], list[int]], status_text: str) -> None:
+        self.page_sequence = list(snapshot[0])
+        self.selected_positions = list(snapshot[1])
+        self.thumbnail_cache.clear()
+        self._update_selection_label()
+        self._update_button_states()
+        self._render_page_cards()
+        self.set_status(status_text)
+
+    def undo_last_change(self) -> None:
+        if not self.undo_stack:
+            self.set_status("Organizer undo history is empty.")
+            return
+        self.redo_stack.append(self._snapshot_sequence())
+        snapshot = self.undo_stack.pop()
+        self._restore_snapshot(snapshot, "Undid the last organizer change.")
+
+    def redo_last_change(self) -> None:
+        if not self.redo_stack:
+            self.set_status("Organizer redo history is empty.")
+            return
+        self.undo_stack.append(self._snapshot_sequence())
+        snapshot = self.redo_stack.pop()
+        self._restore_snapshot(snapshot, "Re-applied the last organizer change.")
+
+    def _apply_drag_reorder(self, target_position: int) -> None:
+        if self.drag_source_position is None or not self.selected_positions:
+            return
+        self._push_undo_snapshot()
+        self.page_sequence, self.selected_positions = move_positions_to_index(
+            self.page_sequence,
+            self.selected_positions,
+            target_position,
+        )
+        self._post_sequence_change("Reordered the selected page card(s) with drag-and-drop.")
+
+    def save_layout_snapshot(self) -> None:
+        if not self.source_pdf or not self.page_sequence:
+            messagebox.showinfo("Organizer", "Open a PDF first.")
+            return
+        default_name = f"{self.source_pdf.stem}_layout.json"
+        save_path = filedialog.asksaveasfilename(
+            title="Save organizer layout",
+            initialfile=default_name,
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json")],
+        )
+        if not save_path:
+            return
+        payload = {
+            "app": "Gokul Omni Convert Lite",
+            "feature": "organizer_layout",
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+            "source_pdf_name": self.source_pdf.name,
+            **sequence_to_payload(
+                self.page_sequence,
+                source_pdf=str(self.source_pdf),
+                page_count=self.document.page_count if self.document is not None else len(self.page_sequence),
+                selected_positions=self.selected_positions,
+            ),
+        }
+        target = Path(save_path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        self.set_status(f"Saved organizer layout: {target.name}")
+        self._record_recent_job("Organizer -> Save Layout", [self.source_pdf], [target], note=f"Pages: {len(self.page_sequence)}")
+        messagebox.showinfo("Organizer", f"Saved organizer layout:\n{target}")
+
+    def load_layout_snapshot(self) -> None:
+        layout_path = filedialog.askopenfilename(
+            title="Load organizer layout",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+        )
+        if not layout_path:
+            return
+        try:
+            payload = json.loads(Path(layout_path).read_text(encoding="utf-8"))
+        except Exception as exc:
+            messagebox.showerror("Organizer", f"Could not read the layout file:\n{exc}")
+            self.set_status("Organizer layout import failed.")
+            return
+
+        if not isinstance(payload, dict):
+            messagebox.showerror("Organizer", "The selected layout file is not a valid JSON object.")
+            self.set_status("Organizer layout import failed.")
+            return
+
+        source_pdf_value = str(payload.get("source_pdf", "")).strip()
+        if (self.source_pdf is None or not self.source_pdf.exists()) and source_pdf_value:
+            candidate = Path(source_pdf_value).expanduser()
+            if candidate.exists():
+                self.load_pdf(candidate)
+        if self.source_pdf is None:
+            messagebox.showinfo("Organizer", "Open the matching PDF first, then load the layout snapshot again.")
+            self.set_status("Organizer layout import requires an open PDF.")
+            return
+        if self.document is None:
+            messagebox.showinfo("Organizer", "The organizer PDF is not available yet. Reload the PDF and try again.")
+            self.set_status("Organizer layout import requires an active document.")
+            return
+
+        expected_page_count = int(payload.get("page_count", self.document.page_count or 0) or 0)
+        if expected_page_count and expected_page_count != self.document.page_count:
+            messagebox.showerror(
+                "Organizer",
+                f"This layout expects {expected_page_count} page(s), but the loaded PDF has {self.document.page_count} page(s).",
+            )
+            self.set_status("Organizer layout import failed because the page counts do not match.")
+            return
+
+        try:
+            sequence, selected = sequence_from_payload(payload, self.document.page_count)
+        except Exception as exc:
+            messagebox.showerror("Organizer", f"Could not apply the layout:\n{exc}")
+            self.set_status("Organizer layout import failed.")
+            return
+
+        self._push_undo_snapshot()
+        self.page_sequence = sequence
+        self.selected_positions = selected
+        self._post_sequence_change("Loaded the organizer layout snapshot.")
+        self._record_recent_job("Organizer -> Load Layout", [Path(layout_path)], [self.source_pdf], note=f"Pages: {len(self.page_sequence)}")
+
+
+
+    def on_card_press(self, event, position: int) -> None:
+        self.thumb_canvas.focus_set()
+        self.drag_source_position = int(position)
+        self.drag_target_position = int(position)
+        self.drag_start_xy = (int(event.x_root), int(event.y_root))
+        self.drag_active = False
+
+    def _position_from_pointer(self, x_root: int, y_root: int) -> int | None:
+        widget = self.winfo_containing(int(x_root), int(y_root))
+        while widget is not None:
+            candidate = getattr(widget, "_organizer_position", None)
+            if candidate is not None:
+                try:
+                    return int(candidate)
+                except Exception:
+                    return None
+            try:
+                parent_name = widget.winfo_parent()
+                widget = widget.nametowidget(parent_name) if parent_name else None
+            except Exception:
+                widget = None
+        return None
+
+    def on_card_motion(self, event, position: int) -> None:
+        if self.drag_source_position is None or self.drag_start_xy is None:
+            return
+        dx = abs(int(event.x_root) - int(self.drag_start_xy[0]))
+        dy = abs(int(event.y_root) - int(self.drag_start_xy[1]))
+        if not self.drag_active and max(dx, dy) < 8:
+            return
+
+        if not self.drag_active:
+            if self.drag_source_position not in self.selected_positions:
+                self.selected_positions = [self.drag_source_position]
+                self._update_selection_label()
+                self._update_button_states()
+            self.drag_active = True
+
+        target = self._position_from_pointer(int(event.x_root), int(event.y_root))
+        if target is None:
+            target = int(position)
+        if target != self.drag_target_position:
+            self.drag_target_position = target
+            self._render_page_cards()
+        self.set_status("Drag the highlighted cards, then release on the target slot.")
+
+    def on_card_release(self, event, position: int) -> None:
+        if self.drag_active:
+            target = self._position_from_pointer(int(event.x_root), int(event.y_root))
+            if target is None:
+                target = self.drag_target_position if self.drag_target_position is not None else int(position)
+            target = int(target)
+            source = int(self.drag_source_position) if self.drag_source_position is not None else target
+            should_reorder = target != source or len(self.selected_positions) > 1
+            self._reset_drag_state()
+            if should_reorder:
+                self._apply_drag_reorder(target)
+            else:
+                self._render_page_cards()
+                self.set_status("Organizer drag cancelled.")
+            return
+
+        self._reset_drag_state()
+        self.toggle_selection(position)
 
     def toggle_selection(self, position: int) -> None:
         if position in self.selected_positions:
@@ -523,24 +836,28 @@ class PageOrganizerPanel(ttk.Frame):
     def move_selected_up(self) -> None:
         if not self._ensure_selection():
             return
+        self._push_undo_snapshot()
         self.page_sequence, self.selected_positions = move_positions_up(self.page_sequence, self.selected_positions)
         self._post_sequence_change("Moved selected page(s) up.")
 
     def move_selected_down(self) -> None:
         if not self._ensure_selection():
             return
+        self._push_undo_snapshot()
         self.page_sequence, self.selected_positions = move_positions_down(self.page_sequence, self.selected_positions)
         self._post_sequence_change("Moved selected page(s) down.")
 
     def rotate_selected(self, delta: int) -> None:
         if not self._ensure_selection():
             return
+        self._push_undo_snapshot()
         self.page_sequence = rotate_positions(self.page_sequence, self.selected_positions, delta)
         self._post_sequence_change("Updated rotation for selected page(s).")
 
     def duplicate_selected(self) -> None:
         if not self._ensure_selection():
             return
+        self._push_undo_snapshot()
         self.page_sequence, self.selected_positions = duplicate_positions(self.page_sequence, self.selected_positions)
         self._post_sequence_change("Duplicated the selected page(s).")
 
@@ -550,17 +867,20 @@ class PageOrganizerPanel(ttk.Frame):
         if len(self.selected_positions) == len(self.page_sequence):
             messagebox.showwarning("Organizer", "You cannot remove every page. Keep at least one page in the sequence.")
             return
+        self._push_undo_snapshot()
         self.page_sequence, self.selected_positions = remove_positions(self.page_sequence, self.selected_positions)
         self._post_sequence_change("Removed the selected page(s) from the sequence.")
 
     def reverse_pages(self) -> None:
         if not self.page_sequence:
             return
+        self._push_undo_snapshot()
         self.page_sequence, self.selected_positions = reverse_sequence(self.page_sequence, self.selected_positions)
         self._post_sequence_change("Reversed the current page order.")
 
     def _post_sequence_change(self, status_text: str) -> None:
         self.thumbnail_cache.clear()
+        self._reset_drag_state()
         self._update_selection_label()
         self._update_button_states()
         self._render_page_cards()

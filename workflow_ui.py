@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from tkinter import ttk
 from typing import Callable
 
-from ui_theme import ThemePalette, apply_ttk_theme
+from ui_theme import ThemePalette, apply_text_widget_theme, apply_ttk_theme
 
 
 @dataclass(slots=True)
@@ -73,9 +73,11 @@ class Tooltip:
 
 
 class CommandPaletteWindow(tk.Toplevel):
-    def __init__(self, master: tk.Misc, *, actions: list[QuickAction], palette: ThemePalette) -> None:
+    def __init__(self, master: tk.Misc, *, actions: list[QuickAction], palette: ThemePalette, compact: bool = False, scale: float = 1.0) -> None:
         super().__init__(master)
         self.palette = palette
+        self.compact = compact
+        self.scale = scale
         self.actions = list(actions)
         self.filtered_actions = list(actions)
         self.title("Quick Actions")
@@ -127,9 +129,18 @@ class CommandPaletteWindow(tk.Toplevel):
         ttk.Button(footer, text="Close", command=self.destroy).grid(row=0, column=2, padx=(8, 0))
 
         self.protocol("WM_DELETE_WINDOW", self.destroy)
-        apply_ttk_theme(self, palette)
+        self.apply_theme(palette, compact=compact, scale=scale)
         self._refresh_results()
         self.after(60, self.entry.focus_set)
+
+    def apply_theme(self, palette: ThemePalette, *, compact: bool | None = None, scale: float | None = None) -> None:
+        self.palette = palette
+        if compact is not None:
+            self.compact = compact
+        if scale is not None:
+            self.scale = scale
+        apply_ttk_theme(self, palette, compact=self.compact, scale=self.scale)
+        apply_text_widget_theme(self.listbox, palette)
 
     def _on_query_changed(self, _event=None) -> None:
         self._refresh_results()

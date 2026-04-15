@@ -5,6 +5,14 @@ Patch 12 keeps the project installer-ready while separating editable in-app prof
 ## What is included
 
 
+## Patch 17 additions
+
+- new support/export flows can now be generated without opening the GUI:
+  - `python app.py --export-activity-report out.html`
+  - `python app.py --export-support-bundle out.zip`
+- Build Center now bundles diagnostics, state snapshots, logs, and HTML activity reports for support handoff
+- compact UI and preferred start page are now persisted in app state for installer-ready migrations
+
 ## Patch 16 additions
 
 - `update_manifest.example.json` - starter JSON manifest for the built-in update checker
@@ -93,3 +101,16 @@ This is only a starter helper around the same PyInstaller spec; you can later wr
 - The login reminder is runtime state only; it is not installer metadata.
 - If you later add a real app icon, place it in `assets/` and update the spec if needed.
 - Build Center actions inside the app can still export diagnostics and state snapshots before packaging.
+
+
+## Patch 18 notes
+
+- Include `keyboard_shortcuts.md` in packaged resources so the in-app shortcut guide works offline.
+- State backups live under the local app-state `backups/` folder and are not required at install time.
+- High-contrast, reduced-motion, and UI-scale preferences are stored in local app state and remain editable after install.
+
+
+## Patch 19 notes
+
+- Include organizer layout JSON files in support bundles or workspace exports when you want to preserve visual reorder plans.
+- The organizer now supports drag-and-drop card reordering plus local undo/redo history; no extra runtime dependency is required.
