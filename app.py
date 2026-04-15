@@ -1250,108 +1250,108 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.home_favorite_presets_frame.grid(row=7, column=0, sticky="ew", pady=(8, 0))
 
 
-def _refresh_favorite_preset_widgets(self) -> None:
-    favorites = self.state_store.favorite_presets()
-    if favorites:
-        names = ", ".join(str(item.get("name", "")).strip() for item in favorites[:3])
-        if len(favorites) > 3:
-            names += f", +{len(favorites) - 3} more"
-        self.favorite_preset_summary_var.set(f"Star presets in Automation, then launch them from here. Current favorites: {names}.")
-    else:
-        self.favorite_preset_summary_var.set("Star presets in Automation to pin your most-used workflows here.")
-    frame = getattr(self, "home_favorite_presets_frame", None)
-    if frame is None:
-        return
-    for child in frame.winfo_children():
-        child.destroy()
-    if not favorites:
-        ttk.Label(frame, text="No favorite presets yet.", style="CardBody.TLabel").grid(row=0, column=0, sticky="w")
-        return
-    for index, preset in enumerate(favorites[:4]):
-        button = ttk.Button(
-            frame,
-            text=f"★ {preset.get('name', '')}",
-            command=lambda item=preset: self._apply_preset_record(item, start=False),
-        )
-        button.grid(row=index, column=0, sticky="ew", pady=(0 if index == 0 else 6, 0))
-        self._attach_tooltip(button, f"{preset.get('mode', '')} • {preset.get('engine_mode', '')}")
-    run_row = ttk.Frame(frame, style="Surface.TFrame")
-    run_row.grid(row=min(len(favorites), 4), column=0, sticky="ew", pady=(10, 0))
-    ttk.Button(run_row, text="Open Automation", command=lambda: self._show_page("automation")).grid(row=0, column=0, sticky="w")
-    ttk.Button(run_row, text="Run first favorite", command=self._run_first_favorite_preset).grid(row=0, column=1, sticky="w", padx=(8, 0))
+    def _refresh_favorite_preset_widgets(self) -> None:
+        favorites = self.state_store.favorite_presets()
+        if favorites:
+            names = ", ".join(str(item.get("name", "")).strip() for item in favorites[:3])
+            if len(favorites) > 3:
+                names += f", +{len(favorites) - 3} more"
+            self.favorite_preset_summary_var.set(f"Star presets in Automation, then launch them from here. Current favorites: {names}.")
+        else:
+            self.favorite_preset_summary_var.set("Star presets in Automation to pin your most-used workflows here.")
+        frame = getattr(self, "home_favorite_presets_frame", None)
+        if frame is None:
+            return
+        for child in frame.winfo_children():
+            child.destroy()
+        if not favorites:
+            ttk.Label(frame, text="No favorite presets yet.", style="CardBody.TLabel").grid(row=0, column=0, sticky="w")
+            return
+        for index, preset in enumerate(favorites[:4]):
+            button = ttk.Button(
+                frame,
+                text=f"★ {preset.get('name', '')}",
+                command=lambda item=preset: self._apply_preset_record(item, start=False),
+            )
+            button.grid(row=index, column=0, sticky="ew", pady=(0 if index == 0 else 6, 0))
+            self._attach_tooltip(button, f"{preset.get('mode', '')} • {preset.get('engine_mode', '')}")
+        run_row = ttk.Frame(frame, style="Surface.TFrame")
+        run_row.grid(row=min(len(favorites), 4), column=0, sticky="ew", pady=(10, 0))
+        ttk.Button(run_row, text="Open Automation", command=lambda: self._show_page("automation")).grid(row=0, column=0, sticky="w")
+        ttk.Button(run_row, text="Run first favorite", command=self._run_first_favorite_preset).grid(row=0, column=1, sticky="w", padx=(8, 0))
 
-def _run_first_favorite_preset(self) -> None:
-    favorites = self.state_store.favorite_presets()
-    if not favorites:
-        self.status_var.set("No favorite preset is available yet.")
-        self._show_page("automation")
-        return
-    self._apply_preset_record(favorites[0], start=True)
+    def _run_first_favorite_preset(self) -> None:
+        favorites = self.state_store.favorite_presets()
+        if not favorites:
+            self.status_var.set("No favorite preset is available yet.")
+            self._show_page("automation")
+            return
+        self._apply_preset_record(favorites[0], start=True)
 
-def _apply_preset_record(self, preset: dict[str, object], *, start: bool = False) -> None:
-    self.mode_var.set(str(preset.get("mode", MODE_ANY_TO_PDF)))
-    self.output_dir_var.set(str(preset.get("output_dir", self.output_dir_var.get())))
-    self.merge_var.set(bool(preset.get("merge_to_one_pdf", False)))
-    self.output_name_var.set(str(preset.get("merged_output_name", default_merged_name(self.mode_var.get()))))
-    self.image_format_var.set(str(preset.get("image_format", "png")))
-    self.image_scale_var.set(str(preset.get("image_scale", "2.0")))
-    self.engine_mode_var.set(str(preset.get("engine_mode", ENGINE_AUTO)))
-    self.recursive_var.set(bool(preset.get("recursive", True)))
-    self._refresh_dependency_status()
-    self._update_mode_controls()
-    self._show_page("convert")
-    name = str(preset.get("name", "")).strip()
-    self.status_var.set(f"Applied preset '{name}'.")
-    if start:
-        self.after(80, self._start_conversion)
+    def _apply_preset_record(self, preset: dict[str, object], *, start: bool = False) -> None:
+        self.mode_var.set(str(preset.get("mode", MODE_ANY_TO_PDF)))
+        self.output_dir_var.set(str(preset.get("output_dir", self.output_dir_var.get())))
+        self.merge_var.set(bool(preset.get("merge_to_one_pdf", False)))
+        self.output_name_var.set(str(preset.get("merged_output_name", default_merged_name(self.mode_var.get()))))
+        self.image_format_var.set(str(preset.get("image_format", "png")))
+        self.image_scale_var.set(str(preset.get("image_scale", "2.0")))
+        self.engine_mode_var.set(str(preset.get("engine_mode", ENGINE_AUTO)))
+        self.recursive_var.set(bool(preset.get("recursive", True)))
+        self._refresh_dependency_status()
+        self._update_mode_controls()
+        self._show_page("convert")
+        name = str(preset.get("name", "")).strip()
+        self.status_var.set(f"Applied preset '{name}'.")
+        if start:
+            self.after(80, self._start_conversion)
 
-def _toggle_selected_preset_favorite(self) -> None:
-    preset = self._selected_preset()
-    if not preset:
-        messagebox.showinfo("Presets", "Select a preset first.")
-        return
-    name = str(preset.get("name", "")).strip()
-    favorite = not bool(preset.get("favorite", False))
-    self.state_store.set_preset_favorite(name, favorite)
-    self._refresh_presets_view()
-    self._refresh_favorite_preset_widgets()
-    self._log_automation(f"{'Starred' if favorite else 'Unstarred'} preset '{name}'.")
+    def _toggle_selected_preset_favorite(self) -> None:
+        preset = self._selected_preset()
+        if not preset:
+            messagebox.showinfo("Presets", "Select a preset first.")
+            return
+        name = str(preset.get("name", "")).strip()
+        favorite = not bool(preset.get("favorite", False))
+        self.state_store.set_preset_favorite(name, favorite)
+        self._refresh_presets_view()
+        self._refresh_favorite_preset_widgets()
+        self._log_automation(f"{'Starred' if favorite else 'Unstarred'} preset '{name}'.")
 
-def _focus_link_input(self) -> None:
-    self._show_page("convert")
-    try:
-        self.link_input_text.focus_set()
-        self.link_input_text.mark_set("insert", "1.0")
-    except Exception:
-        pass
+    def _focus_link_input(self) -> None:
+        self._show_page("convert")
+        try:
+            self.link_input_text.focus_set()
+            self.link_input_text.mark_set("insert", "1.0")
+        except Exception:
+            pass
 
-def _build_quick_actions(self) -> list[QuickAction]:
-    return [
-        QuickAction("Add files", self._add_files, hint="Browse and add input files", keywords="open import files"),
-        QuickAction("Add folder", self._add_folder, hint="Scan a folder for supported files", keywords="directory batch"),
-        QuickAction("Start conversion", self._start_conversion, hint="Run the current Convert queue", keywords="run batch ctrl+enter"),
-        QuickAction("Run PDF tool", self._start_pdf_tool, hint="Start the active PDF tool", keywords="pdf tool"),
-        QuickAction("Open settings", lambda: self._show_page("settings"), hint="Jump to app settings", keywords="preferences"),
-        QuickAction("Focus links box", self._focus_link_input, hint="Jump to the online URL input area", keywords="url links"),
-        QuickAction("Open organizer", lambda: self._show_page("organizer"), hint="Visual page organization", keywords="pages reorder"),
-        QuickAction("Open OCR", lambda: self._show_page("ocr"), hint="Searchable PDF and OCR text tools", keywords="scan text"),
-        QuickAction("Open Automation", lambda: self._show_page("automation"), hint="Presets and watch folder tools", keywords="presets watch"),
-        QuickAction("Open Build Center", self._open_build_center_window, hint="Diagnostics and release prep", keywords="installer diagnostics"),
-        QuickAction("Open SMTP Delivery", self._open_smtp_window, hint="Draft or send outputs by email", keywords="mail email"),
-        QuickAction("Check for updates", self._check_for_updates_placeholder, hint="Record a local update-check stamp", keywords="release"),
-    ]
+    def _build_quick_actions(self) -> list[QuickAction]:
+        return [
+            QuickAction("Add files", self._add_files, hint="Browse and add input files", keywords="open import files"),
+            QuickAction("Add folder", self._add_folder, hint="Scan a folder for supported files", keywords="directory batch"),
+            QuickAction("Start conversion", self._start_conversion, hint="Run the current Convert queue", keywords="run batch ctrl+enter"),
+            QuickAction("Run PDF tool", self._start_pdf_tool, hint="Start the active PDF tool", keywords="pdf tool"),
+            QuickAction("Open settings", lambda: self._show_page("settings"), hint="Jump to app settings", keywords="preferences"),
+            QuickAction("Focus links box", self._focus_link_input, hint="Jump to the online URL input area", keywords="url links"),
+            QuickAction("Open organizer", lambda: self._show_page("organizer"), hint="Visual page organization", keywords="pages reorder"),
+            QuickAction("Open OCR", lambda: self._show_page("ocr"), hint="Searchable PDF and OCR text tools", keywords="scan text"),
+            QuickAction("Open Automation", lambda: self._show_page("automation"), hint="Presets and watch folder tools", keywords="presets watch"),
+            QuickAction("Open Build Center", self._open_build_center_window, hint="Diagnostics and release prep", keywords="installer diagnostics"),
+            QuickAction("Open SMTP Delivery", self._open_smtp_window, hint="Draft or send outputs by email", keywords="mail email"),
+            QuickAction("Check for updates", self._check_for_updates_placeholder, hint="Record a local update-check stamp", keywords="release"),
+        ]
 
-def _open_command_palette(self) -> None:
-    if self.command_palette_window and self.command_palette_window.winfo_exists():
-        self.command_palette_window.lift()
-        return
-    self.command_palette_window = CommandPaletteWindow(self, actions=self._build_quick_actions(), palette=self.palette)
-    self.command_palette_window.bind("<Destroy>", lambda _event: setattr(self, "command_palette_window", None), add="+")
+    def _open_command_palette(self) -> None:
+        if self.command_palette_window and self.command_palette_window.winfo_exists():
+            self.command_palette_window.lift()
+            return
+        self.command_palette_window = CommandPaletteWindow(self, actions=self._build_quick_actions(), palette=self.palette)
+        self.command_palette_window.bind("<Destroy>", lambda _event: setattr(self, "command_palette_window", None), add="+")
 
-def _attach_tooltip(self, widget: tk.Widget, text: str) -> None:
-    if not text:
-        return
-    self._tooltips.append(Tooltip(widget, text))
+    def _attach_tooltip(self, widget: tk.Widget, text: str) -> None:
+        if not text:
+            return
+        self._tooltips.append(Tooltip(widget, text))
 
 
     def _build_convert_page(self) -> None:
