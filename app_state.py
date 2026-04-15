@@ -56,6 +56,9 @@ DEFAULT_STATE: dict[str, Any] = {
     "session_snapshot": {},
     "update_checker_enabled": False,
     "last_update_check": "",
+    "update_manifest_url": "",
+    "last_update_result": "",
+    "workspace_backup_dir": "",
     "window_geometry": "",
     "last_page": "home",
 }
@@ -135,6 +138,12 @@ class AppStateStore:
         merged["update_checker_enabled"] = bool(merged.get("update_checker_enabled", DEFAULT_STATE["update_checker_enabled"]))
         if not isinstance(merged.get("last_update_check"), str):
             merged["last_update_check"] = DEFAULT_STATE["last_update_check"]
+        if not isinstance(merged.get("update_manifest_url"), str):
+            merged["update_manifest_url"] = DEFAULT_STATE["update_manifest_url"]
+        if not isinstance(merged.get("last_update_result"), str):
+            merged["last_update_result"] = DEFAULT_STATE["last_update_result"]
+        if not isinstance(merged.get("workspace_backup_dir"), str):
+            merged["workspace_backup_dir"] = DEFAULT_STATE["workspace_backup_dir"]
         if not isinstance(merged.get("window_geometry"), str):
             merged["window_geometry"] = DEFAULT_STATE["window_geometry"]
         if not isinstance(merged.get("last_page"), str):

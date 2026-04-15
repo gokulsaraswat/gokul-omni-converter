@@ -32,6 +32,7 @@ from automation_core import (
     write_run_report,
 )
 from build_support import export_diagnostics_report, export_state_snapshot, import_state_snapshot, export_text_file
+from release_support import build_example_update_manifest, check_for_updates, export_workspace_bundle, import_workspace_bundle
 from engagement_core import ensure_install_date, should_show_first_launch_splash, should_show_login_popup
 from converter_core import (
     BatchConfig,
@@ -673,6 +674,58 @@ def run_patch15_workflow_smoke(outputs: Path) -> list[Path]:
 
 
 
+
+def run_patch16_release_smoke(outputs: Path) -> list[Path]:
+    release_dir = outputs / "patch16_release"
+    installer_dir = release_dir / "installer"
+    installer_dir.mkdir(parents=True, exist_ok=True)
+
+    state_path = release_dir / "app_state.json"
+    state_path.write_text(json.dumps({"theme": "dark", "output_dir": str(outputs)}, indent=2), encoding="utf-8")
+    notes_path = release_dir / "footer_notes.md"
+    notes_path.write_text("# Patch 16 notes\n\nWorkspace bundle smoke test.\n", encoding="utf-8")
+    about_path = release_dir / "about_profile.json"
+    about_path.write_text(json.dumps({"name": "Gokul Saraswat", "image_path": "profile.png"}, indent=2), encoding="utf-8")
+    image_path = release_dir / "profile.png"
+    Image.new("RGB", (64, 64), color=(32, 80, 140)).save(image_path)
+    static_about_path = installer_dir / "about_static.json"
+    static_about_path.write_text(json.dumps({"name": "Static About"}, indent=2), encoding="utf-8")
+    build_notes = installer_dir / "BUILDING.md"
+    build_notes.write_text("# Build notes\n\nPatch 16 release workspace smoke.\n", encoding="utf-8")
+
+    manifest_path = build_example_update_manifest(installer_dir / "update_manifest.example.json", "1.6.0 Patch 16")
+    manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest_payload["version"] = "1.6.1 Patch 16"
+    manifest_payload["notes"] = "Patch 16 smoke manifest."
+    manifest_path.write_text(json.dumps(manifest_payload, indent=2), encoding="utf-8")
+
+    update_result = check_for_updates("1.6.0 Patch 16", str(manifest_path))
+    if not update_result.get("has_update"):
+        raise AssertionError(f"Patch 16 update checker did not detect the newer manifest: {update_result}")
+
+    bundle_path = export_workspace_bundle(
+        release_dir / "workspace_bundle.zip",
+        state_path=state_path,
+        notes_path=notes_path,
+        about_profile_path=about_path,
+        static_about_profile_path=static_about_path,
+        installer_dir=installer_dir,
+        extra_files=[image_path, manifest_path],
+    )
+    if not bundle_path.exists():
+        raise AssertionError("Patch 16 workspace bundle export did not create the ZIP file.")
+
+    import_root = release_dir / "imported_bundle"
+    summary = import_workspace_bundle(bundle_path, import_root)
+    extracted = summary.get("extracted", [])
+    if int(summary.get("extracted_count", 0)) < 5 or not extracted:
+        raise AssertionError(f"Patch 16 workspace bundle import extracted too few files: {summary}")
+    if not (import_root / "workspace_manifest.json").exists():
+        raise AssertionError("Patch 16 workspace import did not include the bundle manifest file.")
+
+    return [manifest_path, bundle_path, import_root / "workspace_manifest.json"]
+
+
 def run() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         root = Path(temp_dir)
@@ -946,10 +999,13 @@ def run() -> None:
         patch15_outputs = run_patch15_workflow_smoke(outputs)
         all_outputs.extend(patch15_outputs)
 
+        patch16_outputs = run_patch16_release_smoke(outputs)
+        all_outputs.extend(patch16_outputs)
+
         diagnostics_path = export_diagnostics_report(
             outputs / "diagnostics" / "diagnostics.json",
             app_name=APP_NAME,
-            app_version="1.5.0 Patch 15",
+            app_version="1.6.0 Patch 16",
             state_path=APP_STATE_PATH,
             about_profile_path=Path("about_profile.json"),
             notes_path=Path("footer_notes.md"),
@@ -1012,7 +1068,7 @@ def run() -> None:
         else:
             skipped.append("Tesseract not found. OCR smoke tests were skipped.")
 
-        print("Patch 15 smoke test completed successfully.")
+        print("Patch 16 smoke test completed successfully.")
         for note in skipped:
             print(f"SKIP: {note}")
         for path in all_outputs:

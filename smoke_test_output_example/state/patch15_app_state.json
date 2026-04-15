@@ -1,6 +1,6 @@
 {
   "theme": "dark",
-  "output_dir": "/mnt/data/gokul_omni_convert_lite_patch15/converted_output",
+  "output_dir": "/mnt/data/patch16_work/gokul_omni_convert_lite_patch16/converted_output",
   "recursive_scan": true,
   "conversion_engine": "pure_python",
   "performance_mode": "balanced",
@@ -17,22 +17,22 @@
     {
       "name": "Patch15 Favorite",
       "mode": "Markdown -> PDF",
-      "output_dir": "/tmp/tmpyw94zyes/outputs/favorite",
+      "output_dir": "/tmp/tmpfogsqy83/outputs/favorite",
       "merge_to_one_pdf": false,
       "merged_output_name": "",
       "image_format": "png",
       "image_scale": 2.0,
       "engine_mode": "pure_python",
       "recursive": true,
-      "created_at": "2026-04-15 05:14:15",
-      "updated_at": "2026-04-15 05:14:15",
+      "created_at": "2026-04-15 06:04:02",
+      "updated_at": "2026-04-15 06:04:02",
       "favorite": true
     }
   ],
   "watch_config": {},
   "watch_seen_fingerprints": [],
   "automation_events": [],
-  "install_date": "2026-04-15T05:14:15",
+  "install_date": "2026-04-15T06:04:02",
   "login_popup_dismissed": false,
   "login_popup_completed": false,
   "login_popup_last_shown": "",
@@ -54,6 +54,9 @@
   "session_snapshot": {},
   "update_checker_enabled": false,
   "last_update_check": "",
+  "update_manifest_url": "",
+  "last_update_result": "",
+  "workspace_backup_dir": "",
   "window_geometry": "",
   "last_page": "home"
 }

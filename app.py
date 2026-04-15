@@ -42,6 +42,12 @@ from automation_core import (
     write_run_report,
 )
 from build_support import export_diagnostics_report, export_state_snapshot, import_state_snapshot, export_text_file
+from release_support import (
+    build_example_update_manifest,
+    check_for_updates,
+    export_workspace_bundle,
+    import_workspace_bundle,
+)
 from converter_core import (
     BatchConfig,
     PdfToolConfig,
@@ -115,7 +121,21 @@ from ui_theme import (
     resolve_palette,
 )
 
-APP_VERSION = "1.5.0 Patch 15"
+APP_VERSION = "1.6.0 Patch 16"
+
+def open_path(path: str | Path) -> None:
+    target = Path(path).expanduser()
+    try:
+        if sys.platform.startswith("win"):
+            os.startfile(str(target))  # type: ignore[attr-defined]
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", str(target)])
+        else:
+            subprocess.Popen(["xdg-open", str(target)])
+    except Exception:
+        webbrowser.open(target.as_uri() if target.exists() else str(target))
+
+
 MODE_ORDER = [
     MODE_ANY_TO_PDF,
     MODE_IMAGES_TO_PDF,
@@ -337,8 +357,8 @@ class BuildCenterWindow(tk.Toplevel):
         self.app = app
         self.palette = palette
         self.title(f"{APP_NAME} - Build Center")
-        self.geometry("760x620")
-        self.minsize(620, 500)
+        self.geometry("820x700")
+        self.minsize(680, 540)
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -350,10 +370,11 @@ class BuildCenterWindow(tk.Toplevel):
         ttk.Label(
             header,
             text=(
-                "Build Center groups diagnostics, state snapshots, installer notes, and packaging shortcuts so release work stays organized."
+                "Build Center groups diagnostics, state snapshots, update-feed controls, workspace bundles, "
+                "and packaging shortcuts so release work stays organized."
             ),
             style="CardBody.TLabel",
-            wraplength=620,
+            wraplength=680,
             justify="left",
         ).grid(row=1, column=0, sticky="w", pady=(8, 0))
 
@@ -361,7 +382,7 @@ class BuildCenterWindow(tk.Toplevel):
         body.grid(row=1, column=0, sticky="nsew", padx=18, pady=(0, 10))
         body.grid_columnconfigure(0, weight=1)
 
-        self.summary_label = ttk.Label(body, style="CardBody.TLabel", wraplength=620, justify="left")
+        self.summary_label = ttk.Label(body, style="CardBody.TLabel", wraplength=700, justify="left")
         self.summary_label.grid(row=0, column=0, sticky="w")
 
         actions = ttk.Frame(body, style="Surface.TFrame")
@@ -372,11 +393,16 @@ class BuildCenterWindow(tk.Toplevel):
         ttk.Button(actions, text="Export diagnostics JSON", command=self.app._export_diagnostics_report_action).grid(row=0, column=0, sticky="ew", padx=(0, 8))
         ttk.Button(actions, text="Export settings snapshot", command=self.app._export_state_snapshot_action).grid(row=0, column=1, sticky="ew")
         ttk.Button(actions, text="Import settings snapshot", command=self.app._import_state_snapshot_action).grid(row=1, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
-        ttk.Button(actions, text="Open installer folder", command=self.app._open_installer_folder).grid(row=1, column=1, sticky="ew", pady=(8, 0))
-        ttk.Button(actions, text="Open build notes", command=lambda: open_path(self.app.build_notes_path)).grid(row=2, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
-        ttk.Button(actions, text="Open SMTP settings", command=self.app._open_smtp_window).grid(row=2, column=1, sticky="ew", pady=(8, 0))
-        ttk.Button(actions, text="Open About editor", command=self.app._open_about_editor_window).grid(row=3, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
-        ttk.Button(actions, text="Refresh summary", command=self.refresh_summary).grid(row=3, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Export workspace bundle", command=self.app._export_workspace_bundle_action).grid(row=1, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Import workspace bundle", command=self.app._import_workspace_bundle_action).grid(row=2, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
+        ttk.Button(actions, text="Check for updates", command=self.app._check_for_updates_placeholder).grid(row=2, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Choose manifest file", command=self.app._browse_update_manifest_source).grid(row=3, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
+        ttk.Button(actions, text="Open manifest example", command=self.app._open_update_manifest_example).grid(row=3, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Open installer folder", command=self.app._open_installer_folder).grid(row=4, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
+        ttk.Button(actions, text="Open build notes", command=lambda: open_path(self.app.build_notes_path)).grid(row=4, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Open SMTP settings", command=self.app._open_smtp_window).grid(row=5, column=0, sticky="ew", padx=(0, 8), pady=(8, 0))
+        ttk.Button(actions, text="Open About editor", command=self.app._open_about_editor_window).grid(row=5, column=1, sticky="ew", pady=(8, 0))
+        ttk.Button(actions, text="Refresh summary", command=self.refresh_summary).grid(row=6, column=0, columnspan=2, sticky="ew", pady=(8, 0))
 
         self.protocol("WM_DELETE_WINDOW", self.destroy)
         self.apply_theme(palette)
@@ -392,13 +418,16 @@ class BuildCenterWindow(tk.Toplevel):
             f"Current output folder: {self.app.output_dir_var.get().strip()}",
             f"Latest outputs tracked: {len(self.app.last_outputs)}",
             f"Dependency summary: {self.app.dependency_var.get().strip()}",
+            f"Update manifest: {self.app.update_manifest_url_var.get().strip() or self.app.update_manifest_example_path}",
+            f"Last update check: {self.app.last_update_check_var.get().strip() or 'Never'}",
+            f"Last update result: {self.app.last_update_result_var.get().strip() or 'No checks yet.'}",
+            f"Workspace bundle folder: {self.app.workspace_backup_dir_var.get().strip() or APP_STATE_PATH.parent}",
         ]
         self.summary_label.configure(text="\n\n".join(summary))
 
     def apply_theme(self, palette: ThemePalette) -> None:
         self.palette = palette
         apply_ttk_theme(self, palette)
-
 
 
 class AboutProfileEditorWindow(tk.Toplevel):
@@ -593,6 +622,9 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.about_profile_path = ABOUT_PROFILE_PATH
         self.build_notes_path = Path(__file__).with_name("installer") / "BUILDING.md"
         self.static_about_profile_path = Path(__file__).with_name("installer") / "about_static.json"
+        self.update_manifest_example_path = Path(__file__).with_name("installer") / "update_manifest.example.json"
+        if not self.update_manifest_example_path.exists():
+            build_example_update_manifest(self.update_manifest_example_path, APP_VERSION)
         self.about_profile = load_about_profile(self.about_profile_path)
         self.about_photo: ImageTk.PhotoImage | None = None
 
@@ -745,6 +777,9 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.cleanup_temp_var = tk.BooleanVar(value=bool(self.state_store.get("cleanup_temp_on_exit", True)))
         self.update_checker_enabled_var = tk.BooleanVar(value=bool(self.state_store.get("update_checker_enabled", False)))
         self.last_update_check_var = tk.StringVar(value=str(self.state_store.get("last_update_check", "")))
+        self.update_manifest_url_var = tk.StringVar(value=str(self.state_store.get("update_manifest_url", "")))
+        self.last_update_result_var = tk.StringVar(value=str(self.state_store.get("last_update_result", "")))
+        self.workspace_backup_dir_var = tk.StringVar(value=str(self.state_store.get("workspace_backup_dir", "")))
 
         smtp_config = SMTPSettings.from_dict(self.state_store.get("smtp_settings", {}))
         self.smtp_host_var = tk.StringVar(value=smtp_config.host)
@@ -1134,7 +1169,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         help_menu.add_command(label="Open SMTP Delivery", command=self._open_smtp_window)
         help_menu.add_command(label="Open Build Center", command=self._open_build_center_window)
         help_menu.add_command(label="Quick actions", command=self._open_command_palette)
-        help_menu.add_command(label="Check for updates (placeholder)", command=self._check_for_updates_placeholder)
+        help_menu.add_command(label="Check for updates", command=self._check_for_updates_placeholder)
         help_menu.add_separator()
         help_menu.add_command(label="About", command=self._show_about)
         menu_bar.add_cascade(label="Help", menu=help_menu)
@@ -1338,7 +1373,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
             QuickAction("Open Automation", lambda: self._show_page("automation"), hint="Presets and watch folder tools", keywords="presets watch"),
             QuickAction("Open Build Center", self._open_build_center_window, hint="Diagnostics and release prep", keywords="installer diagnostics"),
             QuickAction("Open SMTP Delivery", self._open_smtp_window, hint="Draft or send outputs by email", keywords="mail email"),
-            QuickAction("Check for updates", self._check_for_updates_placeholder, hint="Record a local update-check stamp", keywords="release"),
+            QuickAction("Check for updates", self._check_for_updates_placeholder, hint="Check a local or remote release manifest", keywords="release update manifest"),
         ]
 
     def _open_command_palette(self) -> None:
@@ -1352,7 +1387,6 @@ class GokulOmniConvertLiteApp(tk.Tk):
         if not text:
             return
         self._tooltips.append(Tooltip(widget, text))
-
 
     def _build_convert_page(self) -> None:
         page = ttk.Frame(self.content)
@@ -2678,16 +2712,146 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.status_var.set(f"Exported logs: {path}")
         open_path(path)
 
+    def _refresh_build_center_summary(self) -> None:
+        if self.build_center_window and self.build_center_window.winfo_exists():
+            self.build_center_window.refresh_summary()
+
+    def _browse_update_manifest_source(self) -> None:
+        source = filedialog.askopenfilename(
+            title="Select update manifest JSON",
+            initialdir=str(self.update_manifest_example_path.parent),
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+        )
+        if not source:
+            return
+        self.update_manifest_url_var.set(source)
+        self.state_store.set("update_manifest_url", source)
+        self.status_var.set("Update manifest source saved.")
+        self._refresh_build_center_summary()
+
+    def _open_update_manifest_example(self) -> None:
+        build_example_update_manifest(self.update_manifest_example_path, APP_VERSION)
+        open_path(self.update_manifest_example_path)
+        self.status_var.set("Opened the bundled update manifest example.")
+
+    def _resolve_update_manifest_source(self) -> str:
+        source = self.update_manifest_url_var.get().strip()
+        if source:
+            return source
+        if self.update_manifest_example_path.exists():
+            source = str(self.update_manifest_example_path)
+            self.update_manifest_url_var.set(source)
+            return source
+        value = simpledialog.askstring(
+            "Update manifest",
+            "Enter a local JSON path or an HTTP/HTTPS URL for the release manifest.",
+            initialvalue="",
+            parent=self,
+        )
+        if value:
+            source = value.strip()
+            self.update_manifest_url_var.set(source)
+            self.state_store.set("update_manifest_url", source)
+            return source
+        return ""
+
     def _check_for_updates_placeholder(self) -> None:
+        source = self._resolve_update_manifest_source()
+        if not source:
+            messagebox.showinfo(
+                "Update checker",
+                "Choose a local update manifest JSON or point the app to an HTTP/HTTPS manifest first.",
+            )
+            return
+        result = check_for_updates(APP_VERSION, source)
         now_text = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.last_update_check_var.set(now_text)
-        self.state_store.set("last_update_check", now_text)
-        messagebox.showinfo(
-            "Update checker",
-            "Patch 15 still includes an update-check placeholder only.\n\nUse this hook later for GitHub releases, an installer feed, or your own version endpoint.",
+        summary = str(result.get("message", "")).strip() or "Update check completed."
+        notes = str(result.get("notes", "")).strip()
+        if notes:
+            summary = f"{summary} Notes: {notes}"
+        download_url = str(result.get("download_url", "")).strip()
+        if download_url:
+            summary = f"{summary} Download: {download_url}"
+        self.last_update_result_var.set(summary)
+        self.state_store.update(
+            last_update_check=now_text,
+            update_manifest_url=source,
+            last_update_result=summary,
+            update_checker_enabled=bool(self.update_checker_enabled_var.get()),
         )
-        self.status_var.set("Update check placeholder completed.")
+        self.status_var.set(summary)
+        self._refresh_build_center_summary()
+        if result.get("status") == "ok":
+            messagebox.showinfo("Update checker", summary)
+        else:
+            messagebox.showwarning("Update checker", summary)
 
+    def _workspace_extra_files(self) -> list[Path]:
+        extras: list[Path] = []
+        splash_path = self._resolve_splash_gif_path()
+        if splash_path.exists() and splash_path.is_file():
+            extras.append(splash_path)
+        profile_image = resolve_profile_image(self.about_profile, self.about_profile_path.parent)
+        if profile_image.exists() and profile_image.is_file():
+            extras.append(profile_image)
+        if self.update_manifest_example_path.exists() and self.update_manifest_example_path.is_file():
+            extras.append(self.update_manifest_example_path)
+        return extras
+
+    def _export_workspace_bundle_action(self) -> None:
+        self._persist_state()
+        initial_dir = self.workspace_backup_dir_var.get().strip() or str(self.last_output_dir or APP_STATE_PATH.parent)
+        target = filedialog.asksaveasfilename(
+            title="Export workspace bundle",
+            defaultextension=".zip",
+            initialdir=initial_dir,
+            initialfile=f"gokul_omni_workspace_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
+            filetypes=[("ZIP archives", "*.zip")],
+        )
+        if not target:
+            return
+        destination = export_workspace_bundle(
+            Path(target),
+            state_path=APP_STATE_PATH,
+            notes_path=self.notes_path,
+            about_profile_path=self.about_profile_path,
+            static_about_profile_path=self.static_about_profile_path,
+            installer_dir=self.build_notes_path.parent,
+            extra_files=self._workspace_extra_files(),
+        )
+        self.workspace_backup_dir_var.set(str(destination.parent))
+        self.state_store.update(workspace_backup_dir=str(destination.parent))
+        self.status_var.set(f"Workspace bundle exported to {destination.name}.")
+        self._refresh_build_center_summary()
+        messagebox.showinfo("Workspace bundle", f"Exported workspace bundle to:\n{destination}")
+
+    def _import_workspace_bundle_action(self) -> None:
+        source = filedialog.askopenfilename(
+            title="Import workspace bundle",
+            initialdir=self.workspace_backup_dir_var.get().strip() or str(APP_STATE_PATH.parent),
+            filetypes=[("ZIP archives", "*.zip"), ("All files", "*.*")],
+        )
+        if not source:
+            return
+        target_dir = filedialog.askdirectory(
+            title="Extract workspace bundle to",
+            initialdir=str(Path(__file__).resolve().parent),
+            mustexist=False,
+        )
+        if not target_dir:
+            return
+        summary = import_workspace_bundle(Path(source), Path(target_dir))
+        self.workspace_backup_dir_var.set(str(Path(target_dir)))
+        self.state_store.update(workspace_backup_dir=str(Path(target_dir)))
+        if Path(target_dir).resolve() == Path(__file__).resolve().parent:
+            self._refresh_about_profile()
+        self.status_var.set(f"Imported workspace bundle into {target_dir}.")
+        self._refresh_build_center_summary()
+        messagebox.showinfo(
+            "Workspace bundle",
+            f"Imported {summary.get('extracted_count', 0)} file(s) into:\n{target_dir}",
+        )
     def _remember_organizer_pdf(self, path: Path) -> None:
         self.state_store.set("organizer_last_pdf", str(path))
 
@@ -2848,7 +3012,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         ttk.Checkbutton(appearance, text="Clean temporary session files on exit", variable=self.cleanup_temp_var).grid(
             row=6, column=0, columnspan=3, sticky="w", pady=(8, 0)
         )
-        ttk.Checkbutton(appearance, text="Enable update checker placeholder reminders", variable=self.update_checker_enabled_var).grid(
+        ttk.Checkbutton(appearance, text="Enable update checker reminders", variable=self.update_checker_enabled_var).grid(
             row=7, column=0, columnspan=3, sticky="w", pady=(8, 0)
         )
         ttk.Label(
@@ -2860,7 +3024,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         ).grid(row=8, column=0, columnspan=3, sticky="w", pady=(12, 0))
         ttk.Label(
             appearance,
-            text="Theme, output folder, engine choice, splash options, reminder state, and session behavior are saved automatically when you close the app.",
+            text="Theme, output folder, engine choice, splash options, reminder state, release feed, and session behavior are saved automatically when you close the app.",
             style="CardBody.TLabel",
             wraplength=460,
             justify="left",
@@ -4684,6 +4848,10 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.splash_gif_path_var.set(str(self.state_store.get("splash_gif_path", "assets/gokul_splash.gif")))
         self.login_popup_enabled_var.set(bool(self.state_store.get("login_popup_enabled", True)))
         self.install_date_var.set(str(self.state_store.get("install_date", "")))
+        self.update_manifest_url_var.set(str(self.state_store.get("update_manifest_url", "")))
+        self.last_update_check_var.set(str(self.state_store.get("last_update_check", "")))
+        self.last_update_result_var.set(str(self.state_store.get("last_update_result", "")))
+        self.workspace_backup_dir_var.set(str(self.state_store.get("workspace_backup_dir", "")))
         smtp_config = SMTPSettings.from_dict(self.state_store.get("smtp_settings", {}))
         self.smtp_host_var.set(smtp_config.host)
         self.smtp_port_var.set(str(smtp_config.port))
@@ -5760,6 +5928,9 @@ class GokulOmniConvertLiteApp(tk.Tk):
             cleanup_temp_on_exit=bool(self.cleanup_temp_var.get()),
             update_checker_enabled=bool(self.update_checker_enabled_var.get()),
             last_update_check=self.last_update_check_var.get().strip(),
+            update_manifest_url=self.update_manifest_url_var.get().strip(),
+            last_update_result=self.last_update_result_var.get().strip(),
+            workspace_backup_dir=self.workspace_backup_dir_var.get().strip(),
             recent_outputs=self.state_store.recent_outputs(),
             failed_jobs=self.state_store.failed_jobs(),
             session_snapshot=session_snapshot,
@@ -5801,7 +5972,61 @@ class GokulOmniConvertLiteApp(tk.Tk):
 def main() -> None:
     parser = argparse.ArgumentParser(description="Gokul Omni Convert Lite")
     parser.add_argument("--skip-startup-overlays", action="store_true", help="Skip splash and reminder overlays on startup.")
+    parser.add_argument("--check-updates", nargs="?", const="__STATE__", metavar="MANIFEST", help="Run a headless update check using a local JSON path or URL.")
+    parser.add_argument("--export-workspace", metavar="ZIP", help="Export a full workspace bundle without starting the GUI.")
+    parser.add_argument("--import-workspace", metavar="ZIP", help="Import a workspace bundle into the chosen target folder without starting the GUI.")
+    parser.add_argument("--workspace-target", metavar="DIR", help="Extraction target when used with --import-workspace.")
     args = parser.parse_args()
+
+    app_root = Path(__file__).resolve().parent
+    notes_path = app_root / "footer_notes.md"
+    about_profile_path = app_root / "about_profile.json"
+    installer_dir = app_root / "installer"
+    static_about_profile_path = installer_dir / "about_static.json"
+    example_manifest = installer_dir / "update_manifest.example.json"
+    splash_asset = app_root / "assets" / "gokul_splash.gif"
+    build_example_update_manifest(example_manifest, APP_VERSION)
+
+    state_store = AppStateStore()
+
+    if args.check_updates is not None:
+        source = args.check_updates if args.check_updates != "__STATE__" else str(state_store.get("update_manifest_url", "") or example_manifest)
+        result = check_for_updates(APP_VERSION, source)
+        stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        state_store.update(
+            last_update_check=stamp,
+            update_manifest_url=str(source),
+            last_update_result=str(result.get("message", "")),
+        )
+        print(json.dumps(result, indent=2))
+        return
+
+    if args.export_workspace:
+        profile = load_about_profile(about_profile_path)
+        extra_files: list[Path] = [example_manifest]
+        profile_image = resolve_profile_image(profile, about_profile_path.parent)
+        if profile_image.exists():
+            extra_files.append(profile_image)
+        if splash_asset.exists():
+            extra_files.append(splash_asset)
+        destination = export_workspace_bundle(
+            Path(args.export_workspace),
+            state_path=APP_STATE_PATH,
+            notes_path=notes_path,
+            about_profile_path=about_profile_path,
+            static_about_profile_path=static_about_profile_path,
+            installer_dir=installer_dir,
+            extra_files=extra_files,
+        )
+        print(destination)
+        return
+
+    if args.import_workspace:
+        target_root = Path(args.workspace_target).expanduser() if args.workspace_target else app_root
+        summary = import_workspace_bundle(Path(args.import_workspace), target_root)
+        print(json.dumps(summary, indent=2))
+        return
+
     app = GokulOmniConvertLiteApp(skip_startup_overlays=args.skip_startup_overlays)
     app.mainloop()
 

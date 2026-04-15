@@ -3,6 +3,40 @@
 A local Python desktop app for batch conversion, PDF workflows, integrated OCR, visual page organization, automation presets, and installer-ready packaging prep.
 
 
+
+## Patch 16 highlights
+
+Patch 16 focuses on release workflow polish, workspace portability, and a real manifest-driven update check without removing any Patch 1–15 capability.
+
+New in Patch 16:
+- **real update checker** backed by a local JSON file or remote HTTP/HTTPS manifest
+- bundled **installer/update_manifest.example.json** template for future release feeds
+- new **Build Center** actions for:
+  - export workspace bundle
+  - import workspace bundle
+  - choose manifest file
+  - check for updates
+- new **workspace bundle** export/import helpers that package:
+  - app state
+  - footer notes
+  - About profile
+  - installer metadata
+  - selected profile/splash assets when available
+- new **headless CLI hooks**:
+  - `python app.py --check-updates`
+  - `python app.py --export-workspace out.zip`
+  - `python app.py --import-workspace bundle.zip --workspace-target ./restore_here`
+- state persistence expanded for:
+  - update manifest source
+  - last update result
+  - workspace bundle destination
+- smoke tests expanded for:
+  - update manifest parsing
+  - workspace bundle export/import
+
+The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
+
+
 ## Patch 15 highlights
 
 Patch 15 focuses on workflow acceleration, queue control, cache hygiene, and faster navigation without removing any Patch 1–14 capability.
@@ -297,6 +331,13 @@ pip install -r requirements.txt
   - improves PDF -> DOCX extraction when available
 
 ## Run the app
+
+Headless release helpers:
+- `python app.py --check-updates`
+- `python app.py --check-updates installer/update_manifest.example.json`
+- `python app.py --export-workspace gokul_workspace.zip`
+- `python app.py --import-workspace gokul_workspace.zip --workspace-target ./restore_here`
+
 
 ### Windows
 ```bat

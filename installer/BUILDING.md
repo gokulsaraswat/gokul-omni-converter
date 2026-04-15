@@ -4,6 +4,16 @@ Patch 12 keeps the project installer-ready while separating editable in-app prof
 
 ## What is included
 
+
+## Patch 16 additions
+
+- `update_manifest.example.json` - starter JSON manifest for the built-in update checker
+- workspace bundles can now be exported/imported from the Build Center or by using the headless CLI:
+  - `python app.py --export-workspace release_workspace.zip`
+  - `python app.py --import-workspace release_workspace.zip --workspace-target ./restore_here`
+- `python app.py --check-updates` uses the saved manifest path or the bundled example manifest
+
+
 - `gokul_omni_convert_lite.spec` - PyInstaller spec for the desktop app payload
 - `build_windows.bat` - helper script for a Windows PyInstaller build
 - `build_linux.sh` - helper script for a Linux PyInstaller build
