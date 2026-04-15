@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+import json
+import os
 import shutil
 import tempfile
+import threading
+from functools import partial
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import fitz
@@ -15,7 +21,8 @@ try:
 except Exception:  # pragma: no cover - local compatibility fallback
     from PyPDF2 import PdfReader  # type: ignore
 
-from app_state import APP_NAME, APP_STATE_PATH
+from app_state import APP_NAME, APP_STATE_PATH, AppStateStore
+from about_profile import load_about_profile
 from automation_core import (
     add_fingerprints,
     bundle_paths_as_zip,
@@ -24,7 +31,8 @@ from automation_core import (
     import_presets_from_json,
     write_run_report,
 )
-from build_support import export_diagnostics_report, export_state_snapshot, import_state_snapshot
+from build_support import export_diagnostics_report, export_state_snapshot, import_state_snapshot, export_text_file
+from engagement_core import ensure_install_date, should_show_first_launch_splash, should_show_login_popup
 from converter_core import (
     BatchConfig,
     PdfToolConfig,
@@ -32,13 +40,17 @@ from converter_core import (
     MODE_ANY_TO_PDF,
     MODE_DOCS_TO_PDF,
     MODE_HTML_TO_DOCX,
+    MODE_HTML_TO_MD,
+    MODE_HTML_TO_PDF,
     MODE_MD_TO_DOCX,
     MODE_MD_TO_HTML,
+    MODE_MD_TO_PDF,
     MODE_PDF_TO_DOCX,
     MODE_PDF_TO_HTML,
     MODE_PDF_TO_IMAGES,
     MODE_PDF_TO_PPTX,
     MODE_PDF_TO_XLSX,
+    MODE_PRESENTATIONS_TO_IMAGES,
     MODE_PRESENTATIONS_TO_PDF,
     MODE_SHEETS_TO_PDF,
     MODE_TEXT_TO_PDF,
@@ -49,6 +61,8 @@ from converter_core import (
     PDF_TOOL_LOCK,
     PDF_TOOL_MERGE,
     PDF_TOOL_REDACT_TEXT,
+    PDF_TOOL_REDACT_AREA,
+    PDF_TOOL_EDIT_TEXT,
     PDF_TOOL_REMOVE_PAGES,
     PDF_TOOL_REORDER_PAGES,
     PDF_TOOL_SIGN_VISIBLE,
@@ -78,6 +92,9 @@ from organizer_core import (
     save_sequence_as_pdf as organizer_save_sequence_as_pdf,
 )
 
+
+from link_ingest import cache_root_from_setting, download_many_urls, extract_urls
+from workflow_support import directory_stats, prune_directory
 
 def create_sample_files(root: Path) -> dict[str, Path]:
     paths: dict[str, Path] = {}
@@ -252,8 +269,11 @@ def build_conversion_jobs(sample: dict[str, Path]) -> tuple[list[BatchConfig], l
         )
     )
     jobs.append(BatchConfig(mode=MODE_HTML_TO_DOCX, files=[sample["html"]], output_dir=Path("outputs") / "html_to_docx"))
+    jobs.append(BatchConfig(mode=MODE_HTML_TO_MD, files=[sample["html"]], output_dir=Path("outputs") / "html_to_md"))
+    jobs.append(BatchConfig(mode=MODE_MD_TO_PDF, files=[sample["md"]], output_dir=Path("outputs") / "md_to_pdf_explicit"))
     jobs.append(BatchConfig(mode=MODE_MD_TO_HTML, files=[sample["md"]], output_dir=Path("outputs") / "md_to_html"))
     jobs.append(BatchConfig(mode=MODE_MD_TO_DOCX, files=[sample["md"]], output_dir=Path("outputs") / "md_to_docx"))
+    jobs.append(BatchConfig(mode=MODE_HTML_TO_PDF, files=[sample["html"]], output_dir=Path("outputs") / "html_to_pdf_explicit"))
 
     # Pure-Python engine checks added in Patch 5.
     jobs.append(
@@ -295,6 +315,16 @@ def build_conversion_jobs(sample: dict[str, Path]) -> tuple[list[BatchConfig], l
                 files=[sample["pptx"]],
                 output_dir=Path("outputs") / "presentations_to_pdf_pure_python",
                 engine_mode=ENGINE_PURE_PYTHON,
+            )
+        )
+        jobs.append(
+            BatchConfig(
+                mode=MODE_PRESENTATIONS_TO_IMAGES,
+                files=[sample["pptx"]],
+                output_dir=Path("outputs") / "presentations_to_images",
+                engine_mode=ENGINE_PURE_PYTHON,
+                image_format="png",
+                image_scale=1.4,
             )
         )
 
@@ -397,6 +427,21 @@ def build_pdf_tool_jobs(sample: dict[str, Path]) -> list[PdfToolConfig]:
             watermark_text="Page marker",
         ),
         PdfToolConfig(
+            tool=PDF_TOOL_REDACT_AREA,
+            files=[sample["pdf_multi"]],
+            output_dir=Path("outputs") / "pdf_tool_redact_area",
+            page_spec="1",
+            redact_rect="60,700,260,760",
+        ),
+        PdfToolConfig(
+            tool=PDF_TOOL_EDIT_TEXT,
+            files=[sample["pdf_multi"]],
+            output_dir=Path("outputs") / "pdf_tool_edit_text",
+            page_spec="1",
+            watermark_text="Data row 1A",
+            replacement_text="Updated row 1A",
+        ),
+        PdfToolConfig(
             tool=PDF_TOOL_SIGN_VISIBLE,
             files=[sample["pdf"]],
             output_dir=Path("outputs") / "pdf_tool_sign_visible",
@@ -427,6 +472,21 @@ def validate_advanced_outputs(tool_outputs: dict[str, list[Path]]) -> None:
         text = "\n".join(page.get_text("text") for page in document)
     if "Page marker" in text:
         raise AssertionError("Redacted PDF still contains the redacted phrase.")
+
+    area_redacted = tool_outputs.get(PDF_TOOL_REDACT_AREA, [])
+    if not area_redacted:
+        raise AssertionError("Area redaction output was not created.")
+    with fitz.open(str(area_redacted[0])) as document:
+        if document.page_count < 1:
+            raise AssertionError("Area-redacted PDF is empty.")
+
+    edit_text_files = tool_outputs.get(PDF_TOOL_EDIT_TEXT, [])
+    if not edit_text_files:
+        raise AssertionError("Best-effort text edit output was not created.")
+    with fitz.open(str(edit_text_files[0])) as document:
+        edited_text = "\n".join(page.get_text("text") for page in document)
+    if "Updated row 1A" not in edited_text:
+        raise AssertionError("Best-effort text edit did not insert the replacement text.")
 
     metadata_files = tool_outputs.get(PDF_TOOL_EDIT_METADATA, [])
     if not metadata_files:
@@ -502,6 +562,117 @@ def validate_organizer_outputs(
             raise AssertionError(f"Organizer image export output is missing or empty: {image_path}")
 
 
+def validate_patch14_state_and_logs(outputs: Path) -> None:
+    state_path = outputs / "state" / "app_state.json"
+    store = AppStateStore(state_path)
+    ensure_install_date(store.state)
+    store.remember_outputs([outputs / "one.pdf", outputs / "two.pdf"])
+    store.add_failed_job({"mode": "PDF Tool -> Compress", "job_type": "pdf_tool", "input_files": ["missing.pdf"]})
+    store.set_session_snapshot({"mode": MODE_ANY_TO_PDF, "selected_files": ["a.pdf"]})
+    store.update(
+        auto_open_output_folder=True,
+        restore_last_session=True,
+        cleanup_temp_on_exit=True,
+        update_checker_enabled=True,
+        last_update_check="2026-04-15 10:00:00",
+    )
+    reloaded = AppStateStore(state_path)
+    if len(reloaded.recent_outputs()) != 2:
+        raise AssertionError("Recent outputs did not persist in AppStateStore.")
+    if len(reloaded.failed_jobs()) != 1:
+        raise AssertionError("Failed jobs did not persist in AppStateStore.")
+    if reloaded.session_snapshot().get("mode") != MODE_ANY_TO_PDF:
+        raise AssertionError("Session snapshot did not persist correctly.")
+    if not reloaded.get("auto_open_output_folder") or not reloaded.get("restore_last_session") or not reloaded.get("cleanup_temp_on_exit"):
+        raise AssertionError("Patch 14 settings flags did not persist correctly.")
+
+    log_path = export_text_file(outputs / "logs" / "patch14_logs.txt", "Patch 14 log export smoke\n")
+    if "Patch 14 log export smoke" not in log_path.read_text(encoding="utf-8"):
+        raise AssertionError("Patch 14 text log export helper did not write the expected content.")
+
+
+def run_link_download_smoke(inputs: Path, outputs: Path) -> tuple[list[Path], list[str]]:
+    server = ThreadingHTTPServer(("127.0.0.1", 0), partial(SimpleHTTPRequestHandler, directory=str(inputs)))
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+    server_thread.start()
+    cache_dir = cache_root_from_setting("", outputs)
+    try:
+        base_url = f"http://127.0.0.1:{server.server_port}"
+        pasted = f"{base_url}/sample.pdf\n{base_url}/sample.md\n{base_url}/sample.html\n{base_url}/sample.pdf\n"
+        extracted = extract_urls(pasted)
+        if len(extracted) != 3:
+            raise AssertionError("URL extraction did not deduplicate repeated links as expected.")
+        results = download_many_urls(extracted, cache_dir, timeout=10)
+        downloaded = [Path(item.file_path) for item in results if getattr(item, "status", "") == "downloaded" and getattr(item, "file_path", "")]
+        if len(downloaded) != 3:
+            raise AssertionError("Link downloader did not fetch the expected three local test assets.")
+        converted_outputs: list[Path] = []
+        converted_outputs.extend(
+            process_batch(
+                BatchConfig(mode=MODE_MD_TO_HTML, files=[downloaded[1]], output_dir=outputs / "links_md_to_html", engine_mode=ENGINE_PURE_PYTHON)
+            )
+        )
+        converted_outputs.extend(
+            process_batch(
+                BatchConfig(mode=MODE_HTML_TO_PDF, files=[downloaded[2]], output_dir=outputs / "links_html_to_pdf", engine_mode=ENGINE_PURE_PYTHON)
+            )
+        )
+        converted_outputs.extend(
+            process_batch(
+                BatchConfig(mode=MODE_PDF_TO_IMAGES, files=[downloaded[0]], output_dir=outputs / "links_pdf_to_images", image_format="png", image_scale=1.2)
+            )
+        )
+        return downloaded + converted_outputs, []
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+
+def run_patch15_workflow_smoke(outputs: Path) -> list[Path]:
+    cache_dir = outputs / "workflow_cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    fresh = cache_dir / "fresh.bin"
+    fresh.write_bytes(b"fresh-data")
+    old = cache_dir / "old.bin"
+    old.write_bytes(b"stale-data" * 200)
+    old_time = (datetime.now() - timedelta(days=45)).timestamp()
+    os.utime(old, (old_time, old_time))
+
+    stats_before = directory_stats(cache_dir)
+    if stats_before.file_count != 2:
+        raise AssertionError("Patch 15 cache stats did not count the expected files.")
+
+    prune_result = prune_directory(cache_dir, max_age_days=30, max_total_bytes=1024 * 1024)
+    if int(prune_result.get("removed_count", 0)) < 1:
+        raise AssertionError("Patch 15 cache prune did not remove the stale file.")
+    if old.exists():
+        raise AssertionError("Patch 15 cache prune left an expired file behind.")
+
+    state_path = outputs / "state" / "patch15_app_state.json"
+    store = AppStateStore(path=state_path)
+    store.save_preset(
+        {
+            "name": "Patch15 Favorite",
+            "mode": MODE_MD_TO_PDF,
+            "output_dir": str(outputs / "favorite"),
+            "engine_mode": ENGINE_PURE_PYTHON,
+            "favorite": False,
+        }
+    )
+    store.set_preset_favorite("Patch15 Favorite", True)
+    favorites = store.favorite_presets()
+    if not favorites or str(favorites[0].get("name", "")) != "Patch15 Favorite":
+        raise AssertionError("Patch 15 preset favorite storage did not round-trip correctly.")
+
+    report = outputs / "diagnostics" / "patch15_cache_summary.json"
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(json.dumps({"before": stats_before.to_dict(), "after": prune_result}, indent=2), encoding="utf-8")
+    return [fresh, report]
+
+
+
+
 def run() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         root = Path(temp_dir)
@@ -510,6 +681,44 @@ def run() -> None:
         inputs.mkdir()
         outputs.mkdir()
         sample = create_sample_files(inputs)
+
+        profile = load_about_profile(Path(__file__).with_name("about_profile.json"))
+        if not profile.get("feedback_url"):
+            raise AssertionError("Patch 12 About profile did not expose a feedback URL.")
+        if not profile.get("company"):
+            raise AssertionError("Patch 12 About profile did not expose a company field.")
+
+        splash_state = {
+            "splash_enabled": True,
+            "splash_seen": False,
+        }
+        if not should_show_first_launch_splash(splash_state):
+            raise AssertionError("Patch 12 splash logic did not detect the first launch.")
+        splash_state["splash_seen"] = True
+        if should_show_first_launch_splash(splash_state):
+            raise AssertionError("Patch 12 splash logic did not stop after the first launch.")
+
+        login_state = {
+            "install_date": (datetime.now() - timedelta(days=4)).isoformat(timespec="seconds"),
+            "login_popup_enabled": True,
+            "login_popup_dismissed": False,
+            "login_popup_completed": False,
+            "login_popup_last_shown": "",
+        }
+        if not should_show_login_popup(dict(login_state)):
+            raise AssertionError("Patch 12 login reminder did not become eligible after 3+ days.")
+        login_state["login_popup_dismissed"] = True
+        if should_show_login_popup(dict(login_state)):
+            raise AssertionError("Patch 12 login reminder ignored the dismissed state.")
+        login_state["login_popup_dismissed"] = False
+        login_state["login_popup_completed"] = True
+        if should_show_login_popup(dict(login_state)):
+            raise AssertionError("Patch 12 login reminder ignored the completed state.")
+        login_state["login_popup_completed"] = False
+        login_state["login_popup_last_shown"] = datetime.now().isoformat(timespec="seconds")
+        if should_show_login_popup(dict(login_state)):
+            raise AssertionError("Patch 12 login reminder ignored the cooldown window.")
+
         conversion_jobs, skipped = build_conversion_jobs(sample)
         pdf_tool_jobs = build_pdf_tool_jobs(sample)
 
@@ -606,9 +815,24 @@ def run() -> None:
         except Exception as exc:
             raise AssertionError(f"Could not validate PDF -> PPTX output: {exc}") from exc
 
+        if sample.get("pptx"):
+            presentation_image_dir = outputs / "presentations_to_images" / "sample_presentation"
+            image_candidates = sorted(presentation_image_dir.glob("*.png"))
+            if not image_candidates:
+                raise AssertionError("Presentation -> Images output was not created.")
+
         html_docx_output = outputs / "html_to_docx" / "sample.docx"
         if not html_docx_output.exists():
             raise AssertionError("HTML -> DOCX output was not created.")
+
+        html_md_output = outputs / "html_to_md" / "sample.md"
+        if not html_md_output.exists() or "Sample HTML" not in html_md_output.read_text(encoding="utf-8"):
+            raise AssertionError("HTML -> Markdown output was not created correctly.")
+
+        explicit_md_pdf = outputs / "md_to_pdf_explicit" / "sample.pdf"
+        explicit_html_pdf = outputs / "html_to_pdf_explicit" / "sample.pdf"
+        if not explicit_md_pdf.exists() or not explicit_html_pdf.exists():
+            raise AssertionError("Explicit Markdown/HTML PDF outputs were not created.")
 
         pure_docx_pdf = outputs / "docx_to_pdf_pure_python" / "sample.pdf"
         pure_sheet_pdf = outputs / "sheets_to_pdf_pure_python" / "sample.pdf"
@@ -640,6 +864,9 @@ def run() -> None:
         route_preview = build_conversion_route_preview(MODE_TEXT_TO_PDF, [sample["md"], sample["html"]], engine_mode=ENGINE_PURE_PYTHON)
         if "structured markdown" not in route_preview.lower() or "structure-aware" not in route_preview.lower():
             raise AssertionError("Route preview did not expose the expected Patch 6 fidelity labels.")
+        route_preview_html = build_conversion_route_preview(MODE_HTML_TO_PDF, [sample["html"]], engine_mode=ENGINE_PURE_PYTHON)
+        if "html" not in route_preview_html.lower():
+            raise AssertionError("Patch 13 route preview did not expose the HTML pipeline.")
 
         watch_root = root / "watch_inputs"
         watch_root.mkdir(parents=True, exist_ok=True)
@@ -710,10 +937,19 @@ def run() -> None:
         if imported_state.get("theme") != "dark" or "smtp_settings" not in imported_state:
             raise AssertionError("State snapshot export/import helpers did not round-trip correctly.")
 
+        validate_patch14_state_and_logs(outputs)
+
+        link_outputs, link_skips = run_link_download_smoke(inputs, outputs)
+        all_outputs.extend(link_outputs)
+        skipped.extend(link_skips)
+
+        patch15_outputs = run_patch15_workflow_smoke(outputs)
+        all_outputs.extend(patch15_outputs)
+
         diagnostics_path = export_diagnostics_report(
             outputs / "diagnostics" / "diagnostics.json",
             app_name=APP_NAME,
-            app_version="1.1.0 Patch 11",
+            app_version="1.5.0 Patch 15",
             state_path=APP_STATE_PATH,
             about_profile_path=Path("about_profile.json"),
             notes_path=Path("footer_notes.md"),
@@ -732,7 +968,7 @@ def run() -> None:
         message = build_email_message(
             sender="sender@example.com",
             recipients=["receiver@example.com"],
-            subject="Patch 11 smoke",
+            subject="Patch 15 smoke",
             body="Testing attachment generation.",
             attachments=[pure_md_pdf],
         )
@@ -743,7 +979,7 @@ def run() -> None:
             outputs / "mail" / "latest_outputs.eml",
             sender="sender@example.com",
             recipients=["receiver@example.com"],
-            subject="Patch 11 EML",
+            subject="Patch 15 EML",
             body="Testing EML draft generation.",
             attachments=[pure_md_pdf, pure_html_pdf],
         )
@@ -751,7 +987,7 @@ def run() -> None:
         if "latest_outputs.eml" == eml_draft.name and "sample.pdf" not in eml_text:
             raise AssertionError("Patch 11 EML draft did not include the expected attachment references.")
 
-        mailto_url = create_mailto_url(["receiver@example.com"], subject="Patch11", body="Hello from Patch 11")
+        mailto_url = create_mailto_url(["receiver@example.com"], subject="Patch15", body="Hello from Patch 15")
         if not mailto_url.startswith("mailto:"):
             raise AssertionError("Patch 11 mailto helper did not build a mailto URL.")
 
@@ -776,7 +1012,7 @@ def run() -> None:
         else:
             skipped.append("Tesseract not found. OCR smoke tests were skipped.")
 
-        print("Patch 11 smoke test completed successfully.")
+        print("Patch 15 smoke test completed successfully.")
         for note in skipped:
             print(f"SKIP: {note}")
         for path in all_outputs:

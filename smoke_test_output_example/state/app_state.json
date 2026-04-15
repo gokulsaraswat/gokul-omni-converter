@@ -1,0 +1,62 @@
+{
+  "theme": "dark",
+  "output_dir": "/mnt/data/gokul_omni_convert_lite_patch15/converted_output",
+  "recursive_scan": true,
+  "conversion_engine": "pure_python",
+  "performance_mode": "balanced",
+  "soffice_path": "",
+  "tesseract_path": "",
+  "ocr_language": "eng",
+  "ocr_dpi": 220,
+  "ocr_psm": 6,
+  "ocr_output_dir": "",
+  "smtp_settings": {},
+  "organizer_last_pdf": "",
+  "recent_jobs": [],
+  "presets": [],
+  "watch_config": {},
+  "watch_seen_fingerprints": [],
+  "automation_events": [],
+  "install_date": "2026-04-15T05:14:14",
+  "login_popup_dismissed": false,
+  "login_popup_completed": false,
+  "login_popup_last_shown": "",
+  "login_popup_enabled": true,
+  "splash_enabled": true,
+  "splash_seen": false,
+  "splash_gif_path": "assets/gokul_splash.gif",
+  "link_cache_dir": "",
+  "link_timeout": 25,
+  "link_keep_downloads": true,
+  "link_cache_max_age_days": 30,
+  "link_cache_max_size_mb": 512,
+  "recent_links": [],
+  "auto_open_output_folder": true,
+  "restore_last_session": true,
+  "cleanup_temp_on_exit": true,
+  "recent_outputs": [
+    "/tmp/tmpyw94zyes/outputs/two.pdf",
+    "/tmp/tmpyw94zyes/outputs/one.pdf"
+  ],
+  "failed_jobs": [
+    {
+      "id": "failed_20260415_051414_561804",
+      "timestamp": "2026-04-15 05:14:14",
+      "mode": "PDF Tool -> Compress",
+      "job_type": "pdf_tool",
+      "input_files": [
+        "missing.pdf"
+      ]
+    }
+  ],
+  "session_snapshot": {
+    "mode": "Any Supported -> PDF",
+    "selected_files": [
+      "a.pdf"
+    ]
+  },
+  "update_checker_enabled": true,
+  "last_update_check": "2026-04-15 10:00:00",
+  "window_geometry": "",
+  "last_page": "home"
+}

@@ -10,21 +10,41 @@ DEFAULT_PROFILE: dict[str, Any] = {
     "name": "Gokul Saraswat",
     "title": "Software Engineer",
     "subtitle": "Creator of Gokul Omni Convert Lite",
+    "company": "Oracle Corporation",
+    "project": "Gokul Omni Convert Lite",
     "email": "gokul.saraswat@oracle.com",
     "handle": "@gokul.saraswat",
     "bio": (
         "Local-first desktop conversion toolkit for PDFs, documents, spreadsheets, presentations, "
-        "images, HTML, Markdown, and practical batch workflows."
+        "images, HTML, Markdown, OCR workflows, and practical batch automation."
     ),
     "image_path": "assets/gokul_profile_placeholder.png",
+    "feedback_url": "mailto:gokul.saraswat@oracle.com?subject=Gokul%20Omni%20Convert%20Lite%20Feedback",
+    "contribute_url": "https://github.com/gokul-saraswat/gokul-omni-convert-lite/issues",
     "links": [
-        {"label": "Email", "url": "mailto:gokul.saraswat@oracle.com"},
+        {"label": "Email", "url": "mailto:gokul.saraswat@oracle.com?subject=Gokul%20Omni%20Convert%20Lite"},
         {"label": "LinkedIn", "url": ""},
         {"label": "GitHub", "url": ""},
         {"label": "X", "url": ""},
         {"label": "Website", "url": ""},
     ],
 }
+
+
+def _normalize_links(value: Any) -> list[dict[str, str]]:
+    cleaned_links: list[dict[str, str]] = []
+    if not isinstance(value, list):
+        return cleaned_links
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        cleaned_links.append(
+            {
+                "label": str(item.get("label", "Link")).strip() or "Link",
+                "url": str(item.get("url", "")).strip(),
+            }
+        )
+    return cleaned_links
 
 
 def load_about_profile(path: Path | None = None) -> dict[str, Any]:
@@ -42,20 +62,25 @@ def load_about_profile(path: Path | None = None) -> dict[str, Any]:
 
     profile = dict(DEFAULT_PROFILE)
     if isinstance(data, dict):
-        profile.update({k: v for k, v in data.items() if k != "links"})
-        if isinstance(data.get("links"), list):
-            cleaned_links = []
-            for item in data["links"]:
-                if not isinstance(item, dict):
-                    continue
-                cleaned_links.append(
-                    {
-                        "label": str(item.get("label", "Link")).strip() or "Link",
-                        "url": str(item.get("url", "")).strip(),
-                    }
-                )
-            if cleaned_links:
-                profile["links"] = cleaned_links
+        migrated = dict(data)
+
+        if not str(migrated.get("company", "")).strip():
+            migrated["company"] = DEFAULT_PROFILE["company"]
+        if not str(migrated.get("project", "")).strip():
+            subtitle = str(migrated.get("subtitle", "")).strip()
+            migrated["project"] = subtitle or DEFAULT_PROFILE["project"]
+
+        if not str(migrated.get("feedback_url", "")).strip():
+            email = str(migrated.get("email", "")).strip() or DEFAULT_PROFILE["email"]
+            migrated["feedback_url"] = f"mailto:{email}?subject=Gokul%20Omni%20Convert%20Lite%20Feedback"
+        if "contribute_url" not in migrated:
+            migrated["contribute_url"] = DEFAULT_PROFILE["contribute_url"]
+
+        profile.update({k: v for k, v in migrated.items() if k != "links"})
+        links = _normalize_links(migrated.get("links"))
+        if links:
+            profile["links"] = links
+
     return profile
 
 

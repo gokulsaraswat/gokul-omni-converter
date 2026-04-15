@@ -27,6 +27,7 @@ class PresetRecord:
     recursive: bool = True
     created_at: str = ""
     updated_at: str = ""
+    favorite: bool = False
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -78,6 +79,7 @@ def normalize_preset_record(data: dict[str, object] | PresetRecord | None) -> Pr
         recursive=bool(payload.get("recursive", True)),
         created_at=created_at,
         updated_at=updated_at,
+        favorite=bool(payload.get("favorite", False)),
     )
 
 

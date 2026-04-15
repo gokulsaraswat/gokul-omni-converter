@@ -2,19 +2,132 @@
 
 A local Python desktop app for batch conversion, PDF workflows, integrated OCR, visual page organization, automation presets, and installer-ready packaging prep.
 
-## Patch 11 highlights
 
-Patch 11 integrates OCR into the main desktop app, extends sharing with EML draft output, and improves diagnostics/state handling so the new features behave like the rest of the product.
+## Patch 15 highlights
 
-New in Patch 11:
-- dedicated **OCR workspace** inside the main app
-- **image -> searchable PDF**
-- **PDF -> searchable PDF**
-- **OCR text extraction** to TXT
-- configurable **Tesseract path** in Settings and on the OCR page
-- richer **dependency diagnostics** with Tesseract detection
-- **EML draft export** for the latest outputs with attachments
-- OCR jobs now land in the same **history** system as conversions and PDF tools
+Patch 15 focuses on workflow acceleration, queue control, cache hygiene, and faster navigation without removing any Patch 1–14 capability.
+
+New in Patch 15:
+- **favorite presets** with quick-launch shortcuts on the Home page
+- **Quick Actions palette** for fast navigation and common actions
+- new keyboard shortcuts:
+  - `Ctrl+Enter` -> start conversion
+  - `Ctrl+Shift+Enter` -> run PDF tool
+  - `Ctrl+Shift+L` -> focus the URL box
+  - `Ctrl+K` -> open Quick Actions
+  - `Ctrl+,` -> open Settings
+  - `F5` -> refresh dependency status
+- **pause / resume** controls for online link downloads
+- **link cache manager** improvements:
+  - cache summary
+  - keep-days policy
+  - size-cap policy
+  - prune action
+- new **performance mode** in Settings:
+  - `eco`
+  - `balanced`
+  - `quality`
+- state persistence expanded for:
+  - performance mode
+  - cache policy
+  - window geometry
+  - last opened page
+- smoke tests expanded for:
+  - favorite preset persistence
+  - cache stats and prune logic
+
+The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
+
+
+## Patch 14 highlights
+
+Patch 14 focuses on advanced PDF finishing tools, session recovery, output management, and production-minded quality-of-life upgrades.
+
+New in Patch 14:
+- new PDF tools:
+  - **Redact area / region**
+  - **Edit PDF text (best-effort)** for extractable text only
+- stronger PDF tool UI with dedicated fields for:
+  - area rectangle values
+  - replacement text
+- new state and workflow features:
+  - **recent outputs manager**
+  - **failed jobs list** with retry / remove / clear actions
+  - **restore last session** on startup
+  - **auto-open output folder** after successful runs
+  - **temporary session cleanup** on exit
+  - **update checker placeholder**
+- new log/export improvements:
+  - export combined app logs to a text file
+  - recent output tracking persisted in local app state
+- smoke tests expanded for:
+  - area redaction
+  - best-effort text edit
+  - new state persistence keys
+  - text log export helper
+
+The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and is only used when configured and selected or when fallback rules allow it.
+
+## Patch 13 highlights
+
+Patch 13 adds a full online-links workflow and makes several conversion modes easier to find directly in the UI.
+
+New in Patch 13:
+- **Online links / URLs** panel on the Convert page
+  - paste one or many HTTP/HTTPS links
+  - deduplicate repeated URLs
+  - fetch links into the same local conversion queue
+  - retry failed links
+  - cancel in-progress downloads
+  - safe cache folder handling
+  - per-link status table with local file path and details
+  - recent-links memory stored in local app state
+  - **Fetch + Start** workflow for download-and-convert in one action
+- new explicit conversion modes:
+  - **Markdown -> PDF**
+  - **HTML -> PDF**
+  - **HTML -> Markdown**
+  - **PPT / PPTX / ODP -> Images**
+- new Settings controls for:
+  - link cache folder
+  - link timeout
+  - keep downloaded link files in cache
+- patch-13 smoke tests now cover:
+  - explicit Markdown/HTML conversions
+  - presentation-to-images export
+  - local HTTP URL download + conversion pipeline
+
+The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and is only used when configured and selected or when fallback rules allow it.
+
+## Patch 12 highlights
+
+Patch 12 focuses on startup polish, state migration safety, About customization, and packaging prep without removing any earlier conversion, OCR, organizer, automation, or PDF tooling features.
+
+New in Patch 12:
+- first-launch **splash screen** with configurable GIF path and safe fallback behavior
+- bottom-right **login reminder popup** that:
+  - never appears on install day
+  - only becomes eligible after 3 or more days
+  - stays gone forever after dismiss
+  - stays gone forever after completion
+- new state keys with backward-safe migration:
+  - `install_date`
+  - `login_popup_dismissed`
+  - `login_popup_completed`
+  - `login_popup_last_shown`
+  - `login_popup_enabled`
+  - `splash_enabled`
+  - `splash_seen`
+  - `splash_gif_path`
+- improved **About page** with:
+  - editable local profile JSON
+  - company/project fields
+  - feedback button
+  - contribute button
+  - static installer-safe About snapshot at `installer/about_static.json`
+- expanded **Settings** page with splash, reminder, and optional LibreOffice path controls
+- bundled placeholder splash GIF in `assets/gokul_splash.gif`
+- smoke-test startup path that skips overlays so automated checks remain stable
 
 ## Engine model
 
@@ -127,6 +240,8 @@ Screens:
 
 The app includes:
 - dark, light, and system theme modes
+- first-launch splash support with editable GIF asset
+- delayed login reminder lifecycle with local state
 - sidebar navigation
 - top menu bar
 - footer notes window driven by `footer_notes.md`

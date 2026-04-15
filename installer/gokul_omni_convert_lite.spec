@@ -11,6 +11,7 @@ datas = [
     (str(project_dir / "footer_notes.md"), "."),
     (str(project_dir / "about_profile.json"), "."),
     (str(project_dir / "assets"), "assets"),
+    (str(project_dir / "installer" / "about_static.json"), "installer"),
 ]
 
 hiddenimports = [

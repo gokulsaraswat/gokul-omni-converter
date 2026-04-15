@@ -99,13 +99,17 @@ MODE_PDF_TO_DOCX = "PDF -> DOCX"
 MODE_SHEETS_TO_PDF = "XLS / XLSX / ODS / CSV -> PDF"
 MODE_PDF_TO_XLSX = "PDF -> XLSX (tables/text)"
 MODE_TEXT_TO_PDF = "Text / Markdown / HTML -> PDF"
+MODE_MD_TO_PDF = "Markdown -> PDF"
 MODE_MD_TO_DOCX = "Markdown -> DOCX"
+MODE_MD_TO_HTML = "Markdown -> HTML"
+MODE_HTML_TO_PDF = "HTML -> PDF"
+MODE_HTML_TO_DOCX = "HTML -> DOCX"
+MODE_HTML_TO_MD = "HTML -> Markdown"
 MODE_MERGE_PDFS = "Merge PDFs"
 MODE_PRESENTATIONS_TO_PDF = "PPT / PPTX / ODP -> PDF"
+MODE_PRESENTATIONS_TO_IMAGES = "PPT / PPTX / ODP -> Images"
 MODE_PDF_TO_PPTX = "PDF -> PPTX"
 MODE_PDF_TO_HTML = "PDF -> HTML"
-MODE_HTML_TO_DOCX = "HTML -> DOCX"
-MODE_MD_TO_HTML = "Markdown -> HTML"
 
 ENGINE_AUTO = "auto"
 ENGINE_PURE_PYTHON = "pure_python"
@@ -129,6 +133,8 @@ PDF_OUTPUT_MODES = {
     MODE_DOCS_TO_PDF,
     MODE_SHEETS_TO_PDF,
     MODE_TEXT_TO_PDF,
+    MODE_MD_TO_PDF,
+    MODE_HTML_TO_PDF,
     MODE_PRESENTATIONS_TO_PDF,
 }
 
@@ -141,13 +147,17 @@ MODE_TO_EXTENSIONS: dict[str, set[str]] = {
     MODE_SHEETS_TO_PDF: SHEET_EXTS,
     MODE_PDF_TO_XLSX: PDF_EXTS,
     MODE_TEXT_TO_PDF: TEXTUAL_TO_PDF_EXTS,
+    MODE_MD_TO_PDF: MARKDOWN_EXTS,
     MODE_MD_TO_DOCX: MARKDOWN_EXTS,
+    MODE_MD_TO_HTML: MARKDOWN_EXTS,
+    MODE_HTML_TO_PDF: WEB_EXTS,
+    MODE_HTML_TO_DOCX: WEB_EXTS,
+    MODE_HTML_TO_MD: WEB_EXTS,
     MODE_MERGE_PDFS: PDF_EXTS,
     MODE_PRESENTATIONS_TO_PDF: PRESENTATION_EXTS,
+    MODE_PRESENTATIONS_TO_IMAGES: PRESENTATION_EXTS,
     MODE_PDF_TO_PPTX: PDF_EXTS,
     MODE_PDF_TO_HTML: PDF_EXTS,
-    MODE_HTML_TO_DOCX: WEB_EXTS,
-    MODE_MD_TO_HTML: MARKDOWN_EXTS,
 }
 
 MODE_HELP: dict[str, str] = {
@@ -180,26 +190,38 @@ MODE_HELP: dict[str, str] = {
         "detected, the app falls back to page text extraction."
     ),
     MODE_TEXT_TO_PDF: (
-        "Convert TXT, Markdown, HTML, and similar text-like files to PDF. Patch 6 uses a richer pure Python Markdown and HTML renderer by default, with LibreOffice kept as an optional fallback."
+        "Convert TXT, Markdown, HTML, and similar text-like files to PDF. Patch 13 also adds dedicated Markdown and HTML conversion modes for faster discovery in the UI."
+    ),
+    MODE_MD_TO_PDF: (
+        "Convert Markdown files directly to PDF using the built-in Markdown-to-HTML renderer and PDF export pipeline."
     ),
     MODE_MD_TO_DOCX: (
         "Convert Markdown files to DOCX. Pandoc is used when available, with a built-in fallback renderer for basic Markdown."
     ),
+    MODE_MD_TO_HTML: (
+        "Convert Markdown files to HTML. Pandoc is used when available, with a built-in fallback renderer for basic Markdown."
+    ),
+    MODE_HTML_TO_PDF: (
+        "Convert HTML files directly to PDF. Pure Python HTML rendering is used first, with optional LibreOffice fallback only when your engine settings allow it."
+    ),
+    MODE_HTML_TO_DOCX: (
+        "Convert HTML files to DOCX. Pandoc is used when available, with a built-in structured HTML fallback and optional LibreOffice path when needed."
+    ),
+    MODE_HTML_TO_MD: (
+        "Convert HTML files to Markdown. Pandoc is used when available, with a built-in structured text-and-list fallback when Pandoc is missing."
+    ),
     MODE_MERGE_PDFS: "Merge many PDF files into one final PDF.",
     MODE_PRESENTATIONS_TO_PDF: (
         "Convert PPT, PPTX, or ODP files to PDF. You can convert each file separately or merge the resulting PDFs into one final file."
+    ),
+    MODE_PRESENTATIONS_TO_IMAGES: (
+        "Convert PPT, PPTX, or ODP files into slide images. Patch 13 converts each presentation through the same pure Python or optional LibreOffice PDF route, then exports each PDF page as an image."
     ),
     MODE_PDF_TO_PPTX: (
         "Convert each PDF page into a PowerPoint slide. This mode creates one slide per PDF page using page images for layout fidelity."
     ),
     MODE_PDF_TO_HTML: (
         "Export PDFs as standalone HTML documents. This is best-effort and works best on text-heavy PDFs or simple page layouts."
-    ),
-    MODE_HTML_TO_DOCX: (
-        "Convert HTML files to DOCX. Pandoc is used when available, with a built-in structured HTML fallback and optional LibreOffice path when needed."
-    ),
-    MODE_MD_TO_HTML: (
-        "Convert Markdown files to HTML. Pandoc is used when available, with a built-in fallback renderer for basic Markdown."
     ),
 }
 
@@ -214,6 +236,8 @@ PDF_TOOL_WATERMARK_IMAGE = "Add image watermark"
 PDF_TOOL_TEXT_OVERLAY = "Edit PDF with text overlay"
 PDF_TOOL_IMAGE_OVERLAY = "Edit PDF with image overlay"
 PDF_TOOL_REDACT_TEXT = "Redact searched text"
+PDF_TOOL_REDACT_AREA = "Redact area / region"
+PDF_TOOL_EDIT_TEXT = "Edit PDF text (best-effort)"
 PDF_TOOL_SIGN_VISIBLE = "Sign PDF (visible)"
 PDF_TOOL_EDIT_METADATA = "Edit metadata"
 PDF_TOOL_LOCK = "Lock PDF with password"
@@ -232,6 +256,8 @@ PDF_TOOL_ORDER = [
     PDF_TOOL_TEXT_OVERLAY,
     PDF_TOOL_IMAGE_OVERLAY,
     PDF_TOOL_REDACT_TEXT,
+    PDF_TOOL_REDACT_AREA,
+    PDF_TOOL_EDIT_TEXT,
     PDF_TOOL_SIGN_VISIBLE,
     PDF_TOOL_EDIT_METADATA,
     PDF_TOOL_LOCK,
@@ -256,6 +282,8 @@ PDF_TOOL_HELP: dict[str, str] = {
     PDF_TOOL_TEXT_OVERLAY: "Stamp or place editable helper text on selected pages. Leave Pages / ranges blank to target all pages.",
     PDF_TOOL_IMAGE_OVERLAY: "Place an image such as a logo, approval stamp, or screenshot on selected pages.",
     PDF_TOOL_REDACT_TEXT: "Securely search for text and permanently remove matching content from the PDF on selected pages.",
+    PDF_TOOL_REDACT_AREA: "Securely redact a rectangular area on one or many pages. Use points or percentages such as 36,72,420,160 or 10%,10%,90%,25%.",
+    PDF_TOOL_EDIT_TEXT: "Best-effort text replacement for extractable text only. This uses search plus redaction/replacement and is safest for simple editable PDFs.",
     PDF_TOOL_SIGN_VISIBLE: "Apply a visible signature block using an image, typed signer text, or both. This is a visible sign-off, not certificate signing.",
     PDF_TOOL_EDIT_METADATA: "Set or clear PDF metadata fields such as title, author, subject, and keywords.",
     PDF_TOOL_LOCK: "Create a password-protected PDF using AES-256 encryption. This patch creates a user password and optional owner password for access control.",
@@ -297,6 +325,8 @@ class PdfToolConfig:
     metadata_subject: str = ""
     metadata_keywords: str = ""
     metadata_clear_existing: bool = False
+    redact_rect: str = ""
+    replacement_text: str = ""
     pdf_password: str = ""
     pdf_owner_password: str = ""
     compression_profile: str = "balanced"
@@ -401,9 +431,13 @@ MODE_ROUTE_HELP: dict[str, str] = {
     MODE_PDF_TO_IMAGES: "Uses PyMuPDF page rendering. Engine selection does not affect this mode.",
     MODE_PDF_TO_DOCX: "Uses PDF text extraction with DOCX writing. Best for text-heavy PDFs; engine selection does not affect this mode.",
     MODE_PDF_TO_XLSX: "Uses pdfplumber table extraction with page-text fallback. Engine selection does not affect this mode.",
+    MODE_MD_TO_PDF: "Uses the built-in Markdown-to-HTML renderer, then the pure Python PDF renderer.",
     MODE_MD_TO_DOCX: "Uses Pandoc when available, otherwise the built-in Markdown-to-DOCX writer.",
     MODE_MD_TO_HTML: "Uses Pandoc when available, otherwise the built-in Markdown-to-HTML renderer.",
+    MODE_HTML_TO_PDF: "Uses the pure Python HTML renderer first, with optional LibreOffice fallback when your engine allows it.",
     MODE_HTML_TO_DOCX: "Uses Pandoc when available, otherwise the built-in structured HTML-to-DOCX renderer, with optional LibreOffice fallback.",
+    MODE_HTML_TO_MD: "Uses Pandoc when available, otherwise the built-in HTML-to-Markdown fallback.",
+    MODE_PRESENTATIONS_TO_IMAGES: "Converts presentations to PDF using the selected engine path, then renders each resulting page as an image.",
     MODE_PDF_TO_HTML: "Uses PyMuPDF HTML extraction. Engine selection does not affect this mode.",
     MODE_PDF_TO_PPTX: "Uses PyMuPDF page rendering plus python-pptx slide creation. Engine selection does not affect this mode.",
     MODE_MERGE_PDFS: "Uses pypdf merge logic. Engine selection does not affect this mode.",
@@ -449,6 +483,8 @@ def default_merged_name(mode: str) -> str:
         MODE_DOCS_TO_PDF: "documents_combined",
         MODE_SHEETS_TO_PDF: "spreadsheets_combined",
         MODE_TEXT_TO_PDF: "text_combined",
+        MODE_MD_TO_PDF: "markdown_combined",
+        MODE_HTML_TO_PDF: "html_combined",
         MODE_PRESENTATIONS_TO_PDF: "presentations_combined",
         MODE_MERGE_PDFS: "merged_pdfs",
     }
@@ -1108,6 +1144,93 @@ def html_to_docx(input_html: Path, output_docx: Path) -> Path:
             return save_string_as_docx(text_value, output_docx, title=title, monospace=False)
 
 
+
+def _html_blocks_to_markdown_lines(html_content: str) -> list[str]:
+    parser = _BasicHTMLTextExtractor()
+    parser.feed(html_content)
+    parser.close()
+    text = parser.get_text()
+    if not text.strip():
+        return ["# Document", "", "_No extractable HTML text was found._"]
+    lines: list[str] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            if lines and lines[-1] != "":
+                lines.append("")
+            continue
+        if line.startswith("• "):
+            lines.append(f"- {line[2:].strip()}")
+        else:
+            lines.append(line)
+    return lines or [text.strip()]
+
+
+def html_to_markdown(input_html: Path, output_md: Path) -> Path:
+    pandoc = find_command("pandoc")
+    output_md = unique_path(output_md)
+    ensure_directory(output_md.parent)
+    if pandoc:
+        run_command([pandoc, str(input_html), "-f", "html", "-t", "gfm", "-o", str(output_md)])
+        return output_md
+
+    html_content = read_text_file(input_html)
+    title = extract_html_title(html_content, fallback=input_html.stem)
+    lines = [f"# {title}", ""] if title else []
+    lines.extend(_html_blocks_to_markdown_lines(html_content))
+    output_md.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
+    return output_md
+
+
+def html_to_pdf(
+    input_html: Path,
+    output_pdf: Path,
+    *,
+    engine_mode: str = ENGINE_AUTO,
+    soffice_path: str | Path | None = None,
+) -> Path:
+    html_content = read_text_file(input_html)
+    title = extract_html_title(html_content, fallback=input_html.stem)
+
+    engine = (engine_mode or ENGINE_AUTO).strip().lower()
+    if engine == ENGINE_LIBREOFFICE:
+        return libreoffice_convert_to(input_html, "pdf", output_pdf, soffice_path=soffice_path)
+
+    pure_python_error: Exception | None = None
+    try:
+        return render_html_to_pdf_from_string(html_content, output_pdf, title=title or input_html.stem)
+    except Exception as exc:
+        pure_python_error = exc
+
+    if engine == ENGINE_PURE_PYTHON:
+        raise ConversionError(f"Pure Python HTML -> PDF failed for {input_html.name}: {pure_python_error}") from pure_python_error
+
+    try:
+        return libreoffice_convert_to(input_html, "pdf", output_pdf, soffice_path=soffice_path)
+    except Exception as libreoffice_error:
+        if pure_python_error is not None:
+            raise ConversionError(
+                f"Built-in HTML rendering and LibreOffice fallback both failed for {input_html.name}.\n\nBuilt-in error: {pure_python_error}\n\nLibreOffice error: {libreoffice_error}"
+            ) from libreoffice_error
+        raise
+
+
+def presentation_to_images(
+    input_presentation: Path,
+    output_dir: Path,
+    *,
+    image_format: str = "png",
+    image_scale: float = 2.0,
+    engine_mode: str = ENGINE_AUTO,
+    soffice_path: str | Path | None = None,
+) -> list[Path]:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_pdf = Path(temp_dir) / f"{safe_name(input_presentation.stem)}.pdf"
+        office_like_to_pdf(input_presentation, temp_pdf, engine_mode=engine_mode, soffice_path=soffice_path)
+        presentation_output_dir = ensure_directory(Path(output_dir) / safe_name(input_presentation.stem))
+        return pdf_to_images(temp_pdf, presentation_output_dir, image_format=image_format, image_scale=image_scale)
+
+
 def pdf_to_html(input_pdf: Path, output_html: Path) -> Path:
     output_html = unique_path(output_html)
     ensure_directory(output_html.parent)
@@ -1655,6 +1778,14 @@ def convert_input_to_pdf_for_mode(
         if looks_like_text(input_path):
             return save_text_as_pdf(input_path, output_pdf)
         raise ConversionError(f"{input_path.name} is not a supported text-like file.")
+    if mode == MODE_MD_TO_PDF:
+        if ext not in MARKDOWN_EXTS:
+            raise ConversionError(f"{input_path.name} is not a supported Markdown file.")
+        return markdown_to_pdf(input_path, output_pdf)
+    if mode == MODE_HTML_TO_PDF:
+        if ext not in WEB_EXTS:
+            raise ConversionError(f"{input_path.name} is not a supported HTML file.")
+        return html_to_pdf(input_path, output_pdf, engine_mode=engine_mode, soffice_path=soffice_path)
 
     raise ConversionError(f"Mode does not output PDF: {mode}")
 
@@ -2214,6 +2345,116 @@ def apply_visible_signature(
     )
 
 
+
+
+def _coerce_rect_value(raw: str, axis_length: float) -> float:
+    value = str(raw).strip()
+    if not value:
+        raise ConversionError("Rectangle values cannot be blank.")
+    if value.endswith("%"):
+        return axis_length * (float(value[:-1]) / 100.0)
+    numeric = float(value)
+    if 0.0 <= numeric <= 1.0:
+        return axis_length * numeric
+    return numeric
+
+
+def parse_rect_spec(rect_spec: str, page_rect: fitz.Rect) -> fitz.Rect:
+    raw = str(rect_spec or "").strip()
+    if not raw:
+        raise ConversionError("Enter an area rectangle such as 36,72,420,160 or 10%,10%,90%,25%.")
+    parts = [part for part in re.split(r"[\s,;]+", raw) if part]
+    if len(parts) != 4:
+        raise ConversionError("Area rectangle must contain exactly four values: x1, y1, x2, y2.")
+    try:
+        x1 = _coerce_rect_value(parts[0], page_rect.width)
+        y1 = _coerce_rect_value(parts[1], page_rect.height)
+        x2 = _coerce_rect_value(parts[2], page_rect.width)
+        y2 = _coerce_rect_value(parts[3], page_rect.height)
+    except ValueError as exc:
+        raise ConversionError("Area rectangle values must be numbers or percentages.") from exc
+    rect = fitz.Rect(x1, y1, x2, y2)
+    rect = rect.normalize()
+    page_box = fitz.Rect(page_rect)
+    rect = fitz.Rect(
+        max(page_box.x0, rect.x0),
+        max(page_box.y0, rect.y0),
+        min(page_box.x1, rect.x1),
+        min(page_box.y1, rect.y1),
+    )
+    if rect.width <= 1 or rect.height <= 1:
+        raise ConversionError("The selected rectangle is too small or falls outside the page bounds.")
+    return rect
+
+
+def redact_pdf_area(
+    input_pdf: Path,
+    output_pdf: Path,
+    rect_spec: str,
+    *,
+    page_spec: str = "",
+) -> tuple[Path, int]:
+    output_pdf = unique_path(output_pdf)
+    ensure_directory(output_pdf.parent)
+
+    with fitz.open(str(input_pdf)) as document:
+        if document.needs_pass:
+            raise ConversionError("This PDF is password protected. Unlock it first, then apply area redaction.")
+        target_pages = resolve_target_pages(page_spec, len(document))
+        redaction_count = 0
+        for page_index in target_pages:
+            page = document[page_index]
+            redaction_rect = parse_rect_spec(rect_spec, page.rect)
+            page.add_redact_annot(redaction_rect, fill=(0, 0, 0), cross_out=False)
+            page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
+            redaction_count += 1
+        document.save(str(output_pdf), garbage=4, deflate=True)
+    return output_pdf, redaction_count
+
+
+def edit_pdf_text_best_effort(
+    input_pdf: Path,
+    output_pdf: Path,
+    *,
+    search_text: str,
+    replacement_text: str,
+    page_spec: str = "",
+) -> tuple[Path, int]:
+    search_value = str(search_text or "").strip()
+    if not search_value:
+        raise ConversionError("Enter the text to find before running best-effort PDF text edit.")
+    output_pdf = unique_path(output_pdf)
+    ensure_directory(output_pdf.parent)
+
+    with fitz.open(str(input_pdf)) as document:
+        if document.needs_pass:
+            raise ConversionError("This PDF is password protected. Unlock it first, then run text edit.")
+        target_pages = resolve_target_pages(page_spec, len(document))
+        match_count = 0
+        for page_index in target_pages:
+            page = document[page_index]
+            matches = page.search_for(search_value)
+            for rect in matches:
+                font_size = max(8, min(18, rect.height * 0.75))
+                page.add_redact_annot(
+                    rect,
+                    text=replacement_text,
+                    fontname="helv",
+                    fontsize=font_size,
+                    align=fitz.TEXT_ALIGN_LEFT,
+                    fill=(1, 1, 1),
+                    text_color=(0, 0, 0),
+                    cross_out=False,
+                )
+            if matches:
+                page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
+                match_count += len(matches)
+        if match_count == 0:
+            raise ConversionError("No extractable text matched the search term. Try text overlay for a non-destructive edit.")
+        document.save(str(output_pdf), garbage=4, deflate=True)
+    return output_pdf, match_count
+
+
 def redact_pdf_text(
     input_pdf: Path,
     output_pdf: Path,
@@ -2426,6 +2667,14 @@ def process_batch(config: BatchConfig, log: LogFn | None = None, progress: Progr
             _progress(progress, index, total)
         return outputs
 
+    if config.mode == MODE_HTML_TO_MD:
+        for index, html_path in enumerate(files, start=1):
+            _log(log, f"Converting HTML to Markdown: {html_path.name}")
+            output_md = config.output_dir / f"{safe_name(html_path.stem)}.md"
+            outputs.append(html_to_markdown(html_path, output_md))
+            _progress(progress, index, total)
+        return outputs
+
     if config.mode == MODE_PDF_TO_HTML:
         for index, pdf_path in enumerate(files, start=1):
             _log(log, f"Converting PDF to HTML: {pdf_path.name}")
@@ -2439,6 +2688,23 @@ def process_batch(config: BatchConfig, log: LogFn | None = None, progress: Progr
             _log(log, f"Converting PDF to PPTX: {pdf_path.name}")
             output_pptx = config.output_dir / f"{safe_name(pdf_path.stem)}.pptx"
             outputs.append(pdf_to_pptx(pdf_path, output_pptx, image_scale=config.image_scale))
+            _progress(progress, index, total)
+        return outputs
+
+    if config.mode == MODE_PRESENTATIONS_TO_IMAGES:
+        for index, presentation_path in enumerate(files, start=1):
+            _log(log, f"Converting presentation to images: {presentation_path.name}")
+            created = presentation_to_images(
+                presentation_path,
+                config.output_dir,
+                image_format=config.image_format,
+                image_scale=config.image_scale,
+                engine_mode=config.engine_mode,
+                soffice_path=config.soffice_path,
+            )
+            outputs.extend(created)
+            for item in created:
+                _log(log, f"Created: {item}")
             _progress(progress, index, total)
         return outputs
 
@@ -2654,6 +2920,38 @@ def process_pdf_tool(config: PdfToolConfig, log: LogFn | None = None, progress: 
             )
             outputs.append(redacted_path)
             _log(log, f"Redacted {matches} match(es) -> {redacted_path}")
+            _progress(progress, index, total)
+        return outputs
+
+
+    if config.tool == PDF_TOOL_REDACT_AREA:
+        for index, pdf_path in enumerate(files, start=1):
+            _log(log, f"Redacting area in: {pdf_path.name}")
+            output_pdf = config.output_dir / f"{safe_name(pdf_path.stem)}_redacted_area.pdf"
+            redacted_path, matches = redact_pdf_area(
+                pdf_path,
+                output_pdf,
+                rect_spec=config.redact_rect,
+                page_spec=config.page_spec,
+            )
+            outputs.append(redacted_path)
+            _log(log, f"Redacted {matches} page region(s) -> {redacted_path}")
+            _progress(progress, index, total)
+        return outputs
+
+    if config.tool == PDF_TOOL_EDIT_TEXT:
+        for index, pdf_path in enumerate(files, start=1):
+            _log(log, f"Running best-effort text edit in: {pdf_path.name}")
+            output_pdf = config.output_dir / f"{safe_name(pdf_path.stem)}_edited_replace.pdf"
+            edited_path, matches = edit_pdf_text_best_effort(
+                pdf_path,
+                output_pdf,
+                search_text=config.watermark_text,
+                replacement_text=config.replacement_text,
+                page_spec=config.page_spec,
+            )
+            outputs.append(edited_path)
+            _log(log, f"Replaced {matches} match(es) -> {edited_path}")
             _progress(progress, index, total)
         return outputs
 

@@ -1,21 +1,21 @@
 {
-  "created_at": "2026-04-14T16:14:42",
+  "created_at": "2026-04-15T05:14:15",
   "app": {
     "name": "Gokul Omni Convert Lite",
-    "version": "1.1.0 Patch 11"
+    "version": "1.5.0 Patch 15"
   },
   "system": {
     "platform": "Linux-4.4.0-x86_64-with-glibc2.41",
     "python": "3.13.5 (main, Jun 25 2025, 18:55:22) [GCC 14.2.0]",
     "python_executable": "/opt/pyvenv/bin/python",
-    "cwd": "/mnt/data/patch11_build/gokul_omni_convert_lite_patch11"
+    "cwd": "/mnt/data/gokul_omni_convert_lite_patch15"
   },
   "paths": {
     "state_path": "/home/oai/.gokul_omni_convert_lite/app_state.json",
     "about_profile_path": "about_profile.json",
     "notes_path": "footer_notes.md",
     "installer_dir": "installer",
-    "output_dir": "/tmp/tmpztdvbs10/outputs"
+    "output_dir": "/tmp/tmpyw94zyes/outputs"
   },
   "packages": {
     "Pillow": "12.1.1",
@@ -31,6 +31,7 @@
   },
   "installer_assets": [
     "BUILDING.md",
+    "about_static.json",
     "build_linux.sh",
     "build_windows.bat",
     "gokul_omni_convert_lite.spec",
@@ -60,11 +61,11 @@
   },
   "current_context": {
     "selected_files": [
-      "/tmp/tmpztdvbs10/inputs/sample.docx"
+      "/tmp/tmpyw94zyes/inputs/sample.docx"
     ],
     "last_outputs": [
-      "/tmp/tmpztdvbs10/outputs/markdown_to_pdf_pure_python/sample.pdf",
-      "/tmp/tmpztdvbs10/outputs/html_to_pdf_pure_python/sample.pdf"
+      "/tmp/tmpyw94zyes/outputs/markdown_to_pdf_pure_python/sample.pdf",
+      "/tmp/tmpyw94zyes/outputs/html_to_pdf_pure_python/sample.pdf"
     ]
   },
   "extra": {

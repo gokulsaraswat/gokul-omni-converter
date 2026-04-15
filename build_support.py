@@ -56,6 +56,13 @@ def export_json(path: Path, payload: dict[str, Any]) -> Path:
     return destination
 
 
+def export_text_file(path: Path, content: str) -> Path:
+    destination = Path(path).expanduser()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(str(content), encoding="utf-8")
+    return destination
+
+
 
 def export_diagnostics_report(
     path: Path,
