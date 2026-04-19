@@ -1,0 +1,12 @@
+{
+  "remote_enabled": false,
+  "cache_dir": "",
+  "timeout": 15,
+  "refresh_hours": 24,
+  "header_gif_path": "assets/gokul_header.gif",
+  "splash_gif_path": "assets/gokul_splash.gif",
+  "header_gif_url": "",
+  "splash_gif_url": "",
+  "about_image_url": "",
+  "profile_json_url": ""
+}

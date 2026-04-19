@@ -71,6 +71,7 @@ def export_diagnostics_report(
     about_profile_path: Path,
     notes_path: Path,
     installer_dir: Path,
+    asset_config_path: Path | None = None,
     output_dir: Path,
     selected_files: list[str],
     last_outputs: list[str],
@@ -95,6 +96,7 @@ def export_diagnostics_report(
             "about_profile_path": str(about_profile_path),
             "notes_path": str(notes_path),
             "installer_dir": str(installer_dir),
+            "asset_config_path": str(asset_config_path) if asset_config_path else "",
             "output_dir": str(output_dir),
         },
         "packages": collect_package_versions(),
@@ -418,6 +420,7 @@ def export_support_bundle(
     notes_path: Path | None = None,
     about_profile_path: Path | None = None,
     installer_dir: Path | None = None,
+    asset_config_path: Path | None = None,
     extra_files: Iterable[Path] | None = None,
 ) -> Path:
     destination = Path(destination_zip).expanduser()
@@ -449,6 +452,7 @@ def export_support_bundle(
         add_file(logs_path, "reports/app_logs.txt")
         add_file(notes_path, "profile/footer_notes.md")
         add_file(about_profile_path, "profile/about_profile.json")
+        add_file(asset_config_path, "profile/remote_assets.json")
 
         if installer_dir and Path(installer_dir).exists():
             root = Path(installer_dir)

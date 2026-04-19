@@ -2,6 +2,24 @@
 
 Patch 12 keeps the project installer-ready while separating editable in-app profile data from static packaging-time About data.
 
+## Patch 23 additions
+
+- new `remote_assets.json` lets the app keep local fallback assets while optionally refreshing branding from remote GitHub-style URLs later
+- Settings now supports:
+  - header GIF path + URL
+  - splash GIF path + URL
+  - About image URL
+  - About profile JSON URL pull
+  - remote asset cache directory / clear actions
+  - timeout + refresh-hour controls
+- exported workspace bundles and support bundles now carry `remote_assets.json`
+- the PyInstaller spec now includes:
+  - `remote_assets.json`
+  - `keyboard_shortcuts.md`
+- packaging direction stays **offline-safe first**
+  - installer builds must still ship local fallback assets
+  - remote assets are optional overlays, not mandatory runtime dependencies
+
 ## What is included
 
 
@@ -110,7 +128,7 @@ This is only a starter helper around the same PyInstaller spec; you can later wr
 - High-contrast, reduced-motion, and UI-scale preferences are stored in local app state and remain editable after install.
 
 
-## Patch 19 notes
+## Patch 20 notes
 
 - Include organizer layout JSON files in support bundles or workspace exports when you want to preserve visual reorder plans.
 - The organizer now supports drag-and-drop card reordering plus local undo/redo history; no extra runtime dependency is required.

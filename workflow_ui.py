@@ -56,6 +56,18 @@ class Tooltip:
         self._tip.wm_overrideredirect(True)
         self._tip.wm_geometry(f"+{x}+{y}")
         self._tip.attributes("-topmost", True)
+
+        root = self.widget.winfo_toplevel()
+        palette = getattr(root, "palette", None)
+        background = getattr(palette, "surface_alt", "#1f2430")
+        foreground = getattr(palette, "text", "#f5f7fb")
+        border = getattr(palette, "border", "#334155")
+
+        try:
+            self._tip.configure(background=background, highlightthickness=1, highlightbackground=border)
+        except Exception:
+            pass
+
         label = tk.Label(
             self._tip,
             text=self.text,
@@ -64,8 +76,8 @@ class Tooltip:
             pady=7,
             relief="solid",
             borderwidth=1,
-            background="#1f2430",
-            foreground="#f5f7fb",
+            background=background,
+            foreground=foreground,
             font=("Segoe UI", 9),
             wraplength=320,
         )

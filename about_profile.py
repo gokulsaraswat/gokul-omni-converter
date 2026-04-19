@@ -19,6 +19,7 @@ DEFAULT_PROFILE: dict[str, Any] = {
         "images, HTML, Markdown, OCR workflows, and practical batch automation."
     ),
     "image_path": "assets/gokul_profile_placeholder.png",
+    "image_url": "",
     "feedback_url": "mailto:gokul.saraswat@oracle.com?subject=Gokul%20Omni%20Convert%20Lite%20Feedback",
     "contribute_url": "https://github.com/gokul-saraswat/gokul-omni-convert-lite/issues",
     "links": [

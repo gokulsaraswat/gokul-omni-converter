@@ -9,7 +9,9 @@ version_value = str(version_candidate) if version_candidate.exists() else None
 
 datas = [
     (str(project_dir / "footer_notes.md"), "."),
+    (str(project_dir / "keyboard_shortcuts.md"), "."),
     (str(project_dir / "about_profile.json"), "."),
+    (str(project_dir / "remote_assets.json"), "."),
     (str(project_dir / "assets"), "assets"),
     (str(project_dir / "installer" / "about_static.json"), "installer"),
 ]

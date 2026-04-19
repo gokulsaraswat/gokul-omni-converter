@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-04-15T14:40:22",
+  "created_at": "2026-04-16T13:25:18",
   "state": {
     "theme": "dark",
-    "output_dir": "/tmp/tmp49acb9_q/outputs/state_snapshot_output",
+    "output_dir": "/tmp/tmpk0pev0pr/outputs/state_snapshot_output",
     "smtp_settings": {
       "host": "smtp.example.com",
       "port": 587,

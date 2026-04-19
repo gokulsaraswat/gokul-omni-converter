@@ -3,6 +3,163 @@
 A local Python desktop app for batch conversion, PDF workflows, integrated OCR, visual page organization, automation presets, and installer-ready packaging prep.
 
 
+
+
+
+## Patch 24 highlights
+
+Patch 24 focuses on the last stretch of UI stability work: smarter responsive wrapping, a scroll-safe sidebar, cleaner label formatting, and lighter copy in busy workspaces.
+
+New in Patch 24:
+- stronger **responsive button wrapping**
+  - `FlowButtonBar` now prefers the real allocated width instead of the requested width, so organizer, settings, convert, and header action rows wrap properly on tighter screens
+- new **scrollable workspace sidebar**
+  - the left navigation rail now stays usable on shorter displays instead of pushing items below the fold
+- cleaner **label formatting**
+  - internal identifiers such as `pure_python`, `top-left`, and mixed camel/snake labels now render as cleaner UI text like **Pure Python** and **Top Left**
+  - run details now show clearer Yes/No flags instead of raw boolean values
+- lighter **organizer wording**
+  - the organizer hero and hints are shorter and less text-heavy
+- app version bumped to **2.2.1**
+
+Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
+
+
+## Patch 23 highlights
+
+Patch 23 finishes the current UI phase with an installer-friendly **remote asset system** that keeps local fallbacks safe while letting you later point the app at GitHub-hosted branding files.
+
+New in Patch 23:
+- optional **remote asset config** in `remote_assets.json`
+  - header GIF local path + optional remote URL
+  - splash GIF local path + optional remote URL
+  - About image optional remote URL
+  - optional About profile JSON URL for pulling editable profile data from a hosted source
+- safe **cached asset loading**
+  - remote assets are downloaded into a local cache
+  - bundled local files stay as the fallback path
+  - the app still works offline after packaging
+- upgraded **Settings** file section
+  - remote assets enable toggle
+  - header GIF path and URL controls
+  - splash GIF URL controls
+  - About image URL controls
+  - About profile JSON URL controls
+  - asset cache open / clear actions
+  - timeout and refresh-hour controls
+- upgraded **About** actions
+  - refresh remote assets
+  - open remote asset config
+- better **workspace / support / diagnostics** packaging
+  - `remote_assets.json` now travels with bundles
+  - resolved header/splash/About assets are included when exported
+- installer prep updated
+  - PyInstaller spec now includes `remote_assets.json`
+  - packaged builds keep local fallbacks while allowing later remote refresh
+- app version bumped to **2.2.0**
+
+Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
+
+
+## Patch 22 highlights
+
+Patch 22 focuses on stronger responsiveness, cleaner interaction polish, and more visible hover states while keeping every Patch 1–21 feature intact.
+
+New in Patch 22:
+- broader **responsive layout logic**
+  - Home metric cards now reflow on tighter widths
+  - Home lower panels stack cleanly when space is limited
+  - Convert page input and options panels switch between side-by-side and stacked layouts
+  - About page profile and details sections stack smoothly on narrower windows
+  - Settings cards now collapse from a 2x2 grid into a cleaner single-column flow
+- stronger **button hover polish**
+  - subtle staged hover feedback with soft-hover, hover, and pressed styles
+  - clearer border and background changes in dark and light themes
+  - consistent hover handling for header, footer, nav, primary, and standard buttons
+- more **responsive action bars**
+  - Convert input actions now wrap instead of forcing a tall rigid column
+  - Home dependency actions wrap cleanly
+  - History recent-output and failed-job actions wrap cleanly
+  - OCR hero actions wrap on narrow widths
+  - About profile actions wrap instead of overflowing
+  - Settings utility action groups such as soffice, cache, splash, backup, and support actions now wrap safely
+- improved **dynamic wrapping**
+  - descriptive labels with wraplength now adapt to available width instead of staying fixed to wide-screen values
+- polished **tooltips**
+  - tooltip colors now follow the active theme for a more integrated look
+- app version bumped to **2.1.3**
+
+The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
+
+
+## Patch 21 highlights
+
+Patch 21 focuses on responsiveness, layout cleanup, and a lighter chrome without removing any earlier Patch 1–20 capability.
+
+New in Patch 21:
+- cleaner **responsive shell**
+  - compact top header with a replaceable animated GIF/logo slot
+  - smaller footer that now only shows `Gokul Omni Convert Lite | 2.1.3`, **About**, and **Mail**
+- broader **scroll support** across the main pages
+  - Home
+  - Convert
+  - PDF Tools
+  - OCR
+  - Automation
+  - History
+  - Settings
+  - About
+- improved responsive action layout with wrapping button bars for:
+  - header controls
+  - Home hero actions
+  - online link controls
+  - OCR hero actions
+  - About action/social buttons
+  - organizer hero and toolbar actions
+- more visible hover feedback
+  - buttons now react more clearly on hover with subtle background and border changes
+  - pointer cursor on interactive controls
+- organizer UI cleanup
+  - responsive wrapped toolbar instead of a single overflow-prone row
+  - cleaner button naming like **Select All**, **Move Up**, **Move Down**, **Rotate Left**, **Rotate Right**
+- smaller default window minimum to behave better on tighter screens
+- bundled header GIF placeholder at `assets/gokul_header.gif` so you can swap branding later
+
+The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
+
+
+## Patch 20 highlights
+
+Patch 20 adds a dedicated **Preview Center** without removing any earlier Patch 1–19 capability.
+
+New in Patch 20:
+- new **Preview Center** window for inspecting files before or after conversion
+  - preview selected Convert inputs
+  - preview recent outputs
+  - preview files stored with a selected History job
+  - add extra files directly inside the Preview Center
+- file-aware preview rendering:
+  - real page preview for **PDF**
+  - image preview for common image formats
+  - structured summary previews for **DOCX**, **XLS/XLSX/CSV/TSV**, **PPTX**, **TXT**, **Markdown**, and **HTML**
+- page controls inside Preview Center:
+  - previous / next file
+  - previous / next PDF page
+  - zoom presets
+  - open file / open folder shortcuts
+- easier access across the UI:
+  - **Preview selected** button on the Convert page
+  - **Preview** action for Recent Outputs
+  - **Preview selected outputs** action for History jobs
+  - menu and command-palette entries
+  - `Ctrl+Shift+P` shortcut
+- smoke tests expanded for:
+  - preview rendering for PDF, image, text, DOCX, sheet, and presentation inputs
+  - preview fallback behavior for missing files
+
+The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
+
+
 ## Patch 19 highlights
 
 Patch 19 upgrades the visual organizer without removing any earlier Patch 1–18 capability.
@@ -489,7 +646,7 @@ Patch 9 smoke coverage includes:
 
 ## Project files
 
-- `app.py` - desktop GUI shell, conversion workspaces, packaging helpers, and Patch 19 organizer/diagnostics flows
+- `app.py` - desktop GUI shell, conversion workspaces, Preview Center integration, and Patch 20 workflow polish
 - `mail_core.py` - SMTP configuration, connection tests, mailto helpers, and EML draft generation
 - `ocr_core.py` - OCR engine and Tesseract integration for searchable PDFs and OCR text extraction
 - `build_support.py` - diagnostics export and settings snapshot helpers
@@ -500,6 +657,9 @@ Patch 9 smoke coverage includes:
 - `automation_core.py` - Patch 8 watch-folder, preset import/export, report, and ZIP helper functions
 - `app_state.py` - local settings, history, presets, and watch-folder state
 - `ui_theme.py` - theme and widget styling helpers
+- `ui_text.py` - UI text humanization helpers for readable labels and flags
+- `preview_support.py` - file-aware preview rendering helpers for PDF, image, text, DOCX, sheet, and presentation inputs
+- `preview_ui.py` - Preview Center window, page navigation, zoom, and file inspector UI
 - `footer_notes.md` - markdown source for the footer notes window
 - `about_profile.json` - editable profile content for the About page
 - `assets/gokul_profile_placeholder.png` - placeholder image for the About page

@@ -1,0 +1,15 @@
+{
+  "name": "Remote Gokul",
+  "title": "Remote Profile",
+  "subtitle": "Loaded from a test URL",
+  "company": "Oracle Corporation",
+  "project": "Gokul Omni Convert Lite",
+  "email": "gokul.saraswat@oracle.com",
+  "handle": "@gokul.saraswat",
+  "bio": "Remote profile smoke test.",
+  "image_path": "assets/gokul_profile_placeholder.png",
+  "image_url": "",
+  "feedback_url": "mailto:gokul.saraswat@oracle.com",
+  "contribute_url": "https://github.com/gokul-saraswat/gokul-omni-convert-lite/issues",
+  "links": []
+}

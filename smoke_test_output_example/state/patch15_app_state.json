@@ -1,6 +1,6 @@
 {
   "theme": "dark",
-  "output_dir": "/mnt/data/patch19_work/gokul_omni_convert_lite_patch19/converted_output",
+  "output_dir": "/mnt/data/gokul_omni_convert_lite_patch24/converted_output",
   "recursive_scan": true,
   "conversion_engine": "pure_python",
   "performance_mode": "balanced",
@@ -21,22 +21,22 @@
     {
       "name": "Patch15 Favorite",
       "mode": "Markdown -> PDF",
-      "output_dir": "/tmp/tmp49acb9_q/outputs/favorite",
+      "output_dir": "/tmp/tmpk0pev0pr/outputs/favorite",
       "merge_to_one_pdf": false,
       "merged_output_name": "",
       "image_format": "png",
       "image_scale": 2.0,
       "engine_mode": "pure_python",
       "recursive": true,
-      "created_at": "2026-04-15 14:40:23",
-      "updated_at": "2026-04-15 14:40:23",
+      "created_at": "2026-04-16 13:25:19",
+      "updated_at": "2026-04-16 13:25:19",
       "favorite": true
     }
   ],
   "watch_config": {},
   "watch_seen_fingerprints": [],
   "automation_events": [],
-  "install_date": "2026-04-15T14:40:23",
+  "install_date": "2026-04-16T13:25:19",
   "login_popup_dismissed": false,
   "login_popup_completed": false,
   "login_popup_last_shown": "",
@@ -65,7 +65,7 @@
   "activity_report_dir": "",
   "state_backup_enabled": true,
   "state_backup_keep": 12,
-  "last_state_backup": "/tmp/tmp49acb9_q/outputs/state/backups/patch15_app_state_20260415_144023_120391.json",
+  "last_state_backup": "/tmp/tmpk0pev0pr/outputs/state/backups/patch15_app_state_20260416_132519_414917.json",
   "start_page": "home",
   "window_geometry": "",
   "last_page": "home"

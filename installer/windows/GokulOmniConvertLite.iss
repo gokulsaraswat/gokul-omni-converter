@@ -1,5 +1,5 @@
 #define MyAppName "Gokul Omni Convert Lite"
-#define MyAppVersion "1.0.0 Patch 9"
+#define MyAppVersion "2.2.0"
 #define MyAppPublisher "Gokul Saraswat"
 #define MyAppExeName "GokulOmniConvertLite.exe"
 

@@ -42,6 +42,15 @@ from build_support import (
     export_support_bundle,
 )
 from release_support import build_example_update_manifest, check_for_updates, export_workspace_bundle, import_workspace_bundle
+from asset_support import (
+    asset_cache_root,
+    cache_summary as asset_cache_summary,
+    clear_asset_cache,
+    download_text_file,
+    load_asset_config,
+    resolve_local_or_remote_asset,
+    save_asset_config,
+)
 from engagement_core import ensure_install_date, should_show_first_launch_splash, should_show_login_popup
 from converter_core import (
     BatchConfig,
@@ -108,6 +117,64 @@ from organizer_core import (
 
 from link_ingest import cache_root_from_setting, download_many_urls, extract_urls
 from workflow_support import directory_stats, prune_directory
+from preview_support import render_preview
+from responsive_ui import resolve_flow_layout_width
+from ui_text import format_engine_label, format_flag, humanize_identifier
+
+
+def validate_ui_text_helpers() -> None:
+    if humanize_identifier("pure_python") != "Pure Python":
+        raise AssertionError("pure_python should be humanized.")
+    if humanize_identifier("top-left") != "Top Left":
+        raise AssertionError("top-left should be humanized.")
+    if format_engine_label("libre_office") != "Libre Office":
+        raise AssertionError("Engine labels should be humanized.")
+    if format_flag(True) != "Yes" or format_flag(False) != "No":
+        raise AssertionError("Boolean flags should map to Yes/No.")
+
+
+def validate_flow_wrap_helper() -> None:
+    width = resolve_flow_layout_width(320, 640, 900, min_width=180)
+    if width != 320:
+        raise AssertionError("Flow width should prefer the real widget width.")
+    width = resolve_flow_layout_width(0, 260, 900, min_width=180)
+    if width != 260:
+        raise AssertionError("Flow width should fall back to parent width when needed.")
+    width = resolve_flow_layout_width(0, 0, 150, min_width=180)
+    if width != 180:
+        raise AssertionError("Flow width should honor the minimum width.")
+
+
+def validate_preview_support(sample: dict[str, Path]) -> None:
+    preview_targets = [
+        sample["pdf"],
+        sample["pdf_multi"],
+        sample["img1"],
+        sample["txt"],
+        sample["md"],
+        sample["html"],
+        sample["docx"],
+        sample["xlsx"],
+    ]
+    if "pptx" in sample:
+        preview_targets.append(sample["pptx"])
+
+    for path in preview_targets:
+        result = render_preview(path)
+        if result.image.width <= 0 or result.image.height <= 0:
+            raise AssertionError(f"Preview rendering returned an empty image for {path.name}")
+        if not result.summary.strip():
+            raise AssertionError(f"Preview rendering returned an empty summary for {path.name}")
+
+    pdf_page = render_preview(sample["pdf_multi"], page=3, zoom=1.25)
+    if pdf_page.page_count < 4 or pdf_page.current_page != 3:
+        raise AssertionError("PDF preview did not preserve page navigation metadata.")
+
+    missing_path = sample["pdf"].with_name("missing_preview_target.pdf")
+    missing_result = render_preview(missing_path)
+    if "missing" not in missing_result.kind.lower() and "missing" not in missing_result.summary.lower():
+        raise AssertionError("Missing-file preview fallback did not trigger as expected.")
+
 
 def create_sample_files(root: Path) -> dict[str, Path]:
     paths: dict[str, Path] = {}
@@ -725,6 +792,8 @@ def run_patch16_release_smoke(outputs: Path) -> list[Path]:
     Image.new("RGB", (64, 64), color=(32, 80, 140)).save(image_path)
     static_about_path = installer_dir / "about_static.json"
     static_about_path.write_text(json.dumps({"name": "Static About"}, indent=2), encoding="utf-8")
+    asset_config_path = release_dir / "remote_assets.json"
+    save_asset_config({"remote_enabled": False}, asset_config_path)
     build_notes = installer_dir / "BUILDING.md"
     build_notes.write_text("# Build notes\n\nPatch 16 release workspace smoke.\n", encoding="utf-8")
 
@@ -745,6 +814,7 @@ def run_patch16_release_smoke(outputs: Path) -> list[Path]:
         about_profile_path=about_path,
         static_about_profile_path=static_about_path,
         installer_dir=installer_dir,
+        asset_config_path=asset_config_path,
         extra_files=[image_path, manifest_path],
     )
     if not bundle_path.exists():
@@ -821,6 +891,87 @@ def run_patch18_accessibility_smoke(outputs: Path) -> list[Path]:
 
 
 
+
+
+def run_patch23_asset_smoke(inputs: Path, outputs: Path, sample: dict[str, Path]) -> None:
+    remote_header = inputs / "remote_header.gif"
+    Image.open(sample["img1"]).save(remote_header, format="GIF")
+
+    remote_profile = inputs / "remote_about.json"
+    remote_profile.write_text(
+        json.dumps(
+            {
+                "name": "Remote Gokul",
+                "title": "Remote Profile",
+                "subtitle": "Loaded from a test URL",
+                "company": "Oracle Corporation",
+                "project": APP_NAME,
+                "email": "gokul.saraswat@oracle.com",
+                "handle": "@gokul.saraswat",
+                "bio": "Remote profile smoke test.",
+                "image_path": "assets/gokul_profile_placeholder.png",
+                "image_url": "",
+                "feedback_url": "mailto:gokul.saraswat@oracle.com",
+                "contribute_url": "https://github.com/gokul-saraswat/gokul-omni-convert-lite/issues",
+                "links": [],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    config_path = outputs / "remote_assets.json"
+    config = load_asset_config(config_path)
+    config.update(
+        {
+            "remote_enabled": True,
+            "cache_dir": str(outputs / "asset_cache"),
+            "timeout": 10,
+            "refresh_hours": 24,
+        }
+    )
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), partial(SimpleHTTPRequestHandler, directory=str(inputs)))
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+    server_thread.start()
+    try:
+        base_url = f"http://127.0.0.1:{server.server_port}"
+        config["header_gif_url"] = f"{base_url}/remote_header.gif"
+        config["splash_gif_url"] = f"{base_url}/remote_header.gif"
+        config["profile_json_url"] = f"{base_url}/remote_about.json"
+        save_asset_config(config, config_path)
+        loaded = load_asset_config(config_path)
+
+        header_info = resolve_local_or_remote_asset(
+            "assets/gokul_header.gif",
+            str(loaded.get("header_gif_url", "")),
+            base_dir=Path(__file__).resolve().parent,
+            fallback_value=Path("assets") / "gokul_header.gif",
+            config=loaded,
+        )
+        header_path = Path(str(header_info.get("path", "")))
+        if not header_path.exists():
+            raise AssertionError("Patch 23 remote header asset did not resolve to an existing cached file.")
+
+        pulled_profile = outputs / "pulled_about.json"
+        download_text_file(str(loaded.get("profile_json_url", "")), pulled_profile, timeout=10)
+        pulled_data = json.loads(pulled_profile.read_text(encoding="utf-8"))
+        if pulled_data.get("name") != "Remote Gokul":
+            raise AssertionError("Patch 23 remote profile pull did not download the expected JSON.")
+
+        summary = asset_cache_summary(loaded)
+        if int(summary.get("count", 0)) < 1:
+            raise AssertionError("Patch 23 asset cache summary did not record downloaded remote assets.")
+
+        clear_asset_cache(loaded)
+        cleared = asset_cache_summary(loaded)
+        if int(cleared.get("count", 0)) != 0:
+            raise AssertionError("Patch 23 asset cache clear did not remove cached assets.")
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
 def run() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         root = Path(temp_dir)
@@ -831,10 +982,15 @@ def run() -> None:
         sample = create_sample_files(inputs)
 
         profile = load_about_profile(Path(__file__).with_name("about_profile.json"))
+        validate_ui_text_helpers()
+        validate_flow_wrap_helper()
+        validate_preview_support(sample)
         if not profile.get("feedback_url"):
             raise AssertionError("Patch 12 About profile did not expose a feedback URL.")
         if not profile.get("company"):
             raise AssertionError("Patch 12 About profile did not expose a company field.")
+
+        run_patch23_asset_smoke(inputs, outputs, sample)
 
         splash_state = {
             "splash_enabled": True,
@@ -1109,6 +1265,7 @@ def run() -> None:
             about_profile_path=Path("about_profile.json"),
             notes_path=Path("footer_notes.md"),
             installer_dir=Path("installer"),
+            asset_config_path=Path("remote_assets.json"),
             output_dir=outputs,
             selected_files=[str(sample["docx"])],
             last_outputs=[str(pure_md_pdf), str(pure_html_pdf)],
@@ -1151,6 +1308,7 @@ def run() -> None:
             notes_path=Path(__file__).with_name("footer_notes.md"),
             about_profile_path=Path(__file__).with_name("about_profile.json"),
             installer_dir=Path(__file__).with_name("installer"),
+            asset_config_path=Path(__file__).with_name("remote_assets.json"),
             extra_files=[Path(__file__).with_name("README.md")],
         )
         if not support_bundle.exists():
@@ -1208,7 +1366,10 @@ def run() -> None:
         else:
             skipped.append("Tesseract not found. OCR smoke tests were skipped.")
 
-        print("Patch 19 smoke test completed successfully.")
+        header_gif = Path(__file__).with_name("assets") / "gokul_header.gif"
+        if not header_gif.exists():
+            raise AssertionError("Patch 22 header GIF placeholder is missing.")
+        print("Patch 23 smoke test completed successfully.")
         for note in skipped:
             print(f"SKIP: {note}")
         for path in all_outputs:

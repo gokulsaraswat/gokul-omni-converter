@@ -31,6 +31,7 @@ from organizer_core import (
     sequence_to_payload,
 )
 from ui_theme import ThemePalette
+from responsive_ui import FlowButtonBar
 
 
 RecentJobCallback = Callable[[dict[str, object]], None]
@@ -138,10 +139,10 @@ class PageOrganizerPanel(ttk.Frame):
         self.drag_status_label: tk.Label | None = None
 
         self.file_var = tk.StringVar(value="No PDF loaded yet.")
-        self.summary_var = tk.StringVar(value="Load a PDF to inspect metadata, page count, and live page thumbnails.")
+        self.summary_var = tk.StringVar(value="Load a PDF to review metadata, page count, and live thumbnails.")
         self.selection_var = tk.StringVar(value="Selection: 0 page(s)")
         self.hint_var = tk.StringVar(
-            value="Click thumbnails to toggle selection. Drag a selected card to reorder, or use undo/redo and layout snapshots."
+            value="Click to select. Drag to reorder. Use undo, redo, save layout, or extract tools when needed."
         )
 
         self._build_ui()
@@ -165,22 +166,20 @@ class PageOrganizerPanel(ttk.Frame):
         ttk.Label(
             hero,
             text=(
-                "Patch 19 expands the visual PDF organizer with drag-and-drop reordering, undo/redo history, "
-                "layout snapshots, and the same visual rotate, duplicate, remove, extract, and export tools."
+                "Open a PDF, drag pages to reorder, then save, extract, rotate, or export what you need."
             ),
             style="HeroBody.TLabel",
             wraplength=900,
             justify="left",
         ).grid(row=1, column=0, sticky="w", pady=(8, 0))
 
-        hero_actions = ttk.Frame(hero, style="Surface.TFrame")
-        hero_actions.grid(row=0, column=1, rowspan=2, sticky="e")
-        self.open_button = ttk.Button(hero_actions, text="Open PDF", command=self.open_pdf_dialog)
-        self.open_button.grid(row=0, column=0, padx=(0, 8))
-        self.reload_button = ttk.Button(hero_actions, text="Reload", command=self.reload_pdf)
-        self.reload_button.grid(row=0, column=1, padx=(0, 8))
-        self.save_button = ttk.Button(hero_actions, text="Save organized PDF", style="Primary.TButton", command=self.save_organized_pdf)
-        self.save_button.grid(row=0, column=2)
+        hero_actions = FlowButtonBar(hero, style="Surface.TFrame", gap_x=8, gap_y=8, button_min_width=118)
+        hero_actions.grid(row=0, column=1, rowspan=2, sticky="e", padx=(16, 0))
+        self.open_button = hero_actions.add(ttk.Button(hero_actions, text="Open PDF", command=self.open_pdf_dialog))
+        self.reload_button = hero_actions.add(ttk.Button(hero_actions, text="Reload", command=self.reload_pdf))
+        self.save_button = hero_actions.add(
+            ttk.Button(hero_actions, text="Save Output PDF", style="Primary.TButton", command=self.save_organized_pdf)
+        )
 
         info = ttk.Frame(self, style="Card.TFrame", padding=18)
         info.grid(row=1, column=0, sticky="ew", pady=(14, 14))
@@ -198,38 +197,27 @@ class PageOrganizerPanel(ttk.Frame):
         workspace.grid_columnconfigure(0, weight=1)
         workspace.grid_rowconfigure(1, weight=1)
 
-        toolbar = ttk.Frame(workspace, style="Card.TFrame", padding=12)
+        toolbar_shell = ttk.Frame(workspace, style="Card.TFrame", padding=12)
+        toolbar_shell.grid(row=0, column=0, sticky="ew")
+        toolbar = FlowButtonBar(toolbar_shell, style="Card.TFrame", gap_x=8, gap_y=8, button_min_width=132)
         toolbar.grid(row=0, column=0, sticky="ew")
-        for column in range(15):
-            toolbar.grid_columnconfigure(column, weight=0)
-        ttk.Button(toolbar, text="Select all", command=self.select_all).grid(row=0, column=0, padx=(0, 8), pady=4)
-        ttk.Button(toolbar, text="Clear", command=self.clear_selection).grid(row=0, column=1, padx=(0, 8), pady=4)
-        self.undo_button = ttk.Button(toolbar, text="Undo", command=self.undo_last_change)
-        self.undo_button.grid(row=0, column=2, padx=(0, 8), pady=4)
-        self.redo_button = ttk.Button(toolbar, text="Redo", command=self.redo_last_change)
-        self.redo_button.grid(row=0, column=3, padx=(0, 8), pady=4)
-        self.move_up_button = ttk.Button(toolbar, text="Move up", command=self.move_selected_up)
-        self.move_up_button.grid(row=0, column=4, padx=(0, 8), pady=4)
-        self.move_down_button = ttk.Button(toolbar, text="Move down", command=self.move_selected_down)
-        self.move_down_button.grid(row=0, column=5, padx=(0, 8), pady=4)
-        self.rotate_left_button = ttk.Button(toolbar, text="Rotate left", command=lambda: self.rotate_selected(-90))
-        self.rotate_left_button.grid(row=0, column=6, padx=(0, 8), pady=4)
-        self.rotate_right_button = ttk.Button(toolbar, text="Rotate right", command=lambda: self.rotate_selected(90))
-        self.rotate_right_button.grid(row=0, column=7, padx=(0, 8), pady=4)
-        self.duplicate_button = ttk.Button(toolbar, text="Duplicate", command=self.duplicate_selected)
-        self.duplicate_button.grid(row=0, column=8, padx=(0, 8), pady=4)
-        self.remove_button = ttk.Button(toolbar, text="Remove", command=self.remove_selected)
-        self.remove_button.grid(row=0, column=9, padx=(0, 8), pady=4)
-        self.reverse_button = ttk.Button(toolbar, text="Reverse order", command=self.reverse_pages)
-        self.reverse_button.grid(row=0, column=10, padx=(0, 8), pady=4)
-        self.layout_save_button = ttk.Button(toolbar, text="Save layout", command=self.save_layout_snapshot)
-        self.layout_save_button.grid(row=0, column=11, padx=(0, 8), pady=4)
-        self.layout_load_button = ttk.Button(toolbar, text="Load layout", command=self.load_layout_snapshot)
-        self.layout_load_button.grid(row=0, column=12, padx=(0, 8), pady=4)
-        self.extract_button = ttk.Button(toolbar, text="Extract selected PDF", command=self.extract_selected_pages)
-        self.extract_button.grid(row=0, column=13, padx=(0, 8), pady=4)
-        self.export_button = ttk.Button(toolbar, text="Export selected images", command=self.export_selected_images)
-        self.export_button.grid(row=0, column=14, pady=4)
+        toolbar_shell.grid_columnconfigure(0, weight=1)
+
+        toolbar.add(ttk.Button(toolbar, text="Select All", command=self.select_all))
+        toolbar.add(ttk.Button(toolbar, text="Clear", command=self.clear_selection))
+        self.undo_button = toolbar.add(ttk.Button(toolbar, text="Undo", command=self.undo_last_change))
+        self.redo_button = toolbar.add(ttk.Button(toolbar, text="Redo", command=self.redo_last_change))
+        self.move_up_button = toolbar.add(ttk.Button(toolbar, text="Move Up", command=self.move_selected_up))
+        self.move_down_button = toolbar.add(ttk.Button(toolbar, text="Move Down", command=self.move_selected_down))
+        self.rotate_left_button = toolbar.add(ttk.Button(toolbar, text="Rotate Left", command=lambda: self.rotate_selected(-90)))
+        self.rotate_right_button = toolbar.add(ttk.Button(toolbar, text="Rotate Right", command=lambda: self.rotate_selected(90)))
+        self.duplicate_button = toolbar.add(ttk.Button(toolbar, text="Duplicate", command=self.duplicate_selected))
+        self.remove_button = toolbar.add(ttk.Button(toolbar, text="Remove", command=self.remove_selected))
+        self.reverse_button = toolbar.add(ttk.Button(toolbar, text="Reverse Order", command=self.reverse_pages))
+        self.layout_save_button = toolbar.add(ttk.Button(toolbar, text="Save Layout", command=self.save_layout_snapshot))
+        self.layout_load_button = toolbar.add(ttk.Button(toolbar, text="Load Layout", command=self.load_layout_snapshot))
+        self.extract_button = toolbar.add(ttk.Button(toolbar, text="Extract Selected PDF", command=self.extract_selected_pages))
+        self.export_button = toolbar.add(ttk.Button(toolbar, text="Export Selected Images", command=self.export_selected_images))
 
         thumb_shell = ttk.Frame(workspace, style="Card.TFrame", padding=0)
         thumb_shell.grid(row=1, column=0, sticky="nsew", pady=(14, 0))

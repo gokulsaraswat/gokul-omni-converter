@@ -1,11 +1,12 @@
 {
-  "created_at": "2026-04-15T14:40:23",
-  "file_count": 9,
+  "created_at": "2026-04-16T13:25:19",
+  "file_count": 10,
   "files": [
     "app_state.json",
     "footer_notes.md",
     "about_profile.json",
     "about_static.json",
+    "remote_assets.json",
     "BUILDING.md",
     "about_static.json",
     "update_manifest.example.json",

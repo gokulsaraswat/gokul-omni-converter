@@ -138,12 +138,16 @@ def export_workspace_bundle(
     about_profile_path: str | Path,
     static_about_profile_path: str | Path,
     installer_dir: str | Path,
+    asset_config_path: str | Path | None = None,
     extra_files: list[str | Path] | None = None,
 ) -> Path:
     destination = Path(destination_zip).expanduser()
     destination.parent.mkdir(parents=True, exist_ok=True)
     files_to_pack: list[Path] = []
-    for item in [state_path, notes_path, about_profile_path, static_about_profile_path]:
+    seed_files: list[str | Path | None] = [state_path, notes_path, about_profile_path, static_about_profile_path, asset_config_path]
+    for item in seed_files:
+        if item is None:
+            continue
         path = Path(item).expanduser()
         if path.exists() and path.is_file():
             files_to_pack.append(path)

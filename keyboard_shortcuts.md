@@ -9,6 +9,7 @@ Use these shortcuts to move quickly around **Gokul Omni Convert Lite**.
 - `Ctrl+Shift+Enter` — Run current PDF tool
 - `Ctrl+L` — Clear activity log
 - `Ctrl+Shift+L` — Focus the online links box
+- `Ctrl+Shift+P` — Preview the selected input files in Preview Center
 
 ## Navigation
 - `Ctrl+K` — Open Quick Actions
