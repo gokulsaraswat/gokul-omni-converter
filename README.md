@@ -5,6 +5,20 @@ A local Python desktop app for batch conversion, PDF workflows, integrated OCR, 
 
 
 
+## Patch 25 highlights
+
+Patch 25 tightens the busiest identity screens so the app feels cleaner right away.
+
+New in Patch 25:
+- slimmer **header** with a smaller GIF/logo slot and buttons-only top bar
+- denser **Home** layout with shorter copy, compact stat cards, and cleaner quick tools
+- cleaner **About** page with a smaller image area, shorter copy, and simpler asset actions
+- fixed the missing `open_url()` helper so About mail/social buttons open correctly
+- app version bumped to **2.2.2**
+
+Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
+
+
 
 ## Patch 24 highlights
 
