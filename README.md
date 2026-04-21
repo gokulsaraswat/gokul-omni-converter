@@ -5,6 +5,29 @@ A local Python desktop app for batch conversion, PDF workflows, integrated OCR, 
 
 
 
+## Patch 27 highlights
+
+Patch 27 is another targeted UX cleanup pass for the three identity-heavy screens: **Header**, **Home**, and **About**.
+
+New in Patch 27:
+- tighter **header chrome**
+  - smaller GIF/logo footprint
+  - slimmer header/footer spacing
+  - tighter sidebar width and navigation padding
+- more compact **Home** dashboard
+  - shorter hero copy and faster action strip
+  - tighter metric cards
+  - cleaner recent-jobs and quick-tools spacing
+  - compact mode/output labels to avoid tall cards
+- cleaner **About** page
+  - smaller profile image footprint
+  - shorter header text and reduced action clutter
+  - denser profile/details layout with less empty space
+- app version bumped to **2.2.4**
+
+Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
+
+
 ## Patch 26 highlights
 
 Patch 26 tightens the three screens that still felt the loosest: **Header**, **Home**, and **About**.
