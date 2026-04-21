@@ -5,6 +5,29 @@ A local Python desktop app for batch conversion, PDF workflows, integrated OCR, 
 
 
 
+
+## Patch 29 highlights
+
+Patch 29 finishes this cleanup pass by tightening the three identity-heavy surfaces one more time and removing a little more visual noise.
+
+New in Patch 29:
+- leaner **header chrome**
+  - even smaller GIF/logo footprint
+  - nav-only header buttons
+  - footer remains the only place with **About** and **Mail**
+- cleaner **Home** dashboard
+  - shorter quick-start copy
+  - stronger metric hierarchy
+  - denser quick-tools and favorites area
+- cleaner **About** page
+  - better typography on surface cards
+  - smaller image footprint
+  - fewer duplicate actions and clearer grouping for primary actions, social links, and local files
+- app version bumped to **2.2.6**
+
+Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
+
+
 ## Patch 28 highlights
 
 Patch 28 keeps tightening the three identity-heavy screens so they waste less space and feel more stable at common laptop sizes.
