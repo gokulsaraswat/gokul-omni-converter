@@ -5,6 +5,29 @@ A local Python desktop app for batch conversion, PDF workflows, integrated OCR, 
 
 
 
+## Patch 28 highlights
+
+Patch 28 keeps tightening the three identity-heavy screens so they waste less space and feel more stable at common laptop sizes.
+
+New in Patch 28:
+- leaner **header chrome**
+  - smaller GIF/logo footprint
+  - tighter header/body/sidebar spacing
+  - slimmer sidebar width and status area
+- denser **Home** layout
+  - smaller hero and action strip
+  - less vertical stretching in Recent Jobs and Quick Tools
+  - tighter metric cards and shorter status copy
+- cleaner **About** layout
+  - fewer duplicate actions
+  - smaller profile image area
+  - combined contact + social action row with less filler text
+- fixed a small **responsive-layout reference bug** so the Convert page keeps its own layout controller instead of being overwritten by the PDF Tools page
+- app version bumped to **2.2.5**
+
+Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
+
+
 ## Patch 27 highlights
 
 Patch 27 is another targeted UX cleanup pass for the three identity-heavy screens: **Header**, **Home**, and **About**.
