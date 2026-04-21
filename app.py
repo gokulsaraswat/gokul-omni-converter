@@ -143,7 +143,7 @@ from ui_theme import (
     resolve_palette,
 )
 
-APP_VERSION = "2.2.2"
+APP_VERSION = "2.2.3"
 HEADER_GIF_RELATIVE_PATH = Path("assets") / "gokul_header.gif"
 
 def open_path(path: str | Path) -> None:
@@ -801,8 +801,8 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.home_selected_count_var = tk.StringVar(value="0 files selected")
         self.home_mode_var = tk.StringVar(value=MODE_ANY_TO_PDF)
         self.home_output_var = tk.StringVar(value=str(saved_output_dir))
-        self.home_hint_var = tk.StringVar(value="Add files, a folder, or links to begin.")
-        self.home_environment_var = tk.StringVar(value="Environment status is loading.")
+        self.home_hint_var = tk.StringVar(value="Add files or paste links.")
+        self.home_environment_var = tk.StringVar(value="Checking engine and optional tools.")
         self.theme_choice_var = tk.StringVar(value=self.state_store.get("theme", "dark"))
         self.engine_mode_var = tk.StringVar(value=str(self.state_store.get("conversion_engine", ENGINE_AUTO)))
         self.soffice_path_var = tk.StringVar(value=str(self.state_store.get("soffice_path", "")))
@@ -1580,23 +1580,18 @@ class GokulOmniConvertLiteApp(tk.Tk):
         about_body = getattr(self, "about_body_frame", None)
         about_profile = getattr(self, "about_profile_card", None)
         about_info = getattr(self, "about_info_card", None)
-        about_assets = getattr(self, "about_assets_card", None)
         if about_body is not None and about_profile is not None and about_info is not None:
             width = max(about_body.winfo_width(), about_body.winfo_reqwidth(), 300)
-            if width < 1120:
+            if width < 980:
                 about_profile.grid_configure(row=0, column=0, padx=(0, 0), pady=(0, 10))
                 about_info.grid_configure(row=1, column=0, padx=(0, 0), pady=(0, 0))
-                if about_assets is not None:
-                    about_assets.grid_configure(row=2, column=0, columnspan=1, padx=(0, 0), pady=(12, 0))
-                about_body.grid_columnconfigure(0, weight=1)
-                about_body.grid_columnconfigure(1, weight=0)
+                about_body.grid_columnconfigure(0, weight=1, minsize=0)
+                about_body.grid_columnconfigure(1, weight=0, minsize=0)
             else:
                 about_profile.grid_configure(row=0, column=0, padx=(0, 10), pady=(0, 0))
                 about_info.grid_configure(row=0, column=1, padx=(0, 0), pady=(0, 0))
-                if about_assets is not None:
-                    about_assets.grid_configure(row=1, column=0, columnspan=2, padx=(0, 0), pady=(12, 0))
-                about_body.grid_columnconfigure(0, weight=1)
-                about_body.grid_columnconfigure(1, weight=2)
+                about_body.grid_columnconfigure(0, weight=0, minsize=240)
+                about_body.grid_columnconfigure(1, weight=1, minsize=0)
 
         settings_content = getattr(self, "settings_content_frame", None)
         appearance = getattr(self, "settings_appearance_frame", None)
@@ -1625,7 +1620,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self.header = ttk.Frame(self, style="Header.TFrame", padding=(12, 6, 12, 6))
+        self.header = ttk.Frame(self, style="Header.TFrame", padding=(10, 4, 10, 4))
         self.header.grid(row=0, column=0, sticky="ew")
         self.header.grid_columnconfigure(1, weight=1)
 
@@ -1634,32 +1629,32 @@ class GokulOmniConvertLiteApp(tk.Tk):
             self._resolve_header_gif_path(),
             style="Logo.TLabel",
             fallback_text="GOKUL",
-            max_size=(108, 34),
+            max_size=(84, 28),
         )
         self.header_logo.grid(row=0, column=0, sticky="w")
 
-        header_actions = FlowButtonBar(self.header, style="Header.TFrame", gap_x=6, gap_y=6, button_min_width=82)
+        header_actions = FlowButtonBar(self.header, style="Header.TFrame", gap_x=6, gap_y=6, button_min_width=78)
         header_actions.grid(row=0, column=2, sticky="e")
-        header_actions.add(ttk.Button(header_actions, text="Convert", style="Primary.TButton", command=lambda: self._show_page("convert")))
-        header_actions.add(ttk.Button(header_actions, text="PDF", command=lambda: self._show_page("pdf_tools")))
-        header_actions.add(ttk.Button(header_actions, text="OCR", command=lambda: self._show_page("ocr")))
-        header_actions.add(ttk.Button(header_actions, text="Auto", command=lambda: self._show_page("automation")))
-        header_actions.add(ttk.Button(header_actions, text="About", command=self._show_about))
-        header_actions.add(ttk.Button(header_actions, text="Mail", command=self._open_smtp_window))
+        header_actions.add(ttk.Button(header_actions, text="Convert", style="HeaderPrimary.TButton", command=lambda: self._show_page("convert")))
+        header_actions.add(ttk.Button(header_actions, text="PDF", style="Header.TButton", command=lambda: self._show_page("pdf_tools")))
+        header_actions.add(ttk.Button(header_actions, text="OCR", style="Header.TButton", command=lambda: self._show_page("ocr")))
+        header_actions.add(ttk.Button(header_actions, text="Auto", style="Header.TButton", command=lambda: self._show_page("automation")))
+        header_actions.add(ttk.Button(header_actions, text="About", style="Header.TButton", command=self._show_about))
+        header_actions.add(ttk.Button(header_actions, text="Mail", style="Header.TButton", command=self._open_smtp_window))
 
         self.body = ttk.Frame(self)
-        self.body.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 8))
-        self.body.grid_columnconfigure(0, weight=0, minsize=206)
+        self.body.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 6))
+        self.body.grid_columnconfigure(0, weight=0, minsize=198)
         self.body.grid_columnconfigure(1, weight=1)
         self.body.grid_rowconfigure(0, weight=1)
 
-        self.sidebar_shell = ScrollablePage(self.body, style="Sidebar.TFrame", inner_style="Sidebar.TFrame", padding=12)
-        self.sidebar_shell.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
-        self.sidebar_shell.canvas.configure(width=206)
+        self.sidebar_shell = ScrollablePage(self.body, style="Sidebar.TFrame", inner_style="Sidebar.TFrame", padding=10)
+        self.sidebar_shell.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        self.sidebar_shell.canvas.configure(width=198)
         self.sidebar = self.sidebar_shell.content
         self.sidebar.grid_columnconfigure(0, weight=1)
         ttk.Label(self.sidebar, text="Workspace", style="Sidebar.TLabel", font=("Segoe UI", 11, "bold")).grid(
-            row=0, column=0, sticky="w", pady=(0, 10)
+            row=0, column=0, sticky="w", pady=(0, 8)
         )
 
         for index, (page_name, label) in enumerate(NAV_PAGES, start=1):
@@ -1669,10 +1664,10 @@ class GokulOmniConvertLiteApp(tk.Tk):
                 style="Nav.TButton",
                 command=lambda name=page_name: self._show_page(name),
             )
-            button.grid(row=index, column=0, sticky="ew", pady=4)
+            button.grid(row=index, column=0, sticky="ew", pady=3)
             self.nav_buttons[page_name] = button
 
-        ttk.Separator(self.sidebar, orient="horizontal").grid(row=len(NAV_PAGES) + 1, column=0, sticky="ew", pady=12)
+        ttk.Separator(self.sidebar, orient="horizontal").grid(row=len(NAV_PAGES) + 1, column=0, sticky="ew", pady=10)
         ttk.Label(
             self.sidebar,
             text="Current status",
@@ -1683,7 +1678,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
             self.sidebar,
             textvariable=self.status_var,
             style="SidebarMuted.TLabel",
-            wraplength=176,
+            wraplength=168,
             justify="left",
         )
         self.sidebar_status.grid(row=len(NAV_PAGES) + 3, column=0, sticky="ew", pady=(6, 0))
@@ -1703,7 +1698,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self._build_settings_page()
         self._build_about_page()
 
-        self.footer = ttk.Frame(self, style="Footer.TFrame", padding=(10, 3, 10, 3))
+        self.footer = ttk.Frame(self, style="Footer.TFrame", padding=(10, 2, 10, 2))
         self.footer.grid(row=2, column=0, sticky="ew")
         self.footer.grid_columnconfigure(0, weight=1)
         ttk.Label(self.footer, text=f"{APP_NAME} | {APP_VERSION}", style="Footer.TLabel").grid(row=0, column=0, sticky="w")
@@ -1837,35 +1832,34 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.bind_all("<F5>", lambda _event: self._refresh_dependency_status())
 
     def _build_home_page(self) -> None:
-        page = self._create_page_frame("home", scrollable=True, padding=(0, 0, 12, 0))
+        page = self._create_page_frame("home", scrollable=True, padding=(0, 0, 8, 0))
         page.grid_columnconfigure(0, weight=1)
-        page.grid_rowconfigure(2, weight=1)
 
-        hero = ttk.Frame(page, style="Card.TFrame", padding=18)
+        hero = ttk.Frame(page, style="Card.TFrame", padding=14)
         hero.grid(row=0, column=0, sticky="ew")
         hero.grid_columnconfigure(0, weight=1)
 
         ttk.Label(hero, text="Quick start", style="HeroTitle.TLabel").grid(row=0, column=0, sticky="w")
         ttk.Label(
             hero,
-            text="Pick a mode, add files, and run. Jump into PDF tools, OCR, Organizer, or Automation only when you need them.",
+            text="Add files, run a batch, or jump straight into PDF tools, OCR, Organizer, and Automation.",
             style="HeroBody.TLabel",
-            wraplength=780,
+            wraplength=760,
             justify="left",
-        ).grid(row=1, column=0, sticky="w", pady=(6, 0))
+        ).grid(row=1, column=0, sticky="w", pady=(4, 0))
         ttk.Label(
             hero,
             textvariable=self.home_hint_var,
             style="CardBody.TLabel",
-            wraplength=780,
+            wraplength=760,
             justify="left",
-        ).grid(row=2, column=0, sticky="w", pady=(10, 0))
+        ).grid(row=2, column=0, sticky="w", pady=(8, 0))
 
-        actions = FlowButtonBar(hero, style="Surface.TFrame", gap_x=8, gap_y=8, button_min_width=104)
-        actions.grid(row=0, column=1, rowspan=3, sticky="e", padx=(16, 0))
+        actions = FlowButtonBar(hero, style="Surface.TFrame", gap_x=6, gap_y=6, button_min_width=96)
+        actions.grid(row=0, column=1, rowspan=3, sticky="e", padx=(14, 0))
         actions.add(ttk.Button(actions, text="Add Files", command=self._add_files))
         actions.add(ttk.Button(actions, text="Add Folder", command=self._add_folder))
-        actions.add(ttk.Button(actions, text="PDF Tools", command=lambda: self._show_page("pdf_tools")))
+        actions.add(ttk.Button(actions, text="PDF", command=lambda: self._show_page("pdf_tools")))
         actions.add(ttk.Button(actions, text="Organizer", command=lambda: self._show_page("organizer")))
         actions.add(
             ttk.Button(actions, text="Run Batch", style="Primary.TButton", command=lambda: (self._show_page("convert"), self._start_conversion()))
@@ -1873,7 +1867,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
 
         metrics = ttk.Frame(page)
         self.home_metrics_frame = metrics
-        metrics.grid(row=1, column=0, sticky="ew", pady=(14, 14))
+        metrics.grid(row=1, column=0, sticky="ew", pady=(12, 12))
         self.home_metric_cards = []
         for column in range(4):
             metrics.grid_columnconfigure(column, weight=1)
@@ -1885,22 +1879,20 @@ class GokulOmniConvertLiteApp(tk.Tk):
 
         lower = ttk.Frame(page)
         self.home_lower_frame = lower
-        lower.grid(row=2, column=0, sticky="nsew")
+        lower.grid(row=2, column=0, sticky="ew")
         lower.grid_columnconfigure(0, weight=2)
         lower.grid_columnconfigure(1, weight=1)
-        lower.grid_rowconfigure(0, weight=1)
 
         history_card = ttk.LabelFrame(lower, text="Recent jobs")
         self.home_history_card = history_card
         history_card.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         history_card.grid_columnconfigure(0, weight=1)
-        history_card.grid_rowconfigure(1, weight=1)
 
         ttk.Label(
             history_card,
-            text="Local runs stay here for quick review and reuse.",
+            text="Last runs for quick reuse.",
             style="CardBody.TLabel",
-            wraplength=660,
+            wraplength=620,
             justify="left",
         ).grid(row=0, column=0, sticky="w", pady=(0, 8))
 
@@ -1908,7 +1900,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
             history_card,
             columns=("time", "status", "mode", "files"),
             show="headings",
-            height=8,
+            height=7,
         )
         for col, title, width in (
             ("time", "Time", 170),
@@ -1918,13 +1910,13 @@ class GokulOmniConvertLiteApp(tk.Tk):
         ):
             self.home_history_tree.heading(col, text=title)
             self.home_history_tree.column(col, width=width, anchor="w")
-        self.home_history_tree.grid(row=1, column=0, sticky="nsew")
+        self.home_history_tree.grid(row=1, column=0, sticky="ew")
         self.home_history_tree.bind("<<TreeviewSelect>>", self._on_home_history_selected)
 
-        history_actions = FlowButtonBar(history_card, style="Surface.TFrame", gap_x=8, gap_y=8, button_min_width=118)
+        history_actions = FlowButtonBar(history_card, style="Surface.TFrame", gap_x=6, gap_y=6, button_min_width=104)
         history_actions.grid(row=2, column=0, sticky="ew", pady=(10, 0))
-        history_actions.add(ttk.Button(history_actions, text="Open History", command=lambda: self._show_page("history")))
-        history_actions.add(ttk.Button(history_actions, text="Preview Outputs", command=self._preview_last_outputs))
+        history_actions.add(ttk.Button(history_actions, text="History", command=lambda: self._show_page("history")))
+        history_actions.add(ttk.Button(history_actions, text="Preview", command=self._preview_last_outputs))
 
         dep_card = ttk.LabelFrame(lower, text="Quick tools")
         self.home_dep_card = dep_card
@@ -1933,15 +1925,15 @@ class GokulOmniConvertLiteApp(tk.Tk):
 
         self.home_dependency_label = ttk.Label(dep_card, textvariable=self.home_environment_var, style="CardBody.TLabel", wraplength=320, justify="left")
         self.home_dependency_label.grid(row=0, column=0, sticky="nw")
-        button_row = FlowButtonBar(dep_card, style="Surface.TFrame", gap_x=8, gap_y=8, button_min_width=132)
-        button_row.grid(row=1, column=0, sticky="ew", pady=(14, 0))
+        button_row = FlowButtonBar(dep_card, style="Surface.TFrame", gap_x=6, gap_y=6, button_min_width=112)
+        button_row.grid(row=1, column=0, sticky="ew", pady=(12, 0))
         button_row.add(ttk.Button(button_row, text="Refresh", command=self._refresh_dependency_status))
-        button_row.add(ttk.Button(button_row, text="Quick Actions", command=self._open_command_palette))
+        button_row.add(ttk.Button(button_row, text="Quick", command=self._open_command_palette))
         button_row.add(ttk.Button(button_row, text="Preview", command=self._open_preview_center_window))
         button_row.add(ttk.Button(button_row, text="Settings", command=lambda: self._show_page("settings")))
         button_row.add(ttk.Button(button_row, text="Notes", command=self._open_notes_window))
 
-        ttk.Separator(dep_card, orient="horizontal").grid(row=2, column=0, sticky="ew", pady=14)
+        ttk.Separator(dep_card, orient="horizontal").grid(row=2, column=0, sticky="ew", pady=12)
         ttk.Label(dep_card, text="Favorite presets", style="CardTitle.TLabel").grid(row=3, column=0, sticky="w")
         ttk.Label(dep_card, textvariable=self.favorite_preset_summary_var, style="CardBody.TLabel", wraplength=320, justify="left").grid(
             row=4, column=0, sticky="w", pady=(6, 0)
@@ -4210,47 +4202,52 @@ class GokulOmniConvertLiteApp(tk.Tk):
 
 
     def _build_about_page(self) -> None:
-        page = self._create_page_frame("about", scrollable=True, padding=(0, 0, 12, 0))
+        page = self._create_page_frame("about", scrollable=True, padding=(0, 0, 8, 0))
         page.grid_columnconfigure(0, weight=1)
-        page.grid_rowconfigure(1, weight=1)
 
-        header = ttk.Frame(page, style="Card.TFrame", padding=18)
+        header = ttk.Frame(page, style="Card.TFrame", padding=14)
         header.grid(row=0, column=0, sticky="ew")
         header.grid_columnconfigure(0, weight=1)
         ttk.Label(header, text="About", style="CardTitle.TLabel").grid(row=0, column=0, sticky="w")
         ttk.Label(
             header,
-            text="Keep your local profile, links, and brand assets here.",
+            text="Local profile, links, and brand files.",
             style="CardBody.TLabel",
-            wraplength=980,
+            wraplength=860,
             justify="left",
-        ).grid(row=1, column=0, sticky="w", pady=(6, 0))
-        header_actions = FlowButtonBar(header, style="Surface.TFrame", gap_x=8, gap_y=8, button_min_width=98)
-        header_actions.grid(row=0, column=1, rowspan=2, sticky="e", padx=(16, 0))
+        ).grid(row=1, column=0, sticky="w", pady=(4, 0))
+        header_actions = FlowButtonBar(header, style="Surface.TFrame", gap_x=6, gap_y=6, button_min_width=90)
+        header_actions.grid(row=0, column=1, rowspan=2, sticky="e", padx=(14, 0))
         header_actions.add(ttk.Button(header_actions, text="Reload", command=self._refresh_about_profile))
         header_actions.add(ttk.Button(header_actions, text="Edit", command=self._open_about_editor_window))
         header_actions.add(ttk.Button(header_actions, text="Open JSON", command=lambda: open_path(self.about_profile_path)))
+        header_actions.add(ttk.Button(header_actions, text="Static", command=lambda: open_path(self.static_about_profile_path)))
 
         body = ttk.Frame(page)
         self.about_body_frame = body
-        body.grid(row=1, column=0, sticky="nsew", pady=(14, 0))
-        body.grid_columnconfigure(0, weight=1)
-        body.grid_columnconfigure(1, weight=2)
-        body.grid_rowconfigure(0, weight=1)
+        body.grid(row=1, column=0, sticky="ew", pady=(12, 0))
+        body.grid_columnconfigure(0, weight=0, minsize=240)
+        body.grid_columnconfigure(1, weight=1)
 
-        profile_card = ttk.Frame(body, style="Card.TFrame", padding=16)
+        profile_card = ttk.Frame(body, style="Card.TFrame", padding=14)
         self.about_profile_card = profile_card
-        profile_card.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        profile_card.grid(row=0, column=0, sticky="new", padx=(0, 10))
         profile_card.grid_columnconfigure(0, weight=1)
         self.about_image_label = ttk.Label(profile_card, text="Loading profile image...", anchor="center", justify="center")
-        self.about_image_label.grid(row=0, column=0, sticky="nsew", pady=(0, 12))
-        self.about_image_hint_label = ttk.Label(profile_card, style="CardBody.TLabel", wraplength=240, justify="center")
+        self.about_image_label.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        self.about_image_hint_label = ttk.Label(profile_card, style="CardBody.TLabel", wraplength=220, justify="center")
         self.about_image_hint_label.grid(row=1, column=0, sticky="ew")
-        ttk.Label(profile_card, text=f"Version {APP_VERSION}", style="CardBody.TLabel").grid(row=2, column=0, sticky="ew", pady=(12, 0))
+        profile_actions = FlowButtonBar(profile_card, style="Surface.TFrame", gap_x=6, gap_y=6, button_min_width=98)
+        profile_actions.grid(row=2, column=0, sticky="ew", pady=(12, 0))
+        profile_actions.add(ttk.Button(profile_actions, text="Edit", command=self._open_about_editor_window))
+        profile_actions.add(ttk.Button(profile_actions, text="JSON", command=lambda: open_path(self.about_profile_path)))
+        profile_actions.add(ttk.Button(profile_actions, text="Image", command=self._open_about_image_file))
+        profile_actions.add(ttk.Button(profile_actions, text="Refresh", command=self._refresh_remote_assets))
+        ttk.Label(profile_card, text=f"Version {APP_VERSION} • local profile", style="CardBody.TLabel").grid(row=3, column=0, sticky="ew", pady=(12, 0))
 
-        info_card = ttk.Frame(body, style="Card.TFrame", padding=18)
+        info_card = ttk.Frame(body, style="Card.TFrame", padding=16)
         self.about_info_card = info_card
-        info_card.grid(row=0, column=1, sticky="nsew")
+        info_card.grid(row=0, column=1, sticky="new")
         info_card.grid_columnconfigure(0, weight=1)
 
         self.about_name_label = ttk.Label(info_card, style="Title.TLabel")
@@ -4258,44 +4255,29 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.about_title_label = ttk.Label(info_card, style="Subtitle.TLabel")
         self.about_title_label.grid(row=1, column=0, sticky="w", pady=(4, 0))
         self.about_company_label = ttk.Label(info_card, style="CardBody.TLabel", wraplength=680, justify="left")
-        self.about_company_label.grid(row=2, column=0, sticky="w", pady=(8, 0))
+        self.about_company_label.grid(row=2, column=0, sticky="w", pady=(6, 0))
         self.about_meta_label = ttk.Label(info_card, style="CardBody.TLabel", wraplength=680, justify="left")
-        self.about_meta_label.grid(row=3, column=0, sticky="w", pady=(8, 0))
+        self.about_meta_label.grid(row=3, column=0, sticky="w", pady=(6, 0))
         self.about_bio_label = ttk.Label(info_card, style="CardBody.TLabel", wraplength=680, justify="left")
-        self.about_bio_label.grid(row=4, column=0, sticky="w", pady=(12, 0))
+        self.about_bio_label.grid(row=4, column=0, sticky="w", pady=(10, 0))
 
-        ttk.Separator(info_card, orient="horizontal").grid(row=5, column=0, sticky="ew", pady=14)
+        ttk.Separator(info_card, orient="horizontal").grid(row=5, column=0, sticky="ew", pady=12)
         ttk.Label(info_card, text="Actions", style="CardTitle.TLabel").grid(row=6, column=0, sticky="w")
-        self.about_action_frame = FlowButtonBar(info_card, style="TFrame", gap_x=8, gap_y=8, button_min_width=112)
-        self.about_action_frame.grid(row=7, column=0, sticky="ew", pady=(10, 0))
+        self.about_action_frame = FlowButtonBar(info_card, style="TFrame", gap_x=6, gap_y=6, button_min_width=98)
+        self.about_action_frame.grid(row=7, column=0, sticky="ew", pady=(8, 0))
 
-        ttk.Separator(info_card, orient="horizontal").grid(row=8, column=0, sticky="ew", pady=14)
+        ttk.Separator(info_card, orient="horizontal").grid(row=8, column=0, sticky="ew", pady=12)
         ttk.Label(info_card, text="Links", style="CardTitle.TLabel").grid(row=9, column=0, sticky="w")
-        self.about_links_frame = FlowButtonBar(info_card, style="TFrame", gap_x=8, gap_y=8, button_min_width=112)
-        self.about_links_frame.grid(row=10, column=0, sticky="ew", pady=(10, 0))
+        self.about_links_frame = FlowButtonBar(info_card, style="TFrame", gap_x=6, gap_y=6, button_min_width=98)
+        self.about_links_frame.grid(row=10, column=0, sticky="ew", pady=(8, 0))
 
         ttk.Label(
             info_card,
-            text="Editable locally. The installer snapshot stays in installer/about_static.json.",
+            text="Installer snapshot: installer/about_static.json",
             style="CardBody.TLabel",
             wraplength=680,
             justify="left",
-        ).grid(row=11, column=0, sticky="w", pady=(14, 0))
-
-        assets_card = ttk.Frame(body, style="Card.TFrame", padding=16)
-        self.about_assets_card = assets_card
-        assets_card.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(12, 0))
-        assets_card.grid_columnconfigure(0, weight=1)
-        ttk.Label(assets_card, text="Profile assets", style="CardTitle.TLabel").grid(row=0, column=0, sticky="w")
-        ttk.Label(
-            assets_card,
-            text="Open local files or refresh remote assets when you change branding.",
-            style="CardBody.TLabel",
-            wraplength=980,
-            justify="left",
-        ).grid(row=1, column=0, sticky="w", pady=(6, 0))
-        self.about_asset_actions = FlowButtonBar(assets_card, style="Surface.TFrame", gap_x=8, gap_y=8, button_min_width=118)
-        self.about_asset_actions.grid(row=2, column=0, sticky="ew", pady=(12, 0))
+        ).grid(row=11, column=0, sticky="w", pady=(12, 0))
 
     def _open_about_image_file(self) -> None:
         profile = load_about_profile(self.about_profile_path)
@@ -4322,20 +4304,20 @@ class GokulOmniConvertLiteApp(tk.Tk):
             subtitle = str(profile.get("title", "")).strip()
             extra = str(profile.get("subtitle", "")).strip()
             subtitle_text = subtitle if not extra else f"{subtitle} • {extra}" if subtitle else extra
-            self.about_title_label.configure(text=subtitle_text or "Edit your local profile to add role details.")
+            self.about_title_label.configure(text=subtitle_text or "Add role details in about_profile.json.")
 
             company = str(profile.get("company", "")).strip()
             project = str(profile.get("project", "")).strip()
             company_parts = [item for item in [company, project] if item]
-            self.about_company_label.configure(text=" • ".join(company_parts) or "Update company or project in about_profile.json.")
+            self.about_company_label.configure(text=" • ".join(company_parts) or "Add company or project.")
 
             meta_parts = []
             if str(profile.get("email", "")).strip():
                 meta_parts.append(str(profile.get("email", "")).strip())
             if str(profile.get("handle", "")).strip():
                 meta_parts.append(str(profile.get("handle", "")).strip())
-            self.about_meta_label.configure(text=" • ".join(meta_parts) or "Add contact details in about_profile.json.")
-            self.about_bio_label.configure(text=str(profile.get("bio", "")).strip() or "Add a short bio in about_profile.json.")
+            self.about_meta_label.configure(text=" • ".join(meta_parts) or "Add email or handle.")
+            self.about_bio_label.configure(text=str(profile.get("bio", "")).strip() or "Add a short bio.")
 
             for child in self.about_action_frame.winfo_children():
                 child.destroy()
@@ -4352,7 +4334,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
             if isinstance(self.about_action_frame, FlowButtonBar):
                 self.about_action_frame.clear()
             if not action_buttons:
-                ttk.Label(self.about_action_frame, text="Add email or feedback links in about_profile.json.", style="CardBody.TLabel").grid(row=0, column=0, sticky="w")
+                ttk.Label(self.about_action_frame, text="Add email or feedback links.", style="CardBody.TLabel").grid(row=0, column=0, sticky="w")
             else:
                 for label, url in action_buttons:
                     button = ttk.Button(self.about_action_frame, text=label, command=lambda target=url: open_url(target))
@@ -4370,7 +4352,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
             if not active_links:
                 ttk.Label(
                     self.about_links_frame,
-                    text="No social links yet. Add them in about_profile.json.",
+                    text="Add social links.",
                     style="CardBody.TLabel",
                 ).grid(row=0, column=0, sticky="w")
             else:
@@ -4383,31 +4365,18 @@ class GokulOmniConvertLiteApp(tk.Tk):
                     else:
                         button.grid(sticky="w")
 
-            if hasattr(self, "about_asset_actions") and isinstance(self.about_asset_actions, FlowButtonBar):
-                self.about_asset_actions.clear()
-                asset_buttons = [
-                    ("Edit profile", self._open_about_editor_window),
-                    ("Open JSON", lambda: open_path(self.about_profile_path)),
-                    ("Open image", self._open_about_image_file),
-                    ("Refresh assets", self._refresh_remote_assets),
-                    ("Asset config", lambda: open_path(self.asset_config_path)),
-                    ("Static About", lambda: open_path(self.static_about_profile_path)),
-                ]
-                for label, command in asset_buttons:
-                    self.about_asset_actions.add(ttk.Button(self.about_asset_actions, text=label, command=command))
-
             image_info = self._resolve_about_image_info(profile)
             image_path = Path(str(image_info.get("path", self.about_profile_path.parent)))
             source_label = humanize_identifier(str(image_info.get("source", "local")), fallback="Local")
             hint_bits = [image_path.name, source_label]
             remote_hint = self.about_image_url_var.get().strip() or str(profile.get("image_url", "")).strip()
             if remote_hint:
-                hint_bits.append("remote")
+                hint_bits.append("remote ready")
             self.about_image_hint_label.configure(text=" • ".join(hint_bits))
             if image_path.exists():
                 try:
                     image = Image.open(image_path)
-                    image.thumbnail((220, 220))
+                    image.thumbnail((180, 180))
                     self.about_photo = ImageTk.PhotoImage(image)
                     self.about_image_label.configure(image=self.about_photo, text="")
                 except Exception:
@@ -4768,9 +4737,9 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.home_environment_var.set(
             " • ".join(
                 [
-                    f"Engine: {self.active_engine_var.get() or 'Auto'}",
-                    f"LibreOffice: {'Ready' if status.get('LibreOffice') else 'Optional'}",
-                    f"OCR: {'Ready' if tesseract.get('available') else 'Missing'}",
+                    self.active_engine_var.get() or "Auto",
+                    f"LibreOffice {'Ready' if status.get('LibreOffice') else 'Optional'}",
+                    f"OCR {'Ready' if tesseract.get('available') else 'Missing'}",
                 ]
             )
         )
@@ -4791,14 +4760,14 @@ class GokulOmniConvertLiteApp(tk.Tk):
         engine = self.engine_mode_var.get().strip().lower() or ENGINE_AUTO
         engine_label = format_engine_label(engine, fallback="Auto")
         if self.running:
-            self.home_hint_var.set("Run in progress. Watch Convert, PDF Tools, or OCR.")
+            self.home_hint_var.set("Run in progress.")
         elif count == 0:
             if hasattr(self, "link_input_text") and self._extract_urls_from_text():
-                self.home_hint_var.set("URLs are ready. Fetch them or start the run.")
+                self.home_hint_var.set("Links ready. Fetch or run.")
             else:
-                self.home_hint_var.set("Add files, a folder, or paste links to begin.")
+                self.home_hint_var.set("Add files or paste links.")
         else:
-            merge_state = "1 merged PDF" if self.merge_var.get() else "separate outputs"
+            merge_state = "Merged PDF" if self.merge_var.get() else "Separate outputs"
             self.home_hint_var.set(f"Ready • {engine_label} • {merge_state}")
 
     def _add_files(self) -> None:
