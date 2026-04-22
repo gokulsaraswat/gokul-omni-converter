@@ -5,55 +5,30 @@ A local Python desktop app for batch conversion, PDF workflows, integrated OCR, 
 
 
 
-## Patch 32 highlights
 
-Patch 32 keeps the same toolset but makes the shell denser and cleaner where you were feeling the most wasted space: the **header**, **home**, and **About** screens.
+## Patch 33 highlights
 
-New in Patch 32:
-- even slimmer **header**
-  - smaller GIF/logo slot
-  - tighter top spacing
-  - cleaner action row with just the core pages
-- denser **Home** dashboard
-  - compact quick-start strip
-  - four tighter metric cards including the active engine
-  - shorter system summary instead of the full dependency wall
-  - less wasted vertical space in the first screen
-- tighter **About** screen
-  - compact top action bar
-  - smaller image block
-  - shorter metadata and source rows
-  - working quick-link buttons through a restored URL opener
-- app version bumped to **2.2.4**
+Patch 33 tightens the **Header**, **Home**, and **About** experience with a denser layout and less filler copy.
 
-Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
-
-
-## Patch 31 highlights
-
-Patch 31 tightens the shell and reduces wasted space in the **header**, **home**, and **About** screens so the app feels denser and cleaner without removing any existing workflow.
-
-New in Patch 31:
+New in Patch 33:
 - slimmer **header**
-  - smaller GIF/logo slot
-  - fewer top-bar actions
-  - tighter spacing
-- cleaner **Home** workspace
+  - much smaller GIF/logo slot
+  - buttons-only top bar
+  - compact button sizing with less wasted space
+- cleaner **Home** screen
   - shorter hero copy
-  - shorter status text
-  - shorter history/dependency copy
-  - denser action groups and metric cards
+  - tighter metric cards
+  - lighter recent-jobs area
+  - compact quick panel with faster actions
 - cleaner **About** screen
-  - smaller image area
-  - shorter header copy
-  - shorter empty-state/link text
-  - fewer asset/profile utility buttons in the main card
-  - compact version/source details
-- tiny footer spacing cleanup
-- app version bumped to **2.2.3**
+  - shorter intro
+  - smaller profile image area
+  - simplified profile actions
+  - separate utility tools without the long stacked layout
+- shorter in-app copy for pinned presets and Home status messages
+- app version bumped to **2.2.2**
 
 Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
-
 
 
 ## Patch 24 highlights

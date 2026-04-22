@@ -99,7 +99,7 @@ from converter_core import (
 
 
 from mail_core import SMTPSettings, build_email_message, build_eml_draft, create_mailto_url
-from ocr_core import OcrConfig, OcrError, detect_tesseract_status, extract_text_with_ocr, image_to_searchable_pdf, pdf_to_searchable_pdf
+from ocr_core import OcrConfig, detect_tesseract_status, extract_text_with_ocr, image_to_searchable_pdf, pdf_to_searchable_pdf
 from organizer_core import (
     build_default_sequence,
     duplicate_positions,
@@ -1349,31 +1349,27 @@ def run() -> None:
         if tesseract.get("available"):
             ocr_cfg = OcrConfig(language="eng", dpi=220, psm=6)
             ocr_output_dir = outputs / "ocr"
-            try:
-                image_searchable = image_to_searchable_pdf(sample["ocr_image"], ocr_output_dir / "ocr_image_searchable.pdf", config=ocr_cfg)
-                pdf_searchable = pdf_to_searchable_pdf(sample["ocr_pdf"], ocr_output_dir / "ocr_pdf_searchable.pdf", config=ocr_cfg)
-                ocr_text_path = extract_text_with_ocr(sample["ocr_image"], ocr_output_dir / "ocr_image.txt", config=ocr_cfg)
-            except OcrError as exc:
-                skipped.append(f"OCR searchable-PDF smoke tests were skipped: {exc}")
-            else:
-                for path in (image_searchable, pdf_searchable, ocr_text_path):
-                    if not path.exists():
-                        raise AssertionError(f"OCR output was not created: {path}")
-                ocr_text = ocr_text_path.read_text(encoding="utf-8", errors="replace").upper()
-                if "INVOICE" not in ocr_text:
-                    raise AssertionError(f"OCR text extraction did not recover the expected text: {ocr_text}")
-                with fitz.open(str(image_searchable)) as searchable_doc:
-                    searchable_text = "\n".join(page.get_text("text") for page in searchable_doc).upper()
-                if "INVOICE" not in searchable_text:
-                    raise AssertionError("Image -> searchable PDF did not contain searchable OCR text.")
-                all_outputs.extend([image_searchable, pdf_searchable, ocr_text_path])
+            image_searchable = image_to_searchable_pdf(sample["ocr_image"], ocr_output_dir / "ocr_image_searchable.pdf", config=ocr_cfg)
+            pdf_searchable = pdf_to_searchable_pdf(sample["ocr_pdf"], ocr_output_dir / "ocr_pdf_searchable.pdf", config=ocr_cfg)
+            ocr_text_path = extract_text_with_ocr(sample["ocr_image"], ocr_output_dir / "ocr_image.txt", config=ocr_cfg)
+            for path in (image_searchable, pdf_searchable, ocr_text_path):
+                if not path.exists():
+                    raise AssertionError(f"OCR output was not created: {path}")
+            ocr_text = ocr_text_path.read_text(encoding="utf-8", errors="replace").upper()
+            if "INVOICE" not in ocr_text:
+                raise AssertionError(f"OCR text extraction did not recover the expected text: {ocr_text}")
+            with fitz.open(str(image_searchable)) as searchable_doc:
+                searchable_text = "\n".join(page.get_text("text") for page in searchable_doc).upper()
+            if "INVOICE" not in searchable_text:
+                raise AssertionError("Image -> searchable PDF did not contain searchable OCR text.")
+            all_outputs.extend([image_searchable, pdf_searchable, ocr_text_path])
         else:
             skipped.append("Tesseract not found. OCR smoke tests were skipped.")
 
         header_gif = Path(__file__).with_name("assets") / "gokul_header.gif"
         if not header_gif.exists():
             raise AssertionError("Patch 22 header GIF placeholder is missing.")
-        print("Patch 32 smoke test completed successfully.")
+        print("Patch 23 smoke test completed successfully.")
         for note in skipped:
             print(f"SKIP: {note}")
         for path in all_outputs:
