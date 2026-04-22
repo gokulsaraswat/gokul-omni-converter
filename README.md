@@ -5,107 +5,30 @@ A local Python desktop app for batch conversion, PDF workflows, integrated OCR, 
 
 
 
+## Patch 30 highlights
 
-## Patch 29 highlights
+Patch 30 tightens the surfaces that were wasting the most space: **Header**, **Home**, and **About**.
 
-Patch 29 finishes this cleanup pass by tightening the three identity-heavy surfaces one more time and removing a little more visual noise.
-
-New in Patch 29:
-- leaner **header chrome**
-  - even smaller GIF/logo footprint
-  - nav-only header buttons
-  - footer remains the only place with **About** and **Mail**
-- cleaner **Home** dashboard
-  - shorter quick-start copy
-  - stronger metric hierarchy
-  - denser quick-tools and favorites area
+New in Patch 30:
+- slimmer **header chrome**
+  - smaller GIF/logo slot
+  - shorter top-bar actions
+  - tighter padding so more space stays with the workspace
+- denser **Home** workspace
+  - shorter hero copy
+  - faster quick actions
+  - compact dashboard metrics including the active engine
+  - cleaner quick-controls panel with less dead space
 - cleaner **About** page
-  - better typography on surface cards
-  - smaller image footprint
-  - fewer duplicate actions and clearer grouping for primary actions, social links, and local files
-- app version bumped to **2.2.6**
-
-Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
-
-
-## Patch 28 highlights
-
-Patch 28 keeps tightening the three identity-heavy screens so they waste less space and feel more stable at common laptop sizes.
-
-New in Patch 28:
-- leaner **header chrome**
-  - smaller GIF/logo footprint
-  - tighter header/body/sidebar spacing
-  - slimmer sidebar width and status area
-- denser **Home** layout
-  - smaller hero and action strip
-  - less vertical stretching in Recent Jobs and Quick Tools
-  - tighter metric cards and shorter status copy
-- cleaner **About** layout
-  - fewer duplicate actions
-  - smaller profile image area
-  - combined contact + social action row with less filler text
-- fixed a small **responsive-layout reference bug** so the Convert page keeps its own layout controller instead of being overwritten by the PDF Tools page
-- app version bumped to **2.2.5**
-
-Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
-
-
-## Patch 27 highlights
-
-Patch 27 is another targeted UX cleanup pass for the three identity-heavy screens: **Header**, **Home**, and **About**.
-
-New in Patch 27:
-- tighter **header chrome**
-  - smaller GIF/logo footprint
-  - slimmer header/footer spacing
-  - tighter sidebar width and navigation padding
-- more compact **Home** dashboard
-  - shorter hero copy and faster action strip
-  - tighter metric cards
-  - cleaner recent-jobs and quick-tools spacing
-  - compact mode/output labels to avoid tall cards
-- cleaner **About** page
-  - smaller profile image footprint
-  - shorter header text and reduced action clutter
-  - denser profile/details layout with less empty space
-- app version bumped to **2.2.4**
-
-Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
-
-
-## Patch 26 highlights
-
-Patch 26 tightens the three screens that still felt the loosest: **Header**, **Home**, and **About**.
-
-New in Patch 26:
-- slimmer **header**
-  - smaller GIF/logo footprint
-  - denser header buttons with less wasted vertical space
-  - tighter body/sidebar chrome spacing
-- denser **Home** page
-  - less filler copy
-  - tighter hero, metric cards, and quick tool spacing
-  - recent jobs and quick tools no longer stretch into empty space on taller windows
-- cleaner **About** page
-  - shorter copy and smaller profile image footprint
-  - removed the extra wide asset card from the bottom
-  - fewer, more focused profile actions
-  - less empty vertical space and better responsive stacking
-- app version bumped to **2.2.3**
-
-Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
-
-
-## Patch 25 highlights
-
-Patch 25 tightens the busiest identity screens so the app feels cleaner right away.
-
-New in Patch 25:
-- slimmer **header** with a smaller GIF/logo slot and buttons-only top bar
-- denser **Home** layout with shorter copy, compact stat cards, and cleaner quick tools
-- cleaner **About** page with a smaller image area, shorter copy, and simpler asset actions
-- fixed the missing `open_url()` helper so About mail/social buttons open correctly
+  - smaller image area
+  - reduced filler text
+  - simpler profile actions
+  - denser contact/actions/links layout
+- bundled placeholder **assets/** so header, splash, and About image fallbacks are present
+- bundled minimal **installer/** metadata files for packaging prep
+- small bug fixes
+  - added a safe `open_url()` helper used by About buttons
+  - fixed external job recording so non-completed organizer jobs can still land in failed-job history
 - app version bumped to **2.2.2**
 
 Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
