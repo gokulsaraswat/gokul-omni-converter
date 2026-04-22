@@ -1,12 +1,6 @@
 {
   "name": "Gokul Saraswat",
   "title": "Software Engineer",
-  "subtitle": "Creator of Gokul Omni Convert Lite",
-  "company": "Oracle Corporation",
   "project": "Gokul Omni Convert Lite",
-  "email": "gokul.saraswat@oracle.com",
-  "handle": "@gokul.saraswat",
-  "feedback_url": "mailto:gokul.saraswat@oracle.com?subject=Gokul%20Omni%20Convert%20Lite%20Feedback",
-  "contribute_url": "https://github.com/gokul-saraswat/gokul-omni-convert-lite/issues",
-  "image_path": "assets/gokul_profile_placeholder.png"
+  "email": "gokul.saraswat@oracle.com"
 }

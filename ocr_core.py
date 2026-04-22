@@ -100,37 +100,12 @@ def _ocr_text(image: Image.Image, config: OcrConfig) -> str:
             ) from exc
 
 
-def _fallback_searchable_pdf_bytes(pixmap: fitz.Pixmap, config: OcrConfig) -> bytes:
-    image = Image.frombytes("RGB", [pixmap.width, pixmap.height], pixmap.samples)
-    document = fitz.open()
-    try:
-        text = _ocr_text(image, config).strip()
-        page = document.new_page(width=pixmap.width, height=pixmap.height)
-        page.insert_image(page.rect, stream=pixmap.tobytes("png"))
-        if text:
-            margin = max(12, int(min(pixmap.width, pixmap.height) * 0.03))
-            page.insert_textbox(
-                fitz.Rect(margin, margin, max(pixmap.width - margin, margin + 10), max(pixmap.height - margin, margin + 10)),
-                text,
-                fontsize=8,
-                fill_opacity=0,
-                overlay=True,
-            )
-        return document.tobytes(garbage=3, deflate=True)
-    finally:
-        image.close()
-        document.close()
-
-
 def _pixmap_to_ocr_pdf_bytes(pixmap: fitz.Pixmap, config: OcrConfig) -> bytes:
     with _temporary_tesseract_environment(config):
         try:
             return pixmap.pdfocr_tobytes(language=config.language)
-        except Exception:
-            try:
-                return _fallback_searchable_pdf_bytes(pixmap, config)
-            except Exception as exc:
-                raise OcrError(f"OCR PDF generation failed: {exc}") from exc
+        except Exception as exc:
+            raise OcrError(f"OCR PDF generation failed: {exc}") from exc
 
 
 def _emit_progress(progress: ProgressFn | None, current: int, total: int) -> None:

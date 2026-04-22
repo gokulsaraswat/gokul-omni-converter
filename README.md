@@ -5,31 +5,28 @@ A local Python desktop app for batch conversion, PDF workflows, integrated OCR, 
 
 
 
-## Patch 30 highlights
+## Patch 31 highlights
 
-Patch 30 tightens the surfaces that were wasting the most space: **Header**, **Home**, and **About**.
+Patch 31 tightens the shell and reduces wasted space in the **header**, **home**, and **About** screens so the app feels denser and cleaner without removing any existing workflow.
 
-New in Patch 30:
-- slimmer **header chrome**
+New in Patch 31:
+- slimmer **header**
   - smaller GIF/logo slot
-  - shorter top-bar actions
-  - tighter padding so more space stays with the workspace
-- denser **Home** workspace
+  - fewer top-bar actions
+  - tighter spacing
+- cleaner **Home** workspace
   - shorter hero copy
-  - faster quick actions
-  - compact dashboard metrics including the active engine
-  - cleaner quick-controls panel with less dead space
-- cleaner **About** page
+  - shorter status text
+  - shorter history/dependency copy
+  - denser action groups and metric cards
+- cleaner **About** screen
   - smaller image area
-  - reduced filler text
-  - simpler profile actions
-  - denser contact/actions/links layout
-- bundled placeholder **assets/** so header, splash, and About image fallbacks are present
-- bundled minimal **installer/** metadata files for packaging prep
-- small bug fixes
-  - added a safe `open_url()` helper used by About buttons
-  - fixed external job recording so non-completed organizer jobs can still land in failed-job history
-- app version bumped to **2.2.2**
+  - shorter header copy
+  - shorter empty-state/link text
+  - fewer asset/profile utility buttons in the main card
+  - compact version/source details
+- tiny footer spacing cleanup
+- app version bumped to **2.2.3**
 
 Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
 
