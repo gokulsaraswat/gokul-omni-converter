@@ -1,6 +1,6 @@
 {
-  "backup_dir": "/tmp/tmpk0pev0pr/outputs/patch18_accessibility/backups",
-  "latest_backup": "/tmp/tmpk0pev0pr/outputs/patch18_accessibility/backups/app_state_20260416_132519_430058.json",
+  "backup_dir": "/tmp/tmp20i_jd58/outputs/patch18_accessibility/backups",
+  "latest_backup": "/tmp/tmp20i_jd58/outputs/patch18_accessibility/backups/app_state_20260507_084949_184367.json",
   "restored_theme": "dark",
   "ui_scale": "125%",
   "high_contrast": true,

@@ -20,7 +20,7 @@ from xml.etree import ElementTree as ET
 
 import fitz  # PyMuPDF
 import pdfplumber
-from PIL import Image
+from PIL import Image, ImageOps, JpegImagePlugin, PdfImagePlugin  # plugin imports register Pillow JPEG/PDF writers
 from docx import Document
 from docx.shared import Pt
 from openpyxl import Workbook, load_workbook
@@ -997,6 +997,72 @@ def save_text_as_pdf(input_path: Path, output_pdf: Path) -> Path:
     return save_string_as_pdf(read_text_file(input_path), output_pdf)
 
 
+def _image_to_pdf_ready_rgb(image_path: Path) -> Image.Image:
+    """Open one image frame and normalize it for PDF writing.
+
+    Pillow's PDF writer can fail on some plugin combinations when alpha or palette
+    modes are passed through directly. This helper forces a loaded RGB image, uses
+    the first frame for animated formats, applies EXIF orientation, and composites
+    transparency on white so PNG/WebP/GIF inputs do not trigger JPEG plugin errors.
+    """
+    with Image.open(image_path) as source:
+        if getattr(source, "is_animated", False):
+            source.seek(0)
+        try:
+            prepared = ImageOps.exif_transpose(source)
+        except Exception:
+            prepared = source.copy()
+
+        if prepared.mode == "RGB":
+            return prepared.copy()
+        if prepared.mode == "L":
+            return prepared.convert("RGB")
+
+        has_alpha = prepared.mode in {"RGBA", "LA"} or (prepared.mode == "P" and "transparency" in prepared.info)
+        if has_alpha:
+            rgba = prepared.convert("RGBA")
+            background = Image.new("RGBA", rgba.size, (255, 255, 255, 255))
+            background.alpha_composite(rgba)
+            rgba.close()
+            return background.convert("RGB")
+
+        return prepared.convert("RGB")
+
+
+def _draw_images_to_pdf_with_reportlab(images: Sequence[Image.Image], output_pdf: Path) -> Path:
+    pdf = canvas.Canvas(str(output_pdf))
+    try:
+        for image in images:
+            width_px, height_px = image.size
+            if width_px <= 0 or height_px <= 0:
+                continue
+
+            # Use image pixel dimensions as PDF points when reasonable; clamp only
+            # extreme/degenerate sizes so pages remain viewable in common readers.
+            page_width = float(max(72, min(width_px, 14400)))
+            page_height = float(max(72, min(height_px, 14400)))
+            scale = min(page_width / width_px, page_height / height_px)
+            draw_width = width_px * scale
+            draw_height = height_px * scale
+            left = (page_width - draw_width) / 2
+            bottom = (page_height - draw_height) / 2
+
+            buffer = BytesIO()
+            image.save(buffer, format="PNG")
+            buffer.seek(0)
+            pdf.setPageSize((page_width, page_height))
+            pdf.drawImage(ImageReader(buffer), left, bottom, width=draw_width, height=draw_height, preserveAspectRatio=True, mask="auto")
+            pdf.showPage()
+        pdf.save()
+    except Exception as exc:
+        try:
+            pdf.save()
+        except Exception:
+            pass
+        raise ConversionError(f"ReportLab image-to-PDF fallback failed: {exc}") from exc
+    return output_pdf
+
+
 def convert_images_to_single_pdf(image_paths: Sequence[Path], output_pdf: Path) -> Path:
     if not image_paths:
         raise ConversionError("No image files were provided.")
@@ -1007,18 +1073,20 @@ def convert_images_to_single_pdf(image_paths: Sequence[Path], output_pdf: Path) 
     opened_images: list[Image.Image] = []
     try:
         for image_path in image_paths:
-            image = Image.open(image_path)
-            if getattr(image, "is_animated", False):
-                image.seek(0)
-            if image.mode not in ("RGB", "L"):
-                image = image.convert("RGB")
-            elif image.mode == "L":
-                image = image.convert("RGB")
-            opened_images.append(image)
+            opened_images.append(_image_to_pdf_ready_rgb(Path(image_path)))
 
         first, *rest = opened_images
-        first.save(str(output_pdf), save_all=True, append_images=rest)
-        return output_pdf
+        try:
+            first.save(str(output_pdf), format="PDF", save_all=True, append_images=rest, resolution=100.0)
+            return output_pdf
+        except Exception as exc:
+            message = str(exc)
+            # Some Pillow builds raise KeyError('JPEG') or related plugin errors
+            # while writing PNG/WebP/GIF frames as PDF. Keep a reliable local
+            # fallback instead of failing the whole batch.
+            if isinstance(exc, KeyError) or "JPEG" in message.upper() or "PDF" in message.upper():
+                return _draw_images_to_pdf_with_reportlab(opened_images, output_pdf)
+            raise
     finally:
         for image in opened_images:
             try:

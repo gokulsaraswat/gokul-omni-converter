@@ -6,23 +6,23 @@
 endobj
 
 2 0 obj
-<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding/Name/F1>>
+<</BaseFont/Helvetica/Encoding/WinAnsiEncoding/Name/F1/Subtype/Type1/Type/Font>>
 endobj
 
 3 0 obj
-<</Type/Page/Contents 7 0 R/MediaBox[0 0 595.2756 841.8898]/Parent 6 0 R/Resources<</Font 1 0 R/ProcSet[/PDF/Text/ImageB/ImageC/ImageI]>>/Rotate 0/Trans<<>>>>
+<</Contents 7 0 R/MediaBox[0 0 595.2756 841.8898]/Parent 6 0 R/Resources<</Font 1 0 R/ProcSet[/PDF/Text/ImageB/ImageC/ImageI]>>/Rotate 0/Trans<<>>/Type/Page>>
 endobj
 
 4 0 obj
-<</Type/Catalog/PageMode/UseNone/Pages 6 0 R>>
+<</PageMode/UseNone/Pages 6 0 R/Type/Catalog>>
 endobj
 
 5 0 obj
-<</Author(Gokul Omni Convert Lite)/CreationDate null/Creator null/Keywords(patch5,metadata,smoke)/ModDate null/Producer null/Subject(Smoke test metadata)/Title(Patch 5 Sample Title)/Trapped null>>
+<</Author(Gokul Omni Convert Lite)/Subject(Smoke test metadata)/Title(Patch 5 Sample Title)/Keywords(patch5,metadata,smoke)>>
 endobj
 
 6 0 obj
-<</Type/Pages/Count 1/Kids[3 0 R]>>
+<</Count 1/Kids[3 0 R]/Type/Pages>>
 endobj
 
 7 0 obj
@@ -34,17 +34,17 @@ endobj
 
 xref
 0 8
-0000000000 65535 f 
+0000000000 65536 f 
 0000000016 00000 n 
 0000000046 00000 n 
 0000000143 00000 n 
 0000000318 00000 n 
 0000000381 00000 n 
-0000000594 00000 n 
-0000000646 00000 n 
+0000000523 00000 n 
+0000000575 00000 n 
 
 trailer
-<</Size 8/Info 5 0 R/Root 4 0 R/ID[<839897DEB2B4C4A95AF7015BFC7CD753><FD00C305BC05D773C59E84FB9778E344>]>>
+<</Size 8/Info 5 0 R/Root 4 0 R/ID[<1CF0A71BA7C8EE62460C1C7BEE7F2731><688FA6ACD784EA8A900DC78212D7563B>]>>
 startxref
-888
+817
 %%EOF

@@ -4,6 +4,57 @@ A local Python desktop app for batch conversion, PDF workflows, integrated OCR, 
 
 
 
+## Patch 37 highlights
+
+Patch 37 is the final release-readiness pass for **Gokul Omni Convert Lite 2.3.0**.
+
+New in Patch 37:
+- repeatable headless release validation with `python release_validation.py`
+- app-integrated release validation with `python app.py --validate-release`
+- PyInstaller spec at `installer/GokulOmniConvertLite.spec`
+- Windows and Linux build launchers
+- final release checklist and installer release notes
+- static installer About snapshot
+- update manifest example for later hosted update checks
+- small safety fix for an older duplicate external-job callback
+
+Pure Python remains the default engine. LibreOffice remains optional and user-controlled. OCR remains optional unless you bundle or configure Tesseract.
+
+## Patch 36.5 highlights
+
+Patch 36.5 is a targeted stability and installer-readiness fix.
+
+New/fixed in Patch 36.5:
+- fixed **Images -> PDF** failures caused by Pillow `KeyError: 'JPEG'` on PNG-style inputs
+- image-to-PDF now normalizes alpha/transparency safely and falls back to ReportLab if Pillow PDF writing fails
+- improved OCR runtime detection for real `tesseract.exe`, bundled installer runtimes, and PATH installs
+- clear rejection message when a user accidentally selects `pytesseract.exe` instead of the real Tesseract binary
+- added `installer/TESSERACT_BUNDLE.md` with installer layout notes for bundled OCR support
+- added `WORKSPACE_CLEANUP_REPORT.md` documenting the safe no-delete cleanup result in this sandbox
+- app version bumped to **2.2.6**
+
+Pure Python remains the default engine. LibreOffice remains optional and user-controlled. OCR remains optional unless Tesseract is installed, configured, or bundled.
+
+
+
+
+## Patch 36 highlights
+
+Patch 36 adds a dedicated **Image Folder -> PDF** workflow while preserving the existing batch converter.
+
+New in Patch 36:
+- compact Convert-page workflow for image folders
+- recursive image-folder discovery
+- one combined PDF from all discovered images
+- optional one-PDF-per-folder mode for nested folders
+- natural filename sorting, filename A-Z, modified-time, and created-time ordering
+- image folder preview/summary before running
+- Load Queue action that fills the normal Convert queue with discovered images
+- Run Now action that executes the image-folder PDF workflow directly
+- smoke tests for recursive discovery, all-images PDF output, and per-folder PDF output
+- app version bumped to **2.2.5**
+
+Pure Python remains the default engine. LibreOffice remains optional and not required for image-folder PDF workflows.
 
 
 ## Patch 35 highlights

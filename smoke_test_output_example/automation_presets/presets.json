@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-04-16 13:25:18",
+  "exported_at": "2026-05-07 08:49:48",
   "presets": [
     {
       "name": "Docs to PDF",
@@ -11,8 +11,8 @@
       "image_scale": 2.0,
       "engine_mode": "pure_python",
       "recursive": true,
-      "created_at": "2026-04-16 13:25:18",
-      "updated_at": "2026-04-16 13:25:18",
+      "created_at": "2026-05-07 08:49:48",
+      "updated_at": "2026-05-07 08:49:48",
       "favorite": false
     },
     {
@@ -25,8 +25,8 @@
       "image_scale": 2.0,
       "engine_mode": "pure_python",
       "recursive": true,
-      "created_at": "2026-04-16 13:25:18",
-      "updated_at": "2026-04-16 13:25:18",
+      "created_at": "2026-05-07 08:49:48",
+      "updated_at": "2026-05-07 08:49:48",
       "favorite": false
     }
   ]

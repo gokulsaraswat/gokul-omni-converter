@@ -33,3 +33,9 @@ Use these shortcuts to move quickly around **Gokul Omni Convert Lite**.
 - `Ctrl+Z` — Undo the last organizer change
 - `Ctrl+Y` — Redo the last organizer change
 - Drag a selected page card — Reorder visually inside the organizer
+
+
+## Release validation
+- CLI: `python release_validation.py` — run final release checks
+- CLI: `python app.py --validate-release` — run the same validation through the app entrypoint
+- Build scripts: `build_windows_release.bat` or `build_linux_release.sh`

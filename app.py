@@ -125,6 +125,19 @@ from converter_core import (
     process_pdf_tool,
     supported_extensions_for_mode,
 )
+from image_folder_pdf import (
+    IMAGE_FOLDER_SCOPE_ALL,
+    IMAGE_FOLDER_SCOPE_LABELS,
+    IMAGE_FOLDER_SCOPE_OPTIONS,
+    IMAGE_FOLDER_SCOPE_PER_FOLDER,
+    IMAGE_FOLDER_SORT_LABELS,
+    IMAGE_FOLDER_SORT_NATURAL,
+    IMAGE_FOLDER_SORT_OPTIONS,
+    ImageFolderPdfConfig,
+    build_image_folder_pdfs,
+    discover_image_files,
+    summarize_image_folder,
+)
 from page_organizer import PageOrganizerPanel
 from mail_core import SMTPSettings, build_eml_draft, create_mailto_url, open_mailto_draft, send_email, test_smtp_connection
 from link_ingest import cache_root_from_setting, clear_cache_dir, download_many_urls, extract_urls
@@ -143,7 +156,7 @@ from ui_theme import (
     resolve_palette,
 )
 
-APP_VERSION = "2.2.4"
+APP_VERSION = "2.3.0"
 HEADER_GIF_RELATIVE_PATH = Path("assets") / "gokul_header.gif"
 
 def open_path(path: str | Path) -> None:
@@ -898,6 +911,16 @@ class GokulOmniConvertLiteApp(tk.Tk):
         self.link_recent_summary_var = tk.StringVar(value="")
         self.link_fetch_count_var = tk.StringVar(value="0 downloaded")
         self.link_auto_start_pending = False
+
+        self.image_folder_source_var = tk.StringVar(value=str(self.state_store.get("image_folder_source_dir", "")))
+        self.image_folder_output_name_var = tk.StringVar(value=str(self.state_store.get("image_folder_output_name", "images_combined")))
+        saved_image_sort = str(self.state_store.get("image_folder_sort", IMAGE_FOLDER_SORT_NATURAL))
+        saved_image_scope = str(self.state_store.get("image_folder_scope", IMAGE_FOLDER_SCOPE_ALL))
+        self.image_folder_sort_var = tk.StringVar(value=IMAGE_FOLDER_SORT_LABELS.get(saved_image_sort, saved_image_sort))
+        self.image_folder_scope_var = tk.StringVar(value=IMAGE_FOLDER_SCOPE_LABELS.get(saved_image_scope, saved_image_scope))
+        self.image_folder_recursive_var = tk.BooleanVar(value=bool(self.state_store.get("image_folder_recursive", self.state_store.get("recursive_scan", True))))
+        self.image_folder_include_hidden_var = tk.BooleanVar(value=bool(self.state_store.get("image_folder_include_hidden", False)))
+        self.image_folder_summary_var = tk.StringVar(value="Choose an image folder to build one PDF or one PDF per subfolder.")
 
         self.performance_mode_var = tk.StringVar(value=str(self.state_store.get("performance_mode", "balanced")))
         self.compact_ui_var = tk.BooleanVar(value=bool(self.state_store.get("compact_ui", False)))
@@ -1769,6 +1792,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
 
         convert_menu = tk.Menu(menu_bar)
         convert_menu.add_command(label="Start Conversion", command=self._start_conversion, accelerator="Ctrl+R")
+        convert_menu.add_command(label="Image Folder to PDF", command=self._focus_image_folder_flow)
         convert_menu.add_command(label="Refresh Dependency Status", command=self._refresh_dependency_status)
         convert_menu.add_separator()
         convert_menu.add_command(label="Clear Inputs", command=self._clear_inputs)
@@ -1880,6 +1904,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         actions.grid(row=0, column=1, rowspan=2, sticky="e", padx=(12, 0))
         actions.add(ttk.Button(actions, text="Add Files", command=self._add_files))
         actions.add(ttk.Button(actions, text="Add Folder", command=self._add_folder))
+        actions.add(ttk.Button(actions, text="Image PDF", command=self._focus_image_folder_flow))
         actions.add(ttk.Button(actions, text="Paste Links", command=self._focus_link_input))
         actions.add(ttk.Button(actions, text="Start Batch", style="Primary.TButton", command=lambda: (self._show_page("convert"), self._start_conversion())))
 
@@ -2027,6 +2052,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         return [
             QuickAction("Add files", self._add_files, hint="Browse and add input files", keywords="open import files"),
             QuickAction("Add folder", self._add_folder, hint="Scan a folder for supported files", keywords="directory batch"),
+            QuickAction("Image folder to PDF", self._focus_image_folder_flow, hint="Build a PDF from a folder or recursive folder of images", keywords="images folder recursive pdf"),
             QuickAction("Start conversion", self._start_conversion, hint="Run the current Convert queue", keywords="run batch ctrl+enter"),
             QuickAction("Run PDF tool", self._start_pdf_tool, hint="Start the active PDF tool", keywords="pdf tool"),
             QuickAction("Open settings", lambda: self._show_page("settings"), hint="Jump to app settings", keywords="preferences"),
@@ -2069,7 +2095,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
     def _build_convert_page(self) -> None:
         page = self._create_page_frame("convert", scrollable=True, padding=(0, 0, 12, 0))
         page.grid_columnconfigure(0, weight=1)
-        page.grid_rowconfigure(2, weight=1)
+        page.grid_rowconfigure(3, weight=1)
 
         mode_card = ttk.LabelFrame(page, text="Mode and supported inputs")
         mode_card.grid(row=0, column=0, sticky="ew")
@@ -2091,9 +2117,52 @@ class GokulOmniConvertLiteApp(tk.Tk):
             row=3, column=0, columnspan=3, sticky="ew", pady=(8, 0)
         )
 
+        image_folder_card = ttk.LabelFrame(page, text="Image folder -> PDF")
+        image_folder_card.grid(row=1, column=0, sticky="ew", pady=(10, 0))
+        image_folder_card.grid_columnconfigure(1, weight=1)
+        image_folder_card.grid_columnconfigure(4, weight=1)
+
+        ttk.Label(image_folder_card, text="Folder:", style="Surface.TLabel").grid(row=0, column=0, sticky="w")
+        self.image_folder_source_entry = ttk.Entry(image_folder_card, textvariable=self.image_folder_source_var)
+        self.image_folder_source_entry.grid(row=0, column=1, columnspan=3, sticky="ew", padx=(8, 8))
+        folder_actions = FlowButtonBar(image_folder_card, style="Surface.TFrame", gap_x=8, gap_y=6, button_min_width=86)
+        folder_actions.grid(row=0, column=4, sticky="e")
+        folder_actions.add(ttk.Button(folder_actions, text="Browse", command=self._browse_image_folder_source))
+        folder_actions.add(ttk.Button(folder_actions, text="Preview", command=self._preview_image_folder_summary))
+        folder_actions.add(ttk.Button(folder_actions, text="Load Queue", command=self._load_image_folder_to_queue))
+        folder_actions.add(ttk.Button(folder_actions, text="Run Now", style="Primary.TButton", command=self._start_image_folder_pdf_workflow))
+
+        ttk.Label(image_folder_card, text="Name:", style="Surface.TLabel").grid(row=1, column=0, sticky="w", pady=(8, 0))
+        ttk.Entry(image_folder_card, textvariable=self.image_folder_output_name_var, width=22).grid(row=1, column=1, sticky="ew", padx=(8, 8), pady=(8, 0))
+        ttk.Label(image_folder_card, text="Sort:", style="Surface.TLabel").grid(row=1, column=2, sticky="e", pady=(8, 0))
+        self.image_folder_sort_combo = ttk.Combobox(
+            image_folder_card,
+            textvariable=self.image_folder_sort_var,
+            values=[IMAGE_FOLDER_SORT_LABELS.get(item, item) for item in IMAGE_FOLDER_SORT_OPTIONS],
+            state="readonly",
+            width=14,
+        )
+        self.image_folder_sort_combo.grid(row=1, column=3, sticky="w", padx=(8, 8), pady=(8, 0))
+        self.image_folder_scope_combo = ttk.Combobox(
+            image_folder_card,
+            textvariable=self.image_folder_scope_var,
+            values=[IMAGE_FOLDER_SCOPE_LABELS.get(item, item) for item in IMAGE_FOLDER_SCOPE_OPTIONS],
+            state="readonly",
+            width=18,
+        )
+        self.image_folder_scope_combo.grid(row=1, column=4, sticky="w", pady=(8, 0))
+
+        image_folder_checks = ttk.Frame(image_folder_card, style="Surface.TFrame")
+        image_folder_checks.grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        ttk.Checkbutton(image_folder_checks, text="Recursive", variable=self.image_folder_recursive_var).grid(row=0, column=0, sticky="w")
+        ttk.Checkbutton(image_folder_checks, text="Include hidden", variable=self.image_folder_include_hidden_var).grid(row=0, column=1, sticky="w", padx=(12, 0))
+        ttk.Label(image_folder_card, textvariable=self.image_folder_summary_var, style="CardBody.TLabel", wraplength=760, justify="left").grid(
+            row=2, column=2, columnspan=3, sticky="w", pady=(8, 0)
+        )
+
         center = ttk.Frame(page)
         self.convert_center = center
-        center.grid(row=1, column=0, sticky="nsew", pady=(14, 14))
+        center.grid(row=2, column=0, sticky="nsew", pady=(14, 14))
         center.grid_columnconfigure(0, weight=3)
         center.grid_columnconfigure(1, weight=2)
         center.grid_rowconfigure(0, weight=1)
@@ -2237,7 +2306,7 @@ class GokulOmniConvertLiteApp(tk.Tk):
         )
 
         log_frame = ttk.LabelFrame(page, text="Activity log and progress")
-        log_frame.grid(row=2, column=0, sticky="nsew")
+        log_frame.grid(row=3, column=0, sticky="nsew")
         log_frame.grid_columnconfigure(0, weight=1)
         log_frame.grid_rowconfigure(1, weight=1)
 
@@ -3060,8 +3129,10 @@ class GokulOmniConvertLiteApp(tk.Tk):
             self.organizer_panel.open_pdf_dialog()
 
     def _record_external_job(self, record: dict[str, object]) -> None:
+        self.last_job_record = dict(record)
         self.state_store.add_recent_job(record)
-        if str(status).lower() != "completed":
+        status_text = str(record.get("status", "completed")).strip().lower()
+        if status_text not in {"completed", "success", "ok"}:
             self.state_store.add_failed_job(dict(record))
         self._refresh_history_views()
 
@@ -4438,16 +4509,20 @@ class GokulOmniConvertLiteApp(tk.Tk):
             self._refresh_dependency_status()
 
     def _test_tesseract_path(self) -> None:
-        status = detect_tesseract_status(self.tesseract_path_var.get().strip())
+        language = self.ocr_language_var.get().strip() or "eng"
+        status = detect_tesseract_status(self.tesseract_path_var.get().strip(), language=language)
+        source = status.get("source", "missing")
+        binary = status.get("path", "") or "not found"
+        tessdata = status.get("tessdata", "") or "not found"
+        message = status.get("message", "") or "Tesseract status checked."
+        summary = f"Source: {source}\nBinary: {binary}\nTessdata: {tessdata}\n\n{message}"
         if bool(status.get("available")):
-            summary = f"Tesseract found via {status.get('source')}: {status.get('path')}"
-            self.ocr_status_var.set(summary)
+            self.ocr_status_var.set(f"Tesseract ready via {source}.")
             self.status_var.set("Tesseract is available.")
             messagebox.showinfo("Tesseract", summary)
         else:
-            summary = "Tesseract was not found. Install it or configure its executable path in Settings."
-            self.ocr_status_var.set(summary)
-            self.status_var.set("Tesseract is missing.")
+            self.ocr_status_var.set(str(message))
+            self.status_var.set("Tesseract is missing or misconfigured.")
             messagebox.showwarning("Tesseract", summary)
         self._refresh_dependency_status()
 
@@ -4734,10 +4809,13 @@ class GokulOmniConvertLiteApp(tk.Tk):
         else:
             soffice_state = "PATH" if status.get("LibreOffice") else "not configured"
 
-        tesseract = detect_tesseract_status(self.tesseract_path_var.get().strip())
+        tesseract = detect_tesseract_status(
+            self.tesseract_path_var.get().strip(),
+            language=self.ocr_language_var.get().strip() or "eng",
+        )
         tesseract_state = str(tesseract.get("source", "missing"))
         if tesseract_state == "configured":
-            tesseract_state = "configured path" if tesseract.get("available") else "configured path missing"
+            tesseract_state = "configured path" if tesseract.get("available") else "configured path problem"
 
         parts: list[str] = [
             "Built-in pure Python: Ready",
@@ -4754,11 +4832,13 @@ class GokulOmniConvertLiteApp(tk.Tk):
         ocr_hint = "ready" if bool(tesseract.get("available")) else "off"
         self.home_dependency_summary_var.set(f"{engine_short} • LibreOffice {libreoffice_hint} • OCR {ocr_hint}")
         if bool(tesseract.get("available")):
-            self.ocr_dependency_var.set(f"Tesseract ready via {tesseract.get('source')}: {tesseract.get('path')}")
-            if "missing" in self.ocr_status_var.get().lower():
+            self.ocr_dependency_var.set(
+                f"Tesseract ready via {tesseract.get('source')}: {tesseract.get('path')} | tessdata: {tesseract.get('tessdata')}"
+            )
+            if "missing" in self.ocr_status_var.get().lower() or "misconfigured" in self.ocr_status_var.get().lower():
                 self.ocr_status_var.set("OCR tools are ready. Add an image or PDF to begin.")
         else:
-            self.ocr_dependency_var.set("Tesseract is missing. Install it or configure its path in Settings or the OCR page.")
+            self.ocr_dependency_var.set(str(tesseract.get("message") or "Tesseract is missing. Install it, configure tesseract.exe, or bundle tessdata with the app."))
         self._update_login_popup_state()
         self._refresh_route_preview()
         self._refresh_home_summary()
@@ -4785,6 +4865,189 @@ class GokulOmniConvertLiteApp(tk.Tk):
         else:
             merge_state = "1 PDF" if self.merge_var.get() else "separate outputs"
             self.home_hint_var.set(f"{engine_label} • {merge_state}")
+
+    def _focus_image_folder_flow(self) -> None:
+        self._show_page("convert")
+        self.mode_var.set(MODE_IMAGES_TO_PDF)
+        self.merge_var.set(True)
+        if not self.output_name_var.get().strip():
+            self.output_name_var.set("images_combined")
+        self._update_mode_controls()
+        try:
+            self.image_folder_source_entry.focus_set()
+        except Exception:
+            pass
+        self.status_var.set("Image folder workflow ready.")
+
+    def _image_folder_sort_key(self) -> str:
+        value = self.image_folder_sort_var.get().strip()
+        for key, label in IMAGE_FOLDER_SORT_LABELS.items():
+            if value == label or value == key:
+                return key
+        return IMAGE_FOLDER_SORT_NATURAL
+
+    def _image_folder_scope_key(self) -> str:
+        value = self.image_folder_scope_var.get().strip()
+        for key, label in IMAGE_FOLDER_SCOPE_LABELS.items():
+            if value == label or value == key:
+                return key
+        return IMAGE_FOLDER_SCOPE_ALL
+
+    def _image_folder_summary_text(self, summary: dict[str, object]) -> str:
+        count = int(summary.get("image_count", 0) or 0)
+        folders = int(summary.get("folder_count", 0) or 0)
+        recursive = "recursive" if bool(summary.get("recursive")) else "top-level"
+        sort_label = IMAGE_FOLDER_SORT_LABELS.get(str(summary.get("sort_mode", "")), str(summary.get("sort_mode", "")))
+        if count <= 0:
+            return f"No images found ({recursive}, {sort_label})."
+        return f"{count} image(s) across {folders} folder(s) • {recursive} • {sort_label}"
+
+    def _current_image_folder_config(self) -> ImageFolderPdfConfig:
+        source_text = self.image_folder_source_var.get().strip()
+        if not source_text:
+            raise ValueError("Choose an image folder first.")
+        output_text = self.output_dir_var.get().strip()
+        output_dir = Path(output_text).expanduser() if output_text else Path(source_text).expanduser() / "converted_output"
+        if not output_text:
+            self.output_dir_var.set(str(output_dir))
+        output_name = self.image_folder_output_name_var.get().strip() or Path(source_text).expanduser().name or "images_combined"
+        return ImageFolderPdfConfig(
+            source_dir=Path(source_text).expanduser(),
+            output_dir=output_dir,
+            output_name=output_name,
+            recursive=bool(self.image_folder_recursive_var.get()),
+            sort_mode=self._image_folder_sort_key(),
+            scope=self._image_folder_scope_key(),
+            include_hidden=bool(self.image_folder_include_hidden_var.get()),
+        )
+
+    def _browse_image_folder_source(self) -> None:
+        folder = filedialog.askdirectory(title="Select image folder")
+        if not folder:
+            return
+        self.image_folder_source_var.set(folder)
+        if not self.image_folder_output_name_var.get().strip() or self.image_folder_output_name_var.get().strip() == "images_combined":
+            self.image_folder_output_name_var.set(Path(folder).name or "images_combined")
+        self._preview_image_folder_summary(show_message=False)
+        self._persist_state()
+
+    def _preview_image_folder_summary(self, *, show_message: bool = True) -> None:
+        try:
+            config = self._current_image_folder_config()
+            summary = summarize_image_folder(
+                config.source_dir,
+                recursive=config.recursive,
+                sort_mode=config.sort_mode,
+                include_hidden=config.include_hidden,
+            )
+        except Exception as exc:
+            self.image_folder_summary_var.set(str(exc))
+            if show_message:
+                messagebox.showerror("Image folder", str(exc))
+            return
+        summary_text = self._image_folder_summary_text(summary)
+        self.image_folder_summary_var.set(summary_text)
+        self.status_var.set(summary_text)
+        if show_message:
+            first_image = str(summary.get("first_image", ""))
+            last_image = str(summary.get("last_image", ""))
+            messagebox.showinfo("Image folder summary", f"{summary_text}\n\nFirst: {first_image or 'n/a'}\nLast: {last_image or 'n/a'}")
+
+    def _load_image_folder_to_queue(self) -> list[Path]:
+        try:
+            config = self._current_image_folder_config()
+            images = discover_image_files(
+                config.source_dir,
+                recursive=config.recursive,
+                sort_mode=config.sort_mode,
+                include_hidden=config.include_hidden,
+            )
+            if not images:
+                raise ValueError("No supported image files were found in the selected folder.")
+        except Exception as exc:
+            self.image_folder_summary_var.set(str(exc))
+            messagebox.showerror("Image folder", str(exc))
+            return []
+        self.mode_var.set(MODE_IMAGES_TO_PDF)
+        self.merge_var.set(True)
+        self.recursive_var.set(config.recursive)
+        self.output_name_var.set(config.output_name)
+        self.selected_files = images
+        self._refresh_file_listbox()
+        self._update_mode_controls()
+        self._refresh_route_preview()
+        self.image_folder_summary_var.set(
+            f"Loaded {len(images)} image(s) into the queue. Run Start Conversion or use Run Now."
+        )
+        self.status_var.set(f"Loaded {len(images)} image(s) from image folder.")
+        self._persist_state()
+        return images
+
+    def _start_image_folder_pdf_workflow(self) -> None:
+        if self.running:
+            return
+        try:
+            image_config = self._current_image_folder_config()
+            images = discover_image_files(
+                image_config.source_dir,
+                recursive=image_config.recursive,
+                sort_mode=image_config.sort_mode,
+                include_hidden=image_config.include_hidden,
+            )
+            if not images:
+                raise ValueError("No supported image files were found in the selected folder.")
+        except Exception as exc:
+            messagebox.showerror("Image folder", str(exc))
+            self._show_page("convert")
+            return
+
+        self.selected_files = images
+        self.mode_var.set(MODE_IMAGES_TO_PDF)
+        self.merge_var.set(True)
+        self.recursive_var.set(image_config.recursive)
+        self.output_name_var.set(image_config.output_name)
+        self._refresh_file_listbox()
+        self._update_mode_controls()
+        batch_config = BatchConfig(
+            mode=MODE_IMAGES_TO_PDF,
+            files=images,
+            output_dir=image_config.output_dir,
+            merge_to_one_pdf=True,
+            merged_output_name=image_config.output_name,
+            image_format=self.image_format_var.get().strip() or "png",
+            image_scale=1.0,
+            engine_mode=ENGINE_PURE_PYTHON,
+            soffice_path="",
+        )
+        self.running = True
+        self.active_run_kind = "image_folder_pdf"
+        self.last_run_origin = "image_folder_pdf"
+        self._set_ocr_buttons_enabled(False)
+        self.progress["value"] = 0
+        self.status_var.set("Building image folder PDF...")
+        self._append_log("\n=== Image folder PDF run started ===")
+        self._append_log(f"Folder: {image_config.source_dir}")
+        self._append_log(f"Scope: {IMAGE_FOLDER_SCOPE_LABELS.get(image_config.scope, image_config.scope)}")
+        self._append_log(f"Sort: {IMAGE_FOLDER_SORT_LABELS.get(image_config.sort_mode, image_config.sort_mode)}")
+        self._append_log(f"Images discovered: {len(images)}")
+        worker = threading.Thread(target=self._image_folder_worker_run, args=(batch_config, image_config), daemon=True)
+        worker.start()
+        self.after(100, self._poll_worker_queue)
+        self._show_page("convert")
+        self._persist_state()
+
+    def _image_folder_worker_run(self, batch_config: BatchConfig, image_config: ImageFolderPdfConfig) -> None:
+        def log(message: str) -> None:
+            self.worker_queue.put(("log", message))
+
+        def progress(current: int, total: int) -> None:
+            self.worker_queue.put(("progress", (current, total)))
+
+        try:
+            outputs = build_image_folder_pdfs(image_config, log=log, progress=progress)
+            self.worker_queue.put(("done", (batch_config, outputs)))
+        except Exception:
+            self.worker_queue.put(("error", (batch_config, traceback.format_exc())))
 
     def _add_files(self) -> None:
         mode = self.mode_var.get()
@@ -7109,6 +7372,12 @@ class GokulOmniConvertLiteApp(tk.Tk):
             theme=self.theme_choice_var.get().strip().lower() or "dark",
             output_dir=self.output_dir_var.get().strip() or str(Path.cwd() / "converted_output"),
             recursive_scan=bool(self.recursive_var.get()),
+            image_folder_source_dir=self.image_folder_source_var.get().strip(),
+            image_folder_output_name=self.image_folder_output_name_var.get().strip() or "images_combined",
+            image_folder_sort=self._image_folder_sort_key(),
+            image_folder_scope=self._image_folder_scope_key(),
+            image_folder_recursive=bool(self.image_folder_recursive_var.get()),
+            image_folder_include_hidden=bool(self.image_folder_include_hidden_var.get()),
             conversion_engine=self.engine_mode_var.get().strip().lower() or ENGINE_AUTO,
             performance_mode=self.performance_mode_var.get().strip().lower() or "balanced",
             compact_ui=bool(self.compact_ui_var.get()),
@@ -7194,6 +7463,8 @@ class GokulOmniConvertLiteApp(tk.Tk):
 def main() -> None:
     parser = argparse.ArgumentParser(description="Gokul Omni Convert Lite")
     parser.add_argument("--skip-startup-overlays", action="store_true", help="Skip splash and reminder overlays on startup.")
+    parser.add_argument("--print-version", action="store_true", help="Print the app name and version, then exit.")
+    parser.add_argument("--validate-release", action="store_true", help="Run headless release validation checks, then exit.")
     parser.add_argument("--check-updates", nargs="?", const="__STATE__", metavar="MANIFEST", help="Run a headless update check using a local JSON path or URL.")
     parser.add_argument("--export-workspace", metavar="ZIP", help="Export a full workspace bundle without starting the GUI.")
     parser.add_argument("--export-activity-report", metavar="HTML", help="Export an HTML activity report without starting the GUI.")
@@ -7203,6 +7474,19 @@ def main() -> None:
     args = parser.parse_args()
 
     app_root = Path(__file__).resolve().parent
+
+    if args.print_version:
+        print(f"{APP_NAME} {APP_VERSION}")
+        return
+
+    if args.validate_release:
+        from release_validation import run_release_checks
+
+        result = run_release_checks(app_root)
+        print(json.dumps(result, indent=2))
+        if result.get("status") != "passed":
+            raise SystemExit(1)
+        return
     notes_path = app_root / "footer_notes.md"
     about_profile_path = app_root / "about_profile.json"
     installer_dir = app_root / "installer"

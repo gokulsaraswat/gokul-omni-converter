@@ -21,6 +21,12 @@ DEFAULT_STATE: dict[str, Any] = {
     "theme": "dark",
     "output_dir": str(Path.cwd() / "converted_output"),
     "recursive_scan": True,
+    "image_folder_source_dir": "",
+    "image_folder_output_name": "images_combined",
+    "image_folder_sort": "natural",
+    "image_folder_scope": "all_images_one_pdf",
+    "image_folder_recursive": True,
+    "image_folder_include_hidden": False,
     "conversion_engine": "pure_python",
     "performance_mode": "balanced",
     "compact_ui": False,
@@ -148,6 +154,17 @@ class AppStateStore:
             merged["splash_gif_path"] = DEFAULT_STATE["splash_gif_path"]
         if not isinstance(merged.get("link_cache_dir"), str):
             merged["link_cache_dir"] = DEFAULT_STATE["link_cache_dir"]
+        for key in ("image_folder_source_dir", "image_folder_output_name", "image_folder_sort", "image_folder_scope"):
+            if not isinstance(merged.get(key), str):
+                merged[key] = DEFAULT_STATE[key]
+        merged["image_folder_sort"] = str(merged.get("image_folder_sort", DEFAULT_STATE["image_folder_sort"])).strip().lower() or DEFAULT_STATE["image_folder_sort"]
+        if merged["image_folder_sort"] not in {"natural", "filename", "modified", "created"}:
+            merged["image_folder_sort"] = DEFAULT_STATE["image_folder_sort"]
+        merged["image_folder_scope"] = str(merged.get("image_folder_scope", DEFAULT_STATE["image_folder_scope"])).strip().lower() or DEFAULT_STATE["image_folder_scope"]
+        if merged["image_folder_scope"] not in {"all_images_one_pdf", "one_pdf_per_folder"}:
+            merged["image_folder_scope"] = DEFAULT_STATE["image_folder_scope"]
+        merged["image_folder_recursive"] = bool(merged.get("image_folder_recursive", DEFAULT_STATE["image_folder_recursive"]))
+        merged["image_folder_include_hidden"] = bool(merged.get("image_folder_include_hidden", DEFAULT_STATE["image_folder_include_hidden"]))
         merged["compact_ui"] = bool(merged.get("compact_ui", DEFAULT_STATE["compact_ui"]))
         if not isinstance(merged.get("ui_scale"), str):
             merged["ui_scale"] = DEFAULT_STATE["ui_scale"]

@@ -8,3 +8,4 @@ reportlab
 python-pptx
 xlrd
 pytesseract
+pyinstaller

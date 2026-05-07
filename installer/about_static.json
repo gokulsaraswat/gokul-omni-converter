@@ -1,6 +1,9 @@
 {
-  "name": "Gokul Saraswat",
+  "app_name": "Gokul Omni Convert Lite",
+  "version": "2.3.0",
+  "publisher": "Gokul Saraswat",
   "title": "Software Engineer",
-  "project": "Gokul Omni Convert Lite",
-  "email": "gokul.saraswat@oracle.com"
+  "summary": "Local-first desktop conversion toolkit for PDFs, documents, spreadsheets, presentations, images, HTML, Markdown, OCR workflows, and practical batch automation.",
+  "email": "gokul.saraswat@oracle.com",
+  "generated_at": "2026-05-07T09:41:46"
 }

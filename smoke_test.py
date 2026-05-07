@@ -93,6 +93,7 @@ from converter_core import (
     PDF_TOOL_WATERMARK_TEXT,
     dependency_status,
     build_conversion_route_preview,
+    convert_images_to_single_pdf,
     process_batch,
     process_pdf_tool,
 )
@@ -120,6 +121,15 @@ from workflow_support import directory_stats, prune_directory
 from preview_support import render_preview
 from responsive_ui import resolve_flow_layout_width
 from ui_text import format_engine_label, format_flag, humanize_identifier
+from image_folder_pdf import (
+    IMAGE_FOLDER_SCOPE_ALL,
+    IMAGE_FOLDER_SCOPE_PER_FOLDER,
+    IMAGE_FOLDER_SORT_NATURAL,
+    ImageFolderPdfConfig,
+    build_image_folder_pdfs,
+    discover_image_files,
+    summarize_image_folder,
+)
 
 
 def validate_ui_text_helpers() -> None:
@@ -188,6 +198,21 @@ def create_sample_files(root: Path) -> dict[str, Path]:
         image.save(path)
     paths["img1"] = img1
     paths["img2"] = img2
+
+    image_folder = root / "image_folder"
+    nested_folder = image_folder / "nested"
+    nested_folder.mkdir(parents=True, exist_ok=True)
+    for name, folder, label in [
+        ("page_1.png", image_folder, "Root Page 1"),
+        ("page_2.png", image_folder, "Root Page 2"),
+        ("page_10.png", nested_folder, "Nested Page 10"),
+        ("page_3.png", nested_folder, "Nested Page 3"),
+    ]:
+        image = Image.new("RGB", (700, 420), "white")
+        draw = ImageDraw.Draw(image)
+        draw.text((40, 40), label, fill="black")
+        image.save(folder / name)
+    paths["image_folder"] = image_folder
 
     ocr_image = root / "ocr_sample.png"
     ocr_canvas = Image.new("RGB", (1500, 420), "white")
@@ -694,8 +719,94 @@ def validate_patch14_state_and_logs(outputs: Path) -> None:
         raise AssertionError("Patch 14 text log export helper did not write the expected content.")
 
 
+def validate_patch36_image_folder_pdf(sample: dict[str, Path], outputs: Path) -> None:
+    source = sample["image_folder"]
+    discovered = discover_image_files(source, recursive=True, sort_mode=IMAGE_FOLDER_SORT_NATURAL)
+    if len(discovered) != 4:
+        raise AssertionError("Patch 36 image-folder discovery should find four images recursively.")
+    summary = summarize_image_folder(source, recursive=True, sort_mode=IMAGE_FOLDER_SORT_NATURAL)
+    if int(summary.get("folder_count", 0)) != 2:
+        raise AssertionError("Patch 36 image-folder summary should report root and nested folders.")
+
+    all_output = build_image_folder_pdfs(
+        ImageFolderPdfConfig(
+            source_dir=source,
+            output_dir=outputs / "image_folder_all",
+            output_name="all_images",
+            recursive=True,
+            sort_mode=IMAGE_FOLDER_SORT_NATURAL,
+            scope=IMAGE_FOLDER_SCOPE_ALL,
+        )
+    )
+    if len(all_output) != 1:
+        raise AssertionError("All-images image-folder workflow should create one PDF.")
+    with fitz.open(str(all_output[0])) as document:
+        if document.page_count != 4:
+            raise AssertionError("All-images image-folder PDF should contain four pages.")
+
+    per_folder_output = build_image_folder_pdfs(
+        ImageFolderPdfConfig(
+            source_dir=source,
+            output_dir=outputs / "image_folder_per_folder",
+            output_name="root_images",
+            recursive=True,
+            sort_mode=IMAGE_FOLDER_SORT_NATURAL,
+            scope=IMAGE_FOLDER_SCOPE_PER_FOLDER,
+        )
+    )
+    if len(per_folder_output) != 2:
+        raise AssertionError("Per-folder image workflow should create one PDF for the root folder and one for nested images.")
+    for output in per_folder_output:
+        with fitz.open(str(output)) as document:
+            if document.page_count < 1:
+                raise AssertionError(f"Per-folder output was empty: {output}")
+
+
+
+def validate_patch365_image_pdf_and_ocr_detection(outputs: Path) -> Path:
+    patch_dir = outputs / "patch365_stability"
+    patch_dir.mkdir(parents=True, exist_ok=True)
+
+    rgba_png = patch_dir / "transparent.png"
+    image = Image.new("RGBA", (220, 140), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((20, 20, 200, 120), fill=(37, 99, 235, 180))
+    draw.text((38, 58), "PNG alpha", fill=(255, 255, 255, 255))
+    image.save(rgba_png)
+    image.close()
+
+    rgb_png = patch_dir / "plain.png"
+    plain = Image.new("RGB", (180, 120), "white")
+    plain_draw = ImageDraw.Draw(plain)
+    plain_draw.text((30, 48), "plain png", fill="black")
+    plain.save(rgb_png)
+    plain.close()
+
+    output_pdf = convert_images_to_single_pdf([rgba_png, rgb_png], patch_dir / "pngs_to_pdf.pdf")
+    if not output_pdf.exists() or output_pdf.stat().st_size <= 0:
+        raise AssertionError("Patch 36.5 image-to-PDF output was not created.")
+    with fitz.open(str(output_pdf)) as document:
+        if document.page_count != 2:
+            raise AssertionError("Patch 36.5 image-to-PDF output should contain two pages.")
+
+    fake_wrapper = patch_dir / "pytesseract.exe"
+    fake_wrapper.write_text("not the real tesseract binary", encoding="utf-8")
+    wrapper_status = detect_tesseract_status(fake_wrapper)
+    if wrapper_status.get("available"):
+        raise AssertionError("pytesseract.exe must not be accepted as a Tesseract runtime.")
+    if "Python wrapper" not in str(wrapper_status.get("message", "")):
+        raise AssertionError("pytesseract.exe rejection message should explain the wrapper mistake.")
+
+    status = detect_tesseract_status()
+    for key in ("available", "path", "source", "tessdata", "message"):
+        if key not in status:
+            raise AssertionError(f"Tesseract status is missing key: {key}")
+    return output_pdf
+
 def run_link_download_smoke(inputs: Path, outputs: Path) -> tuple[list[Path], list[str]]:
     server = ThreadingHTTPServer(("127.0.0.1", 0), partial(SimpleHTTPRequestHandler, directory=str(inputs)))
+    server.daemon_threads = True
+    server.block_on_close = False
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
     cache_dir = cache_root_from_setting("", outputs)
@@ -932,6 +1043,8 @@ def run_patch23_asset_smoke(inputs: Path, outputs: Path, sample: dict[str, Path]
     )
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), partial(SimpleHTTPRequestHandler, directory=str(inputs)))
+    server.daemon_threads = True
+    server.block_on_close = False
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
     server_thread.start()
     try:
@@ -985,6 +1098,8 @@ def run() -> None:
         validate_ui_text_helpers()
         validate_flow_wrap_helper()
         validate_preview_support(sample)
+        validate_patch36_image_folder_pdf(sample, outputs)
+        validate_patch365_image_pdf_and_ocr_detection(outputs)
         if not profile.get("feedback_url"):
             raise AssertionError("Patch 12 About profile did not expose a feedback URL.")
         if not profile.get("company"):
@@ -1369,7 +1484,7 @@ def run() -> None:
         header_gif = Path(__file__).with_name("assets") / "gokul_header.gif"
         if not header_gif.exists():
             raise AssertionError("Patch 22 header GIF placeholder is missing.")
-        print("Patch 23 smoke test completed successfully.")
+        print("Patch 36.5 smoke test completed successfully.")
         for note in skipped:
             print(f"SKIP: {note}")
         for path in all_outputs:

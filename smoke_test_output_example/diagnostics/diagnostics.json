@@ -1,50 +1,41 @@
 {
-  "created_at": "2026-04-16T13:25:19",
+  "created_at": "2026-05-07T08:49:49",
   "app": {
     "name": "Gokul Omni Convert Lite",
     "version": "1.8.0 Patch 18"
   },
   "system": {
-    "platform": "Linux-4.4.0-x86_64-with-glibc2.41",
-    "python": "3.13.5 (main, Jun 25 2025, 18:55:22) [GCC 14.2.0]",
-    "python_executable": "/opt/pyvenv/bin/python",
-    "cwd": "/mnt/data/gokul_omni_convert_lite_patch24"
+    "platform": "Linux-4.4.0-x86_64-with-glibc2.36",
+    "python": "3.11.8 (main, Mar 12 2024, 11:41:52) [GCC 12.2.0]",
+    "python_executable": "/usr/local/bin/python",
+    "cwd": "/mnt/data/work_patch365/gokul_omni_convert_lite_patch36_5"
   },
   "paths": {
-    "state_path": "/home/oai/.gokul_omni_convert_lite/app_state.json",
+    "state_path": "/root/.gokul_omni_convert_lite/app_state.json",
     "about_profile_path": "about_profile.json",
     "notes_path": "footer_notes.md",
     "installer_dir": "installer",
     "asset_config_path": "remote_assets.json",
-    "output_dir": "/tmp/tmpk0pev0pr/outputs"
+    "output_dir": "/tmp/tmp20i_jd58/outputs"
   },
   "packages": {
-    "Pillow": "12.1.1",
-    "PyMuPDF": "1.26.7",
-    "pdfplumber": "0.11.9",
-    "python-docx": "1.2.0",
-    "openpyxl": "3.1.5",
-    "pypdf": "5.9.0",
-    "reportlab": "4.4.9",
-    "python-pptx": "1.0.2",
+    "Pillow": "9.2.0",
+    "PyMuPDF": "1.21.1",
+    "pdfplumber": "0.6.2",
+    "python-docx": "0.8.11",
+    "openpyxl": "3.0.10",
+    "pypdf": "not installed",
+    "reportlab": "3.6.12",
+    "python-pptx": "0.6.21",
     "xlrd": "not installed",
-    "pytesseract": "0.3.13"
+    "pytesseract": "0.3.8"
   },
   "installer_assets": [
-    "BUILDING.md",
-    "about_static.json",
-    "build_linux.sh",
-    "build_windows.bat",
-    "gokul_omni_convert_lite.spec",
-    "linux/gokul-omni-convert-lite.desktop",
-    "macos/build_app_bundle.sh",
-    "update_manifest.example.json",
-    "windows/GokulOmniConvertLite.iss",
-    "windows/version_info.txt"
+    "TESSERACT_BUNDLE.md"
   ],
   "dependencies": {
-    "LibreOffice": true,
-    "Pandoc": true,
+    "LibreOffice": false,
+    "Pandoc": false,
     "pdftotext": true,
     "python-pptx": true,
     "xlrd": false
@@ -63,11 +54,11 @@
   },
   "current_context": {
     "selected_files": [
-      "/tmp/tmpk0pev0pr/inputs/sample.docx"
+      "/tmp/tmp20i_jd58/inputs/sample.docx"
     ],
     "last_outputs": [
-      "/tmp/tmpk0pev0pr/outputs/markdown_to_pdf_pure_python/sample.pdf",
-      "/tmp/tmpk0pev0pr/outputs/html_to_pdf_pure_python/sample.pdf"
+      "/tmp/tmp20i_jd58/outputs/markdown_to_pdf_pure_python/sample.pdf",
+      "/tmp/tmp20i_jd58/outputs/html_to_pdf_pure_python/sample.pdf"
     ]
   },
   "extra": {
