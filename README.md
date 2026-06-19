@@ -1,784 +1,653 @@
 # Gokul Omni Convert Lite
 
-A local Python desktop app for batch conversion, PDF workflows, integrated OCR, visual page organization, automation presets, and installer-ready packaging prep.
+![Version](https://img.shields.io/badge/version-2.3.0-blue)
+![Python](https://img.shields.io/badge/python-3.10%2B-green)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey)
+![License](https://img.shields.io/badge/license-MIT-orange)
 
+> A powerful, privacy-focused desktop conversion suite built in Python for batch document conversion, PDF workflows, OCR processing, visual page organization, automation presets, diagnostics, release validation, and installer-ready deployment.
 
+---
 
-## Patch 37 highlights
+# Overview
 
-Patch 37 is the final release-readiness pass for **Gokul Omni Convert Lite 2.3.0**.
+**Gokul Omni Convert Lite** is a fully local desktop application designed to simplify document and media conversion workflows without requiring cloud services.
 
-New in Patch 37:
-- repeatable headless release validation with `python release_validation.py`
-- app-integrated release validation with `python app.py --validate-release`
-- PyInstaller spec at `installer/GokulOmniConvertLite.spec`
-- Windows and Linux build launchers
-- final release checklist and installer release notes
-- static installer About snapshot
-- update manifest example for later hosted update checks
-- small safety fix for an older duplicate external-job callback
+The application provides:
 
-Pure Python remains the default engine. LibreOffice remains optional and user-controlled. OCR remains optional unless you bundle or configure Tesseract.
+* Batch document conversion
+* PDF creation and manipulation
+* OCR extraction
+* Visual page organization
+* Automation presets
+* Workspace packaging
+* Diagnostics and troubleshooting tools
+* Release validation utilities
+* Installer-ready deployment support
 
-## Patch 36.5 highlights
+All processing occurs locally on the user's machine.
 
-Patch 36.5 is a targeted stability and installer-readiness fix.
+No files are uploaded to external servers.
 
-New/fixed in Patch 36.5:
-- fixed **Images -> PDF** failures caused by Pillow `KeyError: 'JPEG'` on PNG-style inputs
-- image-to-PDF now normalizes alpha/transparency safely and falls back to ReportLab if Pillow PDF writing fails
-- improved OCR runtime detection for real `tesseract.exe`, bundled installer runtimes, and PATH installs
-- clear rejection message when a user accidentally selects `pytesseract.exe` instead of the real Tesseract binary
-- added `installer/TESSERACT_BUNDLE.md` with installer layout notes for bundled OCR support
-- added `WORKSPACE_CLEANUP_REPORT.md` documenting the safe no-delete cleanup result in this sandbox
-- app version bumped to **2.2.6**
+---
 
-Pure Python remains the default engine. LibreOffice remains optional and user-controlled. OCR remains optional unless Tesseract is installed, configured, or bundled.
+# Key Features
 
+## Document Conversion
 
+Convert files between multiple formats using a pure Python engine.
 
+Supported workflows include:
 
-## Patch 36 highlights
+* Images → PDF
+* PDF → Images
+* Image Folder → PDF
+* Batch file conversion
+* Multi-file processing
+* Recursive folder discovery
 
-Patch 36 adds a dedicated **Image Folder -> PDF** workflow while preserving the existing batch converter.
+---
 
-New in Patch 36:
-- compact Convert-page workflow for image folders
-- recursive image-folder discovery
-- one combined PDF from all discovered images
-- optional one-PDF-per-folder mode for nested folders
-- natural filename sorting, filename A-Z, modified-time, and created-time ordering
-- image folder preview/summary before running
-- Load Queue action that fills the normal Convert queue with discovered images
-- Run Now action that executes the image-folder PDF workflow directly
-- smoke tests for recursive discovery, all-images PDF output, and per-folder PDF output
-- app version bumped to **2.2.5**
+## PDF Workflows
 
-Pure Python remains the default engine. LibreOffice remains optional and not required for image-folder PDF workflows.
+Comprehensive PDF toolkit including:
 
+### PDF Creation
 
-## Patch 35 highlights
+* Single PDF from images
+* Folder-based PDF generation
+* Batch PDF generation
+* ReportLab fallback generation
 
-Patch 35 tightens the chrome and reduces dead space on the **Header**, **Home**, and **About** screens.
+### PDF Utilities
 
-New in Patch 35:
-- smaller **header GIF/logo** area with a shorter top bar
-- denser **Home** hero, metrics, and quick-tool layout
-- lighter **About** header copy and a narrower profile panel
-- smaller About profile image and tighter action rows
-- reduced spacing across these screens for a cleaner, more focused UI
-- app version bumped to **2.2.4**
-
-Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
-
-
-## Patch 34 highlights
-
-Patch 34 keeps the previous UI cleanup direction and makes the **Header**, **Home**, and **About** screens tighter, faster to scan, and less text-heavy.
-
-New in Patch 34:
-- even slimmer **header**
-  - smaller GIF/logo footprint
-  - leaner top action row
-  - simpler button set with less visual crowding
-- denser **Home** screen
-  - four compact metric cards now include the active engine
-  - shorter status copy
-  - shorter favorite-preset summary
-  - a cleaner quick-tools panel with less filler text
-- tighter **About** screen
-  - shorter intro copy
-  - smaller profile image target
-  - shorter meta lines and button labels
-  - cleaner separation between primary actions, links, and file utilities
-- fixed the About-page link actions by adding the missing `open_url()` helper
-- app version bumped to **2.2.3**
-
-Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
-
-
-## Patch 33 highlights
-
-Patch 33 tightens the **Header**, **Home**, and **About** experience with a denser layout and less filler copy.
-
-New in Patch 33:
-- slimmer **header**
-  - much smaller GIF/logo slot
-  - buttons-only top bar
-  - compact button sizing with less wasted space
-- cleaner **Home** screen
-  - shorter hero copy
-  - tighter metric cards
-  - lighter recent-jobs area
-  - compact quick panel with faster actions
-- cleaner **About** screen
-  - shorter intro
-  - smaller profile image area
-  - simplified profile actions
-  - separate utility tools without the long stacked layout
-- shorter in-app copy for pinned presets and Home status messages
-- app version bumped to **2.2.2**
-
-Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
-
-
-## Patch 24 highlights
-
-Patch 24 focuses on the last stretch of UI stability work: smarter responsive wrapping, a scroll-safe sidebar, cleaner label formatting, and lighter copy in busy workspaces.
-
-New in Patch 24:
-- stronger **responsive button wrapping**
-  - `FlowButtonBar` now prefers the real allocated width instead of the requested width, so organizer, settings, convert, and header action rows wrap properly on tighter screens
-- new **scrollable workspace sidebar**
-  - the left navigation rail now stays usable on shorter displays instead of pushing items below the fold
-- cleaner **label formatting**
-  - internal identifiers such as `pure_python`, `top-left`, and mixed camel/snake labels now render as cleaner UI text like **Pure Python** and **Top Left**
-  - run details now show clearer Yes/No flags instead of raw boolean values
-- lighter **organizer wording**
-  - the organizer hero and hints are shorter and less text-heavy
-- app version bumped to **2.2.1**
-
-Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
-
-
-## Patch 23 highlights
-
-Patch 23 finishes the current UI phase with an installer-friendly **remote asset system** that keeps local fallbacks safe while letting you later point the app at GitHub-hosted branding files.
-
-New in Patch 23:
-- optional **remote asset config** in `remote_assets.json`
-  - header GIF local path + optional remote URL
-  - splash GIF local path + optional remote URL
-  - About image optional remote URL
-  - optional About profile JSON URL for pulling editable profile data from a hosted source
-- safe **cached asset loading**
-  - remote assets are downloaded into a local cache
-  - bundled local files stay as the fallback path
-  - the app still works offline after packaging
-- upgraded **Settings** file section
-  - remote assets enable toggle
-  - header GIF path and URL controls
-  - splash GIF URL controls
-  - About image URL controls
-  - About profile JSON URL controls
-  - asset cache open / clear actions
-  - timeout and refresh-hour controls
-- upgraded **About** actions
-  - refresh remote assets
-  - open remote asset config
-- better **workspace / support / diagnostics** packaging
-  - `remote_assets.json` now travels with bundles
-  - resolved header/splash/About assets are included when exported
-- installer prep updated
-  - PyInstaller spec now includes `remote_assets.json`
-  - packaged builds keep local fallbacks while allowing later remote refresh
-- app version bumped to **2.2.0**
-
-Pure Python remains the default engine. LibreOffice remains optional and user-controlled.
-
-
-## Patch 22 highlights
-
-Patch 22 focuses on stronger responsiveness, cleaner interaction polish, and more visible hover states while keeping every Patch 1–21 feature intact.
-
-New in Patch 22:
-- broader **responsive layout logic**
-  - Home metric cards now reflow on tighter widths
-  - Home lower panels stack cleanly when space is limited
-  - Convert page input and options panels switch between side-by-side and stacked layouts
-  - About page profile and details sections stack smoothly on narrower windows
-  - Settings cards now collapse from a 2x2 grid into a cleaner single-column flow
-- stronger **button hover polish**
-  - subtle staged hover feedback with soft-hover, hover, and pressed styles
-  - clearer border and background changes in dark and light themes
-  - consistent hover handling for header, footer, nav, primary, and standard buttons
-- more **responsive action bars**
-  - Convert input actions now wrap instead of forcing a tall rigid column
-  - Home dependency actions wrap cleanly
-  - History recent-output and failed-job actions wrap cleanly
-  - OCR hero actions wrap on narrow widths
-  - About profile actions wrap instead of overflowing
-  - Settings utility action groups such as soffice, cache, splash, backup, and support actions now wrap safely
-- improved **dynamic wrapping**
-  - descriptive labels with wraplength now adapt to available width instead of staying fixed to wide-screen values
-- polished **tooltips**
-  - tooltip colors now follow the active theme for a more integrated look
-- app version bumped to **2.1.3**
-
-The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
-
-
-## Patch 21 highlights
-
-Patch 21 focuses on responsiveness, layout cleanup, and a lighter chrome without removing any earlier Patch 1–20 capability.
-
-New in Patch 21:
-- cleaner **responsive shell**
-  - compact top header with a replaceable animated GIF/logo slot
-  - smaller footer that now only shows `Gokul Omni Convert Lite | 2.1.3`, **About**, and **Mail**
-- broader **scroll support** across the main pages
-  - Home
-  - Convert
-  - PDF Tools
-  - OCR
-  - Automation
-  - History
-  - Settings
-  - About
-- improved responsive action layout with wrapping button bars for:
-  - header controls
-  - Home hero actions
-  - online link controls
-  - OCR hero actions
-  - About action/social buttons
-  - organizer hero and toolbar actions
-- more visible hover feedback
-  - buttons now react more clearly on hover with subtle background and border changes
-  - pointer cursor on interactive controls
-- organizer UI cleanup
-  - responsive wrapped toolbar instead of a single overflow-prone row
-  - cleaner button naming like **Select All**, **Move Up**, **Move Down**, **Rotate Left**, **Rotate Right**
-- smaller default window minimum to behave better on tighter screens
-- bundled header GIF placeholder at `assets/gokul_header.gif` so you can swap branding later
-
-The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
-
-
-## Patch 20 highlights
-
-Patch 20 adds a dedicated **Preview Center** without removing any earlier Patch 1–19 capability.
-
-New in Patch 20:
-- new **Preview Center** window for inspecting files before or after conversion
-  - preview selected Convert inputs
-  - preview recent outputs
-  - preview files stored with a selected History job
-  - add extra files directly inside the Preview Center
-- file-aware preview rendering:
-  - real page preview for **PDF**
-  - image preview for common image formats
-  - structured summary previews for **DOCX**, **XLS/XLSX/CSV/TSV**, **PPTX**, **TXT**, **Markdown**, and **HTML**
-- page controls inside Preview Center:
-  - previous / next file
-  - previous / next PDF page
-  - zoom presets
-  - open file / open folder shortcuts
-- easier access across the UI:
-  - **Preview selected** button on the Convert page
-  - **Preview** action for Recent Outputs
-  - **Preview selected outputs** action for History jobs
-  - menu and command-palette entries
-  - `Ctrl+Shift+P` shortcut
-- smoke tests expanded for:
-  - preview rendering for PDF, image, text, DOCX, sheet, and presentation inputs
-  - preview fallback behavior for missing files
-
-The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
-
-
-## Patch 19 highlights
-
-Patch 19 upgrades the visual organizer without removing any earlier Patch 1–18 capability.
-
-New in Patch 19:
-- **drag-and-drop page cards** in the Organizer screen for direct visual reordering
-- **Undo / Redo** history for organizer actions such as reorder, rotate, duplicate, remove, reverse, and layout loads
-- **layout snapshot export/import**:
-  - save the current organizer order/rotation/selection as JSON
-  - reload the same layout later for the matching PDF
-- improved organizer usability:
-  - drop-target highlighting while dragging
-  - focused organizer shortcuts for `Ctrl+Z`, `Ctrl+Y`, `Ctrl+A`, and `Delete`
-  - safer reset of drag state on reload and after changes
-- smoke tests expanded for:
-  - drag-style reorder helper logic
-  - organizer layout payload save/load round-trip
-
-The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
-
-
-## Patch 18 highlights
-
-Patch 18 focuses on accessibility, resilience, and developer-friendly recovery tools without removing any Patch 1–17 capability.
-
-New in Patch 18:
-- new **accessibility controls** in Settings:
-  - UI scale presets (`90%`, `100%`, `110%`, `125%`, `140%`)
-  - **high contrast** toggle
-  - **reduced motion** toggle for startup splash and login reminder
-- new **automatic state backup** system:
-  - timestamped JSON backups before saves
-  - configurable keep count
-  - manual **Create backup now**
-  - **Restore latest backup**
-  - **Open backup folder**
-- new **keyboard shortcut guide**:
-  - in-app Markdown viewer for `keyboard_shortcuts.md`
-  - Help menu entry and `F1` shortcut
-  - customizable by editing the local Markdown file
-- **Build Center** expanded again with:
-  - backup actions
-  - shortcut-guide entry
-  - accessibility and recovery summary
-- support/workspace exports now include:
-  - shortcut guide file
-  - latest state backup when available
-- state persistence expanded for:
-  - UI scale
-  - high contrast
-  - reduced motion
-  - state-backup preferences
-  - last backup path
-- smoke tests expanded for:
-  - state backup creation
-  - backup recovery from corrupted state JSON
-  - shortcut guide presence
-
-The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
-
-
-## Patch 17 highlights
-
-Patch 17 focuses on support readiness, compact-mode UX cleanup, startup control, and richer reporting without removing any Patch 1–16 capability.
-
-New in Patch 17:
-- new **compact UI mode** in Settings with denser spacing and tighter tables/buttons
-- new **start page** setting so launch can prefer Home, Convert, PDF Tools, OCR, Organizer, Automation, History, Settings, or About
-- new **activity report export**:
-  - polished HTML summary of recent jobs, outputs, failed retries, and dependency signals
-  - available from File menu, Build Center, Settings, Quick Actions, and CLI
-- new **support bundle export**:
-  - ZIP package with diagnostics JSON
-  - state snapshot
-  - app logs
-  - activity report
-  - footer notes
-  - About profile
-  - installer assets
-  - optional profile image / splash asset when available
-- **Build Center** expanded with:
-  - export activity report
-  - export support bundle
-  - open app state folder
-  - compact/start-page summary
-- **History page** improved with:
-  - instant filter/search
-  - export selected run report
-  - export activity report shortcut
-- new **headless CLI hooks**:
-  - `python app.py --export-activity-report out.html`
-  - `python app.py --export-support-bundle out.zip`
-- state persistence expanded for:
-  - compact UI preference
-  - preferred start page
-  - default activity report folder
-  - default support bundle folder
-- smoke tests expanded for:
-  - activity report rendering
-  - support bundle creation
-
-The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
-
-
-## Patch 16 highlights
-
-Patch 16 focuses on release workflow polish, workspace portability, and a real manifest-driven update check without removing any Patch 1–15 capability.
-
-New in Patch 16:
-- **real update checker** backed by a local JSON file or remote HTTP/HTTPS manifest
-- bundled **installer/update_manifest.example.json** template for future release feeds
-- new **Build Center** actions for:
-  - export workspace bundle
-  - import workspace bundle
-  - choose manifest file
-  - check for updates
-- new **workspace bundle** export/import helpers that package:
-  - app state
-  - footer notes
-  - About profile
-  - installer metadata
-  - selected profile/splash assets when available
-- new **headless CLI hooks**:
-  - `python app.py --check-updates`
-  - `python app.py --export-workspace out.zip`
-  - `python app.py --import-workspace bundle.zip --workspace-target ./restore_here`
-- state persistence expanded for:
-  - update manifest source
-  - last update result
-  - workspace bundle destination
-- smoke tests expanded for:
-  - update manifest parsing
-  - workspace bundle export/import
-
-The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
-
-
-## Patch 15 highlights
-
-Patch 15 focuses on workflow acceleration, queue control, cache hygiene, and faster navigation without removing any Patch 1–14 capability.
-
-New in Patch 15:
-- **favorite presets** with quick-launch shortcuts on the Home page
-- **Quick Actions palette** for fast navigation and common actions
-- new keyboard shortcuts:
-  - `Ctrl+Enter` -> start conversion
-  - `Ctrl+Shift+Enter` -> run PDF tool
-  - `Ctrl+Shift+L` -> focus the URL box
-  - `Ctrl+K` -> open Quick Actions
-  - `Ctrl+,` -> open Settings
-  - `F5` -> refresh dependency status
-- **pause / resume** controls for online link downloads
-- **link cache manager** improvements:
-  - cache summary
-  - keep-days policy
-  - size-cap policy
-  - prune action
-- new **performance mode** in Settings:
-  - `eco`
-  - `balanced`
-  - `quality`
-- state persistence expanded for:
-  - performance mode
-  - cache policy
-  - window geometry
-  - last opened page
-- smoke tests expanded for:
-  - favorite preset persistence
-  - cache stats and prune logic
-
-The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and only participates when configured and selected or when fallback rules allow it.
-
-
-## Patch 14 highlights
-
-Patch 14 focuses on advanced PDF finishing tools, session recovery, output management, and production-minded quality-of-life upgrades.
-
-New in Patch 14:
-- new PDF tools:
-  - **Redact area / region**
-  - **Edit PDF text (best-effort)** for extractable text only
-- stronger PDF tool UI with dedicated fields for:
-  - area rectangle values
-  - replacement text
-- new state and workflow features:
-  - **recent outputs manager**
-  - **failed jobs list** with retry / remove / clear actions
-  - **restore last session** on startup
-  - **auto-open output folder** after successful runs
-  - **temporary session cleanup** on exit
-  - **update checker placeholder**
-- new log/export improvements:
-  - export combined app logs to a text file
-  - recent output tracking persisted in local app state
-- smoke tests expanded for:
-  - area redaction
-  - best-effort text edit
-  - new state persistence keys
-  - text log export helper
-
-The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and is only used when configured and selected or when fallback rules allow it.
-
-## Patch 13 highlights
-
-Patch 13 adds a full online-links workflow and makes several conversion modes easier to find directly in the UI.
-
-New in Patch 13:
-- **Online links / URLs** panel on the Convert page
-  - paste one or many HTTP/HTTPS links
-  - deduplicate repeated URLs
-  - fetch links into the same local conversion queue
-  - retry failed links
-  - cancel in-progress downloads
-  - safe cache folder handling
-  - per-link status table with local file path and details
-  - recent-links memory stored in local app state
-  - **Fetch + Start** workflow for download-and-convert in one action
-- new explicit conversion modes:
-  - **Markdown -> PDF**
-  - **HTML -> PDF**
-  - **HTML -> Markdown**
-  - **PPT / PPTX / ODP -> Images**
-- new Settings controls for:
-  - link cache folder
-  - link timeout
-  - keep downloaded link files in cache
-- patch-13 smoke tests now cover:
-  - explicit Markdown/HTML conversions
-  - presentation-to-images export
-  - local HTTP URL download + conversion pipeline
-
-The app still keeps **Pure Python** as the default engine. LibreOffice remains optional and is only used when configured and selected or when fallback rules allow it.
-
-## Patch 12 highlights
-
-Patch 12 focuses on startup polish, state migration safety, About customization, and packaging prep without removing any earlier conversion, OCR, organizer, automation, or PDF tooling features.
-
-New in Patch 12:
-- first-launch **splash screen** with configurable GIF path and safe fallback behavior
-- bottom-right **login reminder popup** that:
-  - never appears on install day
-  - only becomes eligible after 3 or more days
-  - stays gone forever after dismiss
-  - stays gone forever after completion
-- new state keys with backward-safe migration:
-  - `install_date`
-  - `login_popup_dismissed`
-  - `login_popup_completed`
-  - `login_popup_last_shown`
-  - `login_popup_enabled`
-  - `splash_enabled`
-  - `splash_seen`
-  - `splash_gif_path`
-- improved **About page** with:
-  - editable local profile JSON
-  - company/project fields
-  - feedback button
-  - contribute button
-  - static installer-safe About snapshot at `installer/about_static.json`
-- expanded **Settings** page with splash, reminder, and optional LibreOffice path controls
-- bundled placeholder splash GIF in `assets/gokul_splash.gif`
-- smoke-test startup path that skips overlays so automated checks remain stable
-
-## Engine model
-
-The app supports three engine modes in **Settings**:
-- `pure_python`
-- `auto`
-- `libreoffice`
-
-### Recommended default
-Use **pure_python** when you want a portable setup without depending on LibreOffice.
-
-### Auto mode
-Auto uses the richer built-in pipeline first and only falls back to LibreOffice when needed and available.
-
-### LibreOffice mode
-LibreOffice remains available as an **optional external renderer**. You can set the exact `soffice` path in Settings and test it from the UI.
-
-## Current conversion features
-
-- all earlier conversion modes from Patch 9 remain available
-
-## OCR workspace
-
-The new OCR screen supports:
-- image -> searchable PDF
-- PDF -> searchable PDF
-- image/PDF -> OCR TXT extraction
-- saved OCR language / DPI / PSM defaults
-- saved optional Tesseract executable path
-
-- many images -> 1 PDF
-- images -> separate PDFs
-- PDF -> images
-- DOC / DOCX / ODT / RTF -> PDF
-- PPT / PPTX / ODP -> PDF
-- PDF -> DOCX
-- PDF -> PPTX
-- PDF -> HTML
-- XLS / XLSX / ODS / CSV / TSV -> PDF
-- PDF -> XLSX with best-effort table and text extraction
-- TXT / HTML / Markdown -> PDF
-- HTML -> DOCX
-- Markdown -> DOCX
-- Markdown -> HTML
-- merge many PDFs into 1 PDF
-- mixed batch conversion with **Any Supported -> PDF**
-
-## PDF tools workspace
-
-Available tools:
-- Merge PDFs
-- Split PDF by ranges
-- Split PDF every N pages
-- Extract pages
-- Remove pages
-- Reorder pages
-- Add text watermark
-- Add image watermark
-- Edit PDF with text overlay
-- Edit PDF with image overlay
-- Redact searched text
-- Sign PDF (visible)
-- Edit metadata
-- Lock PDF with password
-- Unlock PDF
-- Compress PDF
-
-## Organizer workspace
-
-Use the **Organizer** screen when you want a more visual workflow:
-- inspect pages as thumbnails
-- move selected pages up or down
-- rotate selected pages
-- duplicate selected pages
-- remove selected pages
-- reverse the sequence
-- extract selected pages into a new PDF
-- save a reorganized PDF without typing page specs manually
-- export selected pages as images
-- preview a page in a larger window
-
-## Automation workspace
-
-The new **Automation** screen adds three workflow layers:
-- **Presets**
-  - save current Convert settings
-  - reuse them later
-  - export/import as JSON
-- **Watch folder**
-  - poll a folder for newly arrived supported files
-  - process only unseen files
-  - optionally archive processed sources
-- **Sharing helpers**
-  - ZIP the latest outputs
-  - export a run report
-  - open a mail draft for the latest outputs
-  - send the latest outputs directly with SMTP
-
-## UI overview
-
-Screens:
-- Home
-- Convert
-- PDF Tools
-- Organizer
-- Automation
-- History
-- Settings
-- About
-
-The app includes:
-- dark, light, and system theme modes
-- first-launch splash support with editable GIF asset
-- delayed login reminder lifecycle with local state
-- sidebar navigation
-- top menu bar
-- footer notes window driven by `footer_notes.md`
-- local recent-job history with setting reuse
-- editable About profile with placeholder image and link buttons
-- in-app About profile editor
-- routing preview for engine selection
-- mail-draft helper for the latest outputs
-- direct SMTP delivery window
-- build center for diagnostics and packaging shortcuts
-
-## Installer prep
-
-The project includes an `installer/` folder with:
-- `gokul_omni_convert_lite.spec`
-- `build_windows.bat`
-- `build_linux.sh`
-- `windows/GokulOmniConvertLite.iss`
-- `windows/version_info.txt`
-- `linux/gokul-omni-convert-lite.desktop`
-- `macos/build_app_bundle.sh`
-- `BUILDING.md`
-
-This is a stronger preparation step for packaging the desktop app later as a distributable build.
-
-## Pure Python fidelity notes
-
-Pure Python has multiple quality levels depending on format:
-- **Structure-aware**: DOCX, HTML, Markdown
-- **Table-aware**: XLSX, XLS, CSV, TSV
-- **Content-first**: PPTX
-- **Text-first fallback**: RTF, ODT, FODT, ODS, ODP, TXT-like formats
-- **LibreOffice required for best support**: legacy `.doc` and `.ppt`
-
-This makes the app stronger for portable installs, but it still does **not** promise pixel-identical Office rendering.
-
-## Requirements
-
-### Python packages
+* Merge PDFs
+* Split PDFs
+* Reorder pages
+* Rotate pages
+* Organize page sequences
+
+### Visual PDF Organization
+
+* Drag-and-drop page arrangement
+* Page previews
+* Thumbnail navigation
+* Export organized PDF
+
+---
+
+## OCR Support
+
+Optional OCR integration using Tesseract.
+
+Capabilities include:
+
+* Extract text from images
+* OCR PDF pages
+* Batch OCR processing
+* Searchable PDF preparation
+* Runtime OCR detection
+
+Supported deployment methods:
+
+* Installed Tesseract
+* PATH-based Tesseract
+* Bundled Tesseract runtime
+
+Automatic validation prevents accidental selection of:
+
+❌ `pytesseract.exe`
+
+and guides users toward:
+
+✅ `tesseract.exe`
+
+---
+
+## Image Folder → PDF Workflow
+
+A dedicated workflow introduced in Patch 36.
+
+Features:
+
+* Recursive folder scanning
+* Combined PDF output
+* One PDF per folder mode
+* Preview before execution
+* Queue loading support
+* Natural file sorting
+* Time-based sorting
+
+Sorting options:
+
+* Natural filename order
+* Filename A–Z
+* Modified date
+* Creation date
+
+---
+
+## Automation Presets
+
+Save frequently used conversion settings and execute them instantly.
+
+Preset capabilities:
+
+* Reusable workflows
+* Favorite presets
+* One-click execution
+* Export/import support
+* Automation-ready configuration
+
+---
+
+## Remote Asset System
+
+Introduced in Patch 23.
+
+Allows future branding updates without rebuilding installers.
+
+Supported remote assets:
+
+* Header GIF
+* Splash GIF
+* About image
+* Profile metadata JSON
+
+Features:
+
+* Local fallback protection
+* Offline operation
+* Cache management
+* Configurable refresh intervals
+* Runtime updates
+
+---
+
+## Diagnostics & Support Tools
+
+Built-in troubleshooting utilities:
+
+* Runtime diagnostics
+* Dependency verification
+* OCR validation
+* Asset validation
+* Packaging diagnostics
+* Workspace inspection
+* Support bundle generation
+
+---
+
+## Release Validation
+
+Patch 37 introduces production-grade validation workflows.
+
+### Headless Validation
+
+```bash
+python release_validation.py
+```
+
+Validates:
+
+* Application structure
+* Runtime dependencies
+* Installer assets
+* Configuration files
+* Packaging readiness
+
+---
+
+### Application Validation Mode
+
+```bash
+python app.py --validate-release
+```
+
+Runs release validation directly through the application runtime.
+
+---
+
+# Architecture
+
+```text
+┌───────────────────────────────────────────┐
+│                 UI Layer                  │
+│      Tkinter Desktop Application          │
+└───────────────────────────────────────────┘
+                     │
+                     ▼
+┌───────────────────────────────────────────┐
+│            Workflow Engine                │
+│ Conversion │ OCR │ PDF │ Presets │ Assets │
+└───────────────────────────────────────────┘
+                     │
+                     ▼
+┌───────────────────────────────────────────┐
+│            Processing Layer               │
+│ Pillow │ ReportLab │ PyPDF │ OCR │ Utils │
+└───────────────────────────────────────────┘
+                     │
+                     ▼
+┌───────────────────────────────────────────┐
+│             Storage Layer                 │
+│ Config │ Cache │ Presets │ Workspace │ Logs│
+└───────────────────────────────────────────┘
+```
+
+---
+
+# Technology Stack
+
+## Core
+
+* Python 3.10+
+* Tkinter
+
+## PDF Processing
+
+* PyPDF
+* ReportLab
+
+## Image Processing
+
+* Pillow
+
+## OCR
+
+* Tesseract OCR (Optional)
+* pytesseract
+
+## Packaging
+
+* PyInstaller
+
+## Utilities
+
+* pathlib
+* threading
+* logging
+* json
+* shutil
+* subprocess
+
+---
+
+# Installation
+
+## Clone Repository
+
+```bash
+git clone <repository-url>
+cd Gokul-Omni-Convert-Lite
+```
+
+---
+
+## Create Virtual Environment
+
+### Windows
+
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+### Linux
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+---
+
+## Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Optional external tools
+---
 
-- **LibreOffice**
-  - optional fallback only
-  - configure the exact `soffice` path from Settings if you want the external renderer
-- **Pandoc**
-  - improves Markdown and HTML conversion for DOCX/HTML outputs where supported
-- **pdftotext**
-  - improves PDF -> DOCX extraction when available
+## Run Application
 
-## Run the app
-
-Headless release helpers:
-- `python app.py --check-updates`
-- `python app.py --check-updates installer/update_manifest.example.json`
-- `python app.py --export-workspace gokul_workspace.zip`
-- `python app.py --import-workspace gokul_workspace.zip --workspace-target ./restore_here`
-
-
-### Windows
-```bat
-python app.py
-```
-
-### macOS / Linux
 ```bash
 python app.py
 ```
 
-## Quick UI smoke test
+---
 
-```bash
-python app.py --smoke-test-ui
+# Optional OCR Setup
+
+## Install Tesseract
+
+Download and install Tesseract OCR.
+
+After installation:
+
+```text
+Settings → OCR Configuration
 ```
 
-## Backend smoke test
+Select:
 
-```bash
-python smoke_test.py
+```text
+tesseract.exe
 ```
 
-Patch 9 smoke coverage includes:
-- organizer save / extract / image export
-- previous PDF tools from earlier patches
-- previous pure-Python conversion coverage
-- watch-folder discovery helpers
-- preset export/import helpers
-- ZIP bundle and run-report helpers
-- settings snapshot export/import
-- diagnostics export
-- SMTP email message generation
+Do NOT select:
 
-## Notes and limitations
+```text
+pytesseract.exe
+```
 
-- `PDF -> DOCX` is best-effort and works best on text-heavy PDFs.
-- `PDF -> XLSX` works best when tables are detectable in the source PDF.
-- `PDF -> PPTX` prioritizes page fidelity by placing each PDF page on a slide as an image.
-- complex layouts and scanned documents may not round-trip perfectly
-- OCR depends on a working **Tesseract OCR** installation
-- overlay tools are page-overlay based; they are useful for labels, stamps, and approvals but they are not full Acrobat-style paragraph reflow editing
-- mail draft support opens your default mail client with a prepared message; you still attach files manually from the output folder
-- direct SMTP send depends on a valid mail server, credentials when required, and provider attachment-size limits
-- the watch-folder engine tracks files by path, size, and modified time so changed files can be picked up as new work later
+The application validates this automatically.
 
-## Project files
+---
 
-- `app.py` - desktop GUI shell, conversion workspaces, Preview Center integration, and Patch 20 workflow polish
-- `mail_core.py` - SMTP configuration, connection tests, mailto helpers, and EML draft generation
-- `ocr_core.py` - OCR engine and Tesseract integration for searchable PDFs and OCR text extraction
-- `build_support.py` - diagnostics export and settings snapshot helpers
-- `converter_core.py` - conversion engine and PDF tool engine
-- `pure_python_renderers.py` - built-in DOCX/XLSX/PPTX/HTML/Markdown renderers
-- `organizer_core.py` - organizer backend for page sequencing, save, extract, and image export
-- `page_organizer.py` - organizer UI panel with drag-and-drop, layout snapshots, undo/redo, and preview window
-- `automation_core.py` - Patch 8 watch-folder, preset import/export, report, and ZIP helper functions
-- `app_state.py` - local settings, history, presets, and watch-folder state
-- `ui_theme.py` - theme and widget styling helpers
-- `ui_text.py` - UI text humanization helpers for readable labels and flags
-- `preview_support.py` - file-aware preview rendering helpers for PDF, image, text, DOCX, sheet, and presentation inputs
-- `preview_ui.py` - Preview Center window, page navigation, zoom, and file inspector UI
-- `footer_notes.md` - markdown source for the footer notes window
-- `about_profile.json` - editable profile content for the About page
-- `assets/gokul_profile_placeholder.png` - placeholder image for the About page
-- `installer/` - packaging prep files
-- `requirements.txt` - Python dependencies
-- `smoke_test.py` - backend smoke test
+# Project Structure
+
+```text
+GokulOmniConvertLite/
+│
+├── app.py
+├── release_validation.py
+├── requirements.txt
+│
+├── installer/
+│   ├── GokulOmniConvertLite.spec
+│   ├── build_windows.bat
+│   ├── build_linux.sh
+│   ├── RELEASE_NOTES.md
+│   ├── RELEASE_CHECKLIST.md
+│   └── TESSERACT_BUNDLE.md
+│
+├── assets/
+│   ├── header/
+│   ├── splash/
+│   └── about/
+│
+├── cache/
+│
+├── presets/
+│
+├── logs/
+│
+├── workspace/
+│
+├── support/
+│
+├── diagnostics/
+│
+└── remote_assets.json
+```
+
+---
+
+# Building Installers
+
+## Windows
+
+```bash
+installer\build_windows.bat
+```
+
+---
+
+## Linux
+
+```bash
+bash installer/build_linux.sh
+```
+
+---
+
+## Manual Build
+
+```bash
+pyinstaller installer/GokulOmniConvertLite.spec
+```
+
+Generated output:
+
+```text
+dist/
+```
+
+---
+
+# Release Validation Checklist
+
+Before publishing:
+
+### Application
+
+* [ ] Application launches successfully
+* [ ] No startup exceptions
+* [ ] Version displayed correctly
+* [ ] Settings load correctly
+
+### Conversion
+
+* [ ] Images → PDF
+* [ ] PDF → Images
+* [ ] Batch conversion
+* [ ] Image Folder → PDF
+
+### OCR
+
+* [ ] OCR runtime detected
+* [ ] OCR extraction successful
+* [ ] Missing OCR handled gracefully
+
+### Packaging
+
+* [ ] Release validation passes
+* [ ] Installer builds successfully
+* [ ] Assets included
+* [ ] Presets included
+* [ ] Remote asset config included
+
+### Distribution
+
+* [ ] Installer tested
+* [ ] Clean machine tested
+* [ ] Release notes updated
+
+---
+
+# Patch History
+
+## Version 2.3.0 (Patch 37)
+
+### Added
+
+* Release validation framework
+* App-integrated validation mode
+* PyInstaller specification
+* Build launchers
+* Installer release notes
+* Release checklist
+* About snapshot
+* Update manifest example
+
+### Fixed
+
+* Duplicate external callback safety issue
+
+---
+
+## Version 2.2.6 (Patch 36.5)
+
+### Fixed
+
+* Pillow JPEG PDF export issue
+* Alpha channel image handling
+* OCR runtime detection
+* Tesseract validation improvements
+
+### Added
+
+* TESSERACT_BUNDLE.md
+* WORKSPACE_CLEANUP_REPORT.md
+
+---
+
+## Version 2.2.5 (Patch 36)
+
+### Added
+
+* Image Folder → PDF workflow
+* Recursive folder discovery
+* Folder PDF generation
+* Preview workflow
+* Queue integration
+
+---
+
+## Version 2.2.4 (Patch 35)
+
+### Added
+
+* UI density improvements
+* Smaller header
+* Cleaner home screen
+* Compact About page
+
+---
+
+## Version 2.2.3 (Patch 34)
+
+### Added
+
+* Responsive layout refinements
+* Home metric enhancements
+* About page improvements
+
+### Fixed
+
+* Missing open_url helper
+
+---
+
+## Version 2.2.2 (Patch 33)
+
+### Added
+
+* Slim header
+* Compact Home experience
+* Cleaner About screen
+
+---
+
+## Version 2.2.1 (Patch 24)
+
+### Added
+
+* Scrollable sidebar
+* Responsive button wrapping
+* Improved label formatting
+
+---
+
+## Version 2.2.0 (Patch 23)
+
+### Added
+
+* Remote asset system
+* Asset caching
+* Remote profile support
+* Offline-safe branding updates
+
+---
+
+# Security & Privacy
+
+✅ Fully local processing
+
+✅ No cloud dependency
+
+✅ No file uploads
+
+✅ Offline capable
+
+✅ User-controlled OCR
+
+✅ User-controlled LibreOffice integration
+
+---
+
+# Performance Goals
+
+* Fast batch processing
+* Low memory overhead
+* Large folder support
+* Installer-friendly deployment
+* Offline-first operation
+
+---
+
+# Future Roadmap
+
+### Planned Enhancements
+
+* Auto-update service
+* Cloud sync integrations
+* Additional conversion formats
+* Advanced OCR pipelines
+* GPU-assisted image processing
+* Workflow scheduling
+* Plugin architecture
+* Enterprise deployment profiles
+
+---
+
+# Author
+
+**Gokul Saraswat**
+
+Software Engineer | Backend Developer | Java & Python Enthusiast
+
+Specializations:
+
+* Java Development
+* Microservices
+* Distributed Systems
+* Cloud Technologies
+* Automation Tools
+* Desktop Applications
+
+---
+
+# License
+
+MIT License
+
+Copyright (c) 2026 Gokul Saraswat
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files to deal in the Software without restriction.
+
+---
+
+## Final Release Status
+
+**Gokul Omni Convert Lite 2.3.0 (Patch 37)** is considered **release-ready**.
+
+✔ Release Validation Framework
+
+✔ Installer Packaging Support
+
+✔ OCR Runtime Detection
+
+✔ Remote Asset System
+
+✔ Image Folder PDF Workflow
+
+✔ PDF Utilities
+
+✔ Automation Presets
+
+✔ Offline-First Architecture
+
+✔ Production Distribution Ready
