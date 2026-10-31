@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "updated": "2026-09-10",
+  "sys": {
+    "mode": "Personal Project",
+    "scale": "Midscale — single-process desktop modulith, strict layer boundaries",
+    "stack": [
+      "Python 3.9+ (dev venv on 3.12.14, Tk 9.0)",
+      "CustomTkinter 6.0 + Tk/ttk for widgets CTk lacks",
+      "PyMuPDF, pdfplumber, pypdf, reportlab, Pillow",
+      "python-docx, openpyxl, python-pptx, xlrd",
+      "pytesseract (optional binary), LibreOffice (optional fallback)",
+      "tkinterdnd2 (optional; degrades to click-to-browse)",
+      "PyInstaller + Inno Setup (Win) / dpkg-deb (Linux)"
+    ],
+    "architectural_pattern": "Layered modulith. Tk-free domain cores -> persistence -> ui_theme tokens -> ui/kit widget factory -> ui/pages screens -> app.py shell+handlers. Dependencies point one direction; cores are headless-testable."
+  },
+  "ui_state": {
+    "design_tokens": "ui_theme.py — 4 palettes (dark/light + high-contrast pair), SPACING 4px scale, RADIUS incl. pill=100, FONT_STACK + THIN_FONT_STACK, gradient stops and glass composite colours. Pages request variants, never hex.",
+    "motion_library": "ui/kit.py Animator — after()-driven tweening, ease_out cubic. Page slide-in 220ms, stat count-up 400ms, progress ease 180ms. All gated on reduced_motion_var.",
+    "active_component": "ui/kit.py (UIKit + ScrollArea/LogBox/ProgressBar/ButtonBar/InfoDot/GradientBackdrop)"
+  },
+  "sprint": {
+    "goal": "Ship 2.4.0: rename to GO Omni Pro, full CustomTkinter migration, archive + rename/organizer features, glass visual language, decluttered UX.",
+    "bugs": [
+      "RESOLVED: pages did not scroll — page content was parented to ScrollArea's outer frame instead of the canvas inner frame",
+      "RESOLVED: Quick Actions froze the app — old palette called grab_set(), which blocks the root event loop on macOS",
+      "RESOLVED: CTkScrollableFrame/CTkTextbox/CTkOptionMenu redraw recursion (update_idletasks inside _draw)",
+      "RESOLVED: UI scale applied twice (design system + CTk set_widget_scaling)",
+      "RESOLVED: theme changes stacked duplicate <Configure>/hover bindings each time",
+      "RESOLVED: responsive layout oscillated across breakpoints; FlowButtonBar relayout ping-pong",
+      "RESOLVED: high-contrast dark had white-on-light-blue accent at 2.49:1",
+      "RESOLVED: Automation and Settings both wrote settings_content_frame"
+    ],
+    "done": [
+      "Renamed to GO Omni Pro; zero 'Oracle'/'Omni Convert Lite' strings remain",
+      "New mark assets/logo/go_omni_pro_mark.svg + Pillow-only icon generator -> .ico/.png",
+      "archive_core.py (zip/extract/batch/list, zip-slip guarded) + Archive page",
+      "rename_organizer_core.py (pattern/find-replace/regex/case, organise, JSON undo manifests) + Rename & Organize page",
+      "All 11 pages extracted to ui/pages/*.py; app.py 7663 -> ~6400 lines, 0 raw ttk widgets",
+      "All dialogs migrated: About editor, SMTP, Build Center, notes/shortcuts, command palette",
+      "Glass visual language: real gradient backdrop + composite card colours, pill buttons, thin hero type",
+      "21 InfoDot hover hints replacing on-screen prose; OCR page rewritten in plain language",
+      "macOS first-class: binary discovery, defaults-read dark mode, ~/Library state path with migration",
+      "Repo cleanup: 18 dead files + 3 dirs removed; LICENSE, CHANGELOG, .gitignore added",
+      "WCAG AA verified across all 4 palettes (worst pairing 4.51:1)"
+    ],
+    "todo_next": [
+      "Interactive pass on macOS — sandbox deiconify()/Toplevel became unreliable, so visuals and hover/animation feel are unverified",
+      "Run build_windows_release.bat on Windows (needs Inno Setup) and build_linux_release.sh on Debian (needs dpkg-deb); both authored but never executed",
+      "Spot-check LibreOffice fallback and Tesseract OCR paths — neither binary is installed on this machine",
+      "git rm -r --cached __pycache__  (tracked before .gitignore existed; blocked in this session)",
+      "Optional: migrate remaining ttk in preview_ui.py / engagement_ui.py to the kit"
+    ]
+  },
+  "context_window": {
+    "files_loaded": [
+      "app.py",
+      "ui/kit.py",
+      "ui_theme.py",
+      "ui/pages/*.py",
+      "archive_core.py",
+      "rename_organizer_core.py",
+      "app_state.py",
+      "about_profile.py",
+      "page_organizer.py"
+    ],
+    "pending_lld_updates": []
+  }
+}

@@ -561,7 +561,7 @@ def build_pdf_tool_jobs(sample: dict[str, Path]) -> list[PdfToolConfig]:
             files=[sample["pdf"]],
             output_dir=Path("outputs") / "pdf_tool_edit_metadata",
             metadata_title="Patch 5 Sample Title",
-            metadata_author="Gokul Omni Convert Lite",
+            metadata_author="GO Omni Pro",
             metadata_subject="Smoke test metadata",
             metadata_keywords="patch5,metadata,smoke",
             metadata_clear_existing=True,
@@ -599,7 +599,7 @@ def validate_advanced_outputs(tool_outputs: dict[str, list[Path]]) -> None:
     with fitz.open(str(metadata_files[0])) as document:
         metadata = document.metadata
     assert metadata.get("title") == "Patch 5 Sample Title"
-    assert metadata.get("author") == "Gokul Omni Convert Lite"
+    assert metadata.get("author") == "GO Omni Pro"
     assert metadata.get("subject") == "Smoke test metadata"
 
     for required_tool in (PDF_TOOL_TEXT_OVERLAY, PDF_TOOL_IMAGE_OVERLAY, PDF_TOOL_SIGN_VISIBLE):
@@ -1013,18 +1013,10 @@ def run_patch23_asset_smoke(inputs: Path, outputs: Path, sample: dict[str, Path]
         json.dumps(
             {
                 "name": "Remote Gokul",
-                "title": "Remote Profile",
-                "subtitle": "Loaded from a test URL",
-                "company": "Oracle Corporation",
-                "project": APP_NAME,
-                "email": "gokul.saraswat@oracle.com",
-                "handle": "@gokul.saraswat",
-                "bio": "Remote profile smoke test.",
-                "image_path": "assets/gokul_profile_placeholder.png",
+                "email": "gokulsaraswat07@gmail.com",
+                "image_path": "assets/logo/go_omni_pro_256.png",
                 "image_url": "",
-                "feedback_url": "mailto:gokul.saraswat@oracle.com",
-                "contribute_url": "https://github.com/gokul-saraswat/gokul-omni-convert-lite/issues",
-                "links": [],
+                "links": [{"label": "Website", "url": "https://gokulsaraswat.com"}],
             },
             indent=2,
         ),
@@ -1100,10 +1092,13 @@ def run() -> None:
         validate_preview_support(sample)
         validate_patch36_image_folder_pdf(sample, outputs)
         validate_patch365_image_pdf_and_ocr_detection(outputs)
-        if not profile.get("feedback_url"):
-            raise AssertionError("Patch 12 About profile did not expose a feedback URL.")
-        if not profile.get("company"):
-            raise AssertionError("Patch 12 About profile did not expose a company field.")
+        if not profile.get("email"):
+            raise AssertionError("About profile did not expose an email address.")
+        if not profile.get("links"):
+            raise AssertionError("About profile did not expose any links.")
+        for retired in ("company", "title", "handle", "bio", "feedback_url"):
+            if retired in profile:
+                raise AssertionError(f"About profile still carries the retired '{retired}' field.")
 
         run_patch23_asset_smoke(inputs, outputs, sample)
 
@@ -1316,7 +1311,7 @@ def run() -> None:
             },
             outputs / "automation_report" / "last_run_report.txt",
         )
-        if not report_path.exists() or "Gokul Omni Convert Lite Run Report" not in report_path.read_text(encoding="utf-8"):
+        if not report_path.exists() or "GO Omni Pro Run Report" not in report_path.read_text(encoding="utf-8"):
             raise AssertionError("Automation report helper did not create the expected report file.")
 
         bundle_path = bundle_paths_as_zip([pure_md_pdf, pure_html_pdf, report_path], outputs / "automation_bundle" / "outputs_bundle.zip")

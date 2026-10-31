@@ -1,6 +1,6 @@
 {
-  "backup_dir": "/tmp/tmp20i_jd58/outputs/patch18_accessibility/backups",
-  "latest_backup": "/tmp/tmp20i_jd58/outputs/patch18_accessibility/backups/app_state_20260507_084949_184367.json",
+  "backup_dir": "/var/folders/31/hbrv7xq97_5fdb43717hnd4mc61g3c/T/tmp84pnvev3/outputs/patch18_accessibility/backups",
+  "latest_backup": "/var/folders/31/hbrv7xq97_5fdb43717hnd4mc61g3c/T/tmp84pnvev3/outputs/patch18_accessibility/backups/app_state_20260910_225427_911208.json",
   "restored_theme": "dark",
   "ui_scale": "125%",
   "high_contrast": true,

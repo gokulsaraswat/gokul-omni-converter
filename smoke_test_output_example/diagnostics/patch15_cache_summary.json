@@ -1,20 +1,20 @@
 {
   "before": {
-    "path": "/tmp/tmp20i_jd58/outputs/workflow_cache",
+    "path": "/var/folders/31/hbrv7xq97_5fdb43717hnd4mc61g3c/T/tmp84pnvev3/outputs/workflow_cache",
     "file_count": 2,
     "total_bytes": 2010,
-    "oldest_mtime": 1774255789.169613,
-    "newest_mtime": 1778143789.1695516
+    "oldest_mtime": 1785173067.826568,
+    "newest_mtime": 1789061067.823869
   },
   "after": {
     "removed_count": 1,
     "removed_bytes": 2000,
     "remaining": {
-      "path": "/tmp/tmp20i_jd58/outputs/workflow_cache",
+      "path": "/var/folders/31/hbrv7xq97_5fdb43717hnd4mc61g3c/T/tmp84pnvev3/outputs/workflow_cache",
       "file_count": 1,
       "total_bytes": 10,
-      "oldest_mtime": 1778143789.1695516,
-      "newest_mtime": 1778143789.1695516
+      "oldest_mtime": 1789061067.823869,
+      "newest_mtime": 1789061067.823869
     }
   }
 }

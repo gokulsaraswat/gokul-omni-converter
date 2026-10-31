@@ -30,7 +30,7 @@ PAGE_TOP_BOTTOM_MARGIN = 14 * mm
 CONTENT_WIDTH = PAGE_WIDTH - (2 * PAGE_LEFT_RIGHT_MARGIN)
 
 
-@dataclass(slots=True)
+@dataclass()
 class HtmlBlock:
     type: str
     text: str = ""

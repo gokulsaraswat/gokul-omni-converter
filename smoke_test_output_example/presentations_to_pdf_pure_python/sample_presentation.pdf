@@ -1,5 +1,5 @@
 %PDF-1.4
-%“Œ‹ž ReportLab Generated PDF document http://www.reportlab.com
+%“Œ‹ž ReportLab Generated PDF document (opensource)
 1 0 obj
 <<
 /F1 2 0 R /F2 3 0 R
@@ -32,7 +32,7 @@ endobj
 endobj
 6 0 obj
 <<
-/Author (\(anonymous\)) /CreationDate (D:20260507084948+00'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20260507084948+00'00') /Producer (ReportLab PDF Library - www.reportlab.com) 
+/Author (\(anonymous\)) /CreationDate (D:20260910225426+05'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20260910225426+05'00') /Producer (ReportLab PDF Library - \(opensource\)) 
   /Subject (\(unspecified\)) /Title (sample_presentation) /Trapped /False
 >>
 endobj
@@ -51,24 +51,24 @@ endobj
 xref
 0 9
 0000000000 65535 f 
-0000000073 00000 n 
-0000000114 00000 n 
-0000000221 00000 n 
-0000000333 00000 n 
-0000000536 00000 n 
-0000000604 00000 n 
-0000000893 00000 n 
-0000000952 00000 n 
+0000000061 00000 n 
+0000000102 00000 n 
+0000000209 00000 n 
+0000000321 00000 n 
+0000000524 00000 n 
+0000000592 00000 n 
+0000000878 00000 n 
+0000000937 00000 n 
 trailer
 <<
 /ID 
-[<1e270a05e229c999e8a97963d67ccbd2><1e270a05e229c999e8a97963d67ccbd2>]
-% ReportLab generated PDF document -- digest (http://www.reportlab.com)
+[<8c1e8f41dad510d9e26a05fbeec56a9a><8c1e8f41dad510d9e26a05fbeec56a9a>]
+% ReportLab generated PDF document -- digest (opensource)
 
 /Info 6 0 R
 /Root 5 0 R
 /Size 9
 >>
 startxref
-1464
+1449
 %%EOF

@@ -1,4 +1,4 @@
-# Release Checklist — Gokul Omni Convert Lite 2.3.0
+# Release Checklist — GO Omni Pro 2.3.0
 
 Use this checklist before sharing an installer build.
 

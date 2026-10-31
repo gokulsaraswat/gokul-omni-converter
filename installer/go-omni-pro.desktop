@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=GO Omni Pro
+GenericName=Document Converter
+Comment=Local-first PDF, document, image, OCR, archive, and batch-rename toolkit
+Exec=/opt/go-omni-pro/GO Omni Pro
+Icon=go-omni-pro
+Terminal=false
+Categories=Office;Utility;FileTools;
+Keywords=pdf;convert;ocr;document;image;zip;rename;
+StartupNotify=true
+StartupWMClass=GO Omni Pro

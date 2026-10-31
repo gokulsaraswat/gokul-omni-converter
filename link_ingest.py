@@ -199,7 +199,7 @@ def download_many_urls(
         request = Request(
             normalized,
             headers={
-                "User-Agent": "GokulOmniConvertLite/1.3 (+https://example.local)",
+                "User-Agent": "GOOmniPro/1.3 (+https://example.local)",
                 "Accept": "*/*",
             },
         )

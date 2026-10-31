@@ -47,7 +47,7 @@ def _read_text_from_source(source: str, timeout: int = 8) -> str:
         raise ValueError("No update manifest source was provided.")
     parsed = urllib.parse.urlparse(value)
     if parsed.scheme in {"http", "https"}:
-        request = urllib.request.Request(value, headers={"User-Agent": "GokulOmniConvertLite/1.0"})
+        request = urllib.request.Request(value, headers={"User-Agent": "GOOmniPro/1.0"})
         with urllib.request.urlopen(request, timeout=max(3, int(timeout))) as response:
             return response.read().decode("utf-8")
     if parsed.scheme == "file":

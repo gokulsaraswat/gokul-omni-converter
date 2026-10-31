@@ -1,6 +1,6 @@
 # Keyboard Shortcuts
 
-Use these shortcuts to move quickly around **Gokul Omni Convert Lite**.
+Use these shortcuts to move quickly around **GO Omni Pro**.
 
 ## Core actions
 - `Ctrl+O` — Add files

@@ -1,3 +1,8 @@
+# UI
+customtkinter>=5.2
+tkinterdnd2>=0.4        # optional: drag-and-drop. The app degrades to click-to-browse without it.
+
+# Conversion engine
 Pillow
 PyMuPDF
 pdfplumber
@@ -7,5 +12,9 @@ pypdf
 reportlab
 python-pptx
 xlrd
+
+# OCR (needs the Tesseract binary installed separately)
 pytesseract
+
+# Packaging
 pyinstaller

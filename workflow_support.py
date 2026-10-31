@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 
-@dataclass(slots=True)
+@dataclass()
 class DirectoryStats:
     path: str
     file_count: int = 0

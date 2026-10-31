@@ -1,4 +1,4 @@
-Gokul Omni Convert Lite Run Report
+GO Omni Pro Run Report
 ====================================
 
 timestamp: 2026-04-14 12:00:00
@@ -7,11 +7,11 @@ mode: Text / Markdown / HTML -> PDF
 job_type: convert
 file_count: 2
 output_count: 1
-output_dir: /tmp/tmp20i_jd58/outputs/automation_report
+output_dir: /var/folders/31/hbrv7xq97_5fdb43717hnd4mc61g3c/T/tmp84pnvev3/outputs/automation_report
 
 Inputs preview:
-- /tmp/tmp20i_jd58/watch_inputs/watch_sample.txt
-- /tmp/tmp20i_jd58/watch_inputs/watch_sample.md
+- /var/folders/31/hbrv7xq97_5fdb43717hnd4mc61g3c/T/tmp84pnvev3/watch_inputs/watch_sample.txt
+- /var/folders/31/hbrv7xq97_5fdb43717hnd4mc61g3c/T/tmp84pnvev3/watch_inputs/watch_sample.md
 
 Outputs preview:
-- /tmp/tmp20i_jd58/outputs/markdown_to_pdf_pure_python/sample.pdf
+- /var/folders/31/hbrv7xq97_5fdb43717hnd4mc61g3c/T/tmp84pnvev3/outputs/markdown_to_pdf_pure_python/sample.pdf

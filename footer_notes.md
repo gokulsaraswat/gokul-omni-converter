@@ -1,4 +1,4 @@
-# Gokul Omni Convert Lite Notes
+# GO Omni Pro Notes
 
 This screen reads from `footer_notes.md`.
 

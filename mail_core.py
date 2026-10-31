@@ -10,7 +10,7 @@ from typing import Iterable
 from urllib.parse import quote
 
 
-@dataclass(slots=True)
+@dataclass()
 class SMTPSettings:
     host: str = ""
     port: int = 587
@@ -105,7 +105,7 @@ def build_email_message(
     message = EmailMessage()
     message["From"] = sender.strip()
     message["To"] = ", ".join(resolved_recipients)
-    message["Subject"] = subject.strip() or "Message from Gokul Omni Convert Lite"
+    message["Subject"] = subject.strip() or "Message from GO Omni Pro"
     message.set_content(body or "")
 
     for item in attachments:

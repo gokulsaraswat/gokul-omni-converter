@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Build output
+build/
+dist/
+*.spec.bak
+installer/out/
+installer/icons/
+
+# Runtime / scratch
+smoke_test_output/
+/smoke_test_output_example/
+*.log
+
+# Claude Code tooling
+.claude/worktrees/
+
+# OS
+.DS_Store
+Thumbs.db

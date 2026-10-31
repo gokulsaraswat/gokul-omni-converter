@@ -8,6 +8,7 @@ from tkinter import filedialog, messagebox, ttk
 from typing import Callable
 
 import fitz  # PyMuPDF
+import customtkinter as ctk
 from PIL import ImageTk
 
 from organizer_core import (
@@ -107,7 +108,7 @@ class PreviewWindow(tk.Toplevel):
         self.image_label.configure(bg=palette.input_bg)
 
 
-class PageOrganizerPanel(ttk.Frame):
+class PageOrganizerPanel(ctk.CTkFrame):
     def __init__(
         self,
         master: tk.Misc,
@@ -115,8 +116,12 @@ class PageOrganizerPanel(ttk.Frame):
         set_status: StatusCallback,
         on_recent_job: RecentJobCallback | None = None,
         on_loaded_pdf: PathCallback | None = None,
+        kit=None,
     ) -> None:
-        super().__init__(master, style="Surface.TFrame", padding=0)
+        super().__init__(master, fg_color="transparent", corner_radius=0)
+        # The panel is embedded by the Organizer page, which hands over the app's
+        # widget kit so this screen matches the rest of the app.
+        self.kit = kit
         self.palette = palette
         self.set_status = set_status
         self.on_recent_job = on_recent_job
@@ -156,78 +161,72 @@ class PageOrganizerPanel(ttk.Frame):
         super().destroy()
 
     def _build_ui(self) -> None:
+        kit = self.kit
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
 
-        hero = ttk.Frame(self, style="Card.TFrame", padding=22)
+        hero = kit.card(self, title="Visual page organizer",
+                        subtitle="Open a PDF, drag pages to reorder, then save, extract, rotate, or export what you need.")
         hero.grid(row=0, column=0, sticky="ew")
-        hero.grid_columnconfigure(0, weight=1)
-        ttk.Label(hero, text="Visual page organizer", style="HeroTitle.TLabel").grid(row=0, column=0, sticky="w")
-        ttk.Label(
-            hero,
-            text=(
-                "Open a PDF, drag pages to reorder, then save, extract, rotate, or export what you need."
-            ),
-            style="HeroBody.TLabel",
-            wraplength=900,
-            justify="left",
-        ).grid(row=1, column=0, sticky="w", pady=(8, 0))
+        hero_actions = kit.button_bar(hero.header, columns=3)
+        hero_actions.grid(row=0, column=1, rowspan=2, sticky="e", padx=(kit.pad("md"), 0))
+        self.open_button = hero_actions.button("Open PDF", self.open_pdf_dialog, variant="primary")
+        self.reload_button = hero_actions.button("Reload", self.reload_pdf)
+        self.save_button = hero_actions.button("Save output PDF", self.save_organized_pdf, variant="primary")
 
-        hero_actions = FlowButtonBar(hero, style="Surface.TFrame", gap_x=8, gap_y=8, button_min_width=118)
-        hero_actions.grid(row=0, column=1, rowspan=2, sticky="e", padx=(16, 0))
-        self.open_button = hero_actions.add(ttk.Button(hero_actions, text="Open PDF", command=self.open_pdf_dialog))
-        self.reload_button = hero_actions.add(ttk.Button(hero_actions, text="Reload", command=self.reload_pdf))
-        self.save_button = hero_actions.add(
-            ttk.Button(hero_actions, text="Save Output PDF", style="Primary.TButton", command=self.save_organized_pdf)
-        )
-
-        info = ttk.Frame(self, style="Card.TFrame", padding=18)
-        info.grid(row=1, column=0, sticky="ew", pady=(14, 14))
+        info = kit.card(self)
+        info.grid(row=1, column=0, sticky="ew", pady=kit.pad("md"))
+        body = kit.frame(info, variant="transparent")
+        body.grid(row=0, column=0, sticky="ew", padx=kit.pad("lg"), pady=kit.pad("lg"))
         info.grid_columnconfigure(0, weight=1)
-        ttk.Label(info, textvariable=self.file_var, style="CardTitle.TLabel", wraplength=1080, justify="left").grid(row=0, column=0, sticky="w")
-        ttk.Label(info, textvariable=self.summary_var, style="CardBody.TLabel", wraplength=1080, justify="left").grid(row=1, column=0, sticky="w", pady=(8, 0))
-        info_footer = ttk.Frame(info, style="Surface.TFrame")
-        info_footer.grid(row=2, column=0, sticky="ew", pady=(12, 0))
-        info_footer.grid_columnconfigure(0, weight=1)
-        ttk.Label(info_footer, textvariable=self.selection_var, style="CardBody.TLabel").grid(row=0, column=0, sticky="w")
-        ttk.Label(info_footer, textvariable=self.hint_var, style="CardBody.TLabel", wraplength=780, justify="left").grid(row=0, column=1, sticky="e")
+        body.grid_columnconfigure(0, weight=1)
+        kit.label(body, "", variant="heading", textvariable=self.file_var, wraplength=900,
+                  justify="left", anchor="w").grid(row=0, column=0, sticky="ew")
+        kit.label(body, "", variant="small", textvariable=self.summary_var, wraplength=900,
+                  justify="left", anchor="w").grid(row=1, column=0, sticky="ew", pady=(kit.pad("xs"), 0))
+        footer = kit.frame(body, variant="transparent")
+        footer.grid(row=2, column=0, sticky="ew", pady=(kit.pad("sm"), 0))
+        footer.grid_columnconfigure(1, weight=1)
+        kit.label(footer, "", variant="small", textvariable=self.selection_var).grid(row=0, column=0, sticky="w")
+        kit.label(footer, "", variant="tiny", textvariable=self.hint_var, wraplength=700,
+                  justify="right", anchor="e").grid(row=0, column=1, sticky="e")
 
-        workspace = ttk.Frame(self, style="Surface.TFrame")
+        workspace = kit.frame(self, variant="transparent")
         workspace.grid(row=2, column=0, sticky="nsew")
         workspace.grid_columnconfigure(0, weight=1)
         workspace.grid_rowconfigure(1, weight=1)
 
-        toolbar_shell = ttk.Frame(workspace, style="Card.TFrame", padding=12)
+        toolbar_shell = kit.card(workspace)
         toolbar_shell.grid(row=0, column=0, sticky="ew")
-        toolbar = FlowButtonBar(toolbar_shell, style="Card.TFrame", gap_x=8, gap_y=8, button_min_width=132)
-        toolbar.grid(row=0, column=0, sticky="ew")
         toolbar_shell.grid_columnconfigure(0, weight=1)
+        toolbar = kit.button_bar(toolbar_shell, columns=5)
+        toolbar.grid(row=0, column=0, sticky="ew", padx=kit.pad("md"), pady=kit.pad("md"))
 
-        toolbar.add(ttk.Button(toolbar, text="Select All", command=self.select_all))
-        toolbar.add(ttk.Button(toolbar, text="Clear", command=self.clear_selection))
-        self.undo_button = toolbar.add(ttk.Button(toolbar, text="Undo", command=self.undo_last_change))
-        self.redo_button = toolbar.add(ttk.Button(toolbar, text="Redo", command=self.redo_last_change))
-        self.move_up_button = toolbar.add(ttk.Button(toolbar, text="Move Up", command=self.move_selected_up))
-        self.move_down_button = toolbar.add(ttk.Button(toolbar, text="Move Down", command=self.move_selected_down))
-        self.rotate_left_button = toolbar.add(ttk.Button(toolbar, text="Rotate Left", command=lambda: self.rotate_selected(-90)))
-        self.rotate_right_button = toolbar.add(ttk.Button(toolbar, text="Rotate Right", command=lambda: self.rotate_selected(90)))
-        self.duplicate_button = toolbar.add(ttk.Button(toolbar, text="Duplicate", command=self.duplicate_selected))
-        self.remove_button = toolbar.add(ttk.Button(toolbar, text="Remove", command=self.remove_selected))
-        self.reverse_button = toolbar.add(ttk.Button(toolbar, text="Reverse Order", command=self.reverse_pages))
-        self.layout_save_button = toolbar.add(ttk.Button(toolbar, text="Save Layout", command=self.save_layout_snapshot))
-        self.layout_load_button = toolbar.add(ttk.Button(toolbar, text="Load Layout", command=self.load_layout_snapshot))
-        self.extract_button = toolbar.add(ttk.Button(toolbar, text="Extract Selected PDF", command=self.extract_selected_pages))
-        self.export_button = toolbar.add(ttk.Button(toolbar, text="Export Selected Images", command=self.export_selected_images))
+        toolbar.button("Select all", self.select_all)
+        toolbar.button("Clear", self.clear_selection, variant="ghost")
+        self.undo_button = toolbar.button("Undo", self.undo_last_change)
+        self.redo_button = toolbar.button("Redo", self.redo_last_change)
+        self.move_up_button = toolbar.button("Move up", self.move_selected_up)
+        self.move_down_button = toolbar.button("Move down", self.move_selected_down)
+        self.rotate_left_button = toolbar.button("Rotate left", lambda: self.rotate_selected(-90))
+        self.rotate_right_button = toolbar.button("Rotate right", lambda: self.rotate_selected(90))
+        self.duplicate_button = toolbar.button("Duplicate", self.duplicate_selected)
+        self.remove_button = toolbar.button("Remove", self.remove_selected, variant="danger")
+        self.reverse_button = toolbar.button("Reverse order", self.reverse_pages)
+        self.layout_save_button = toolbar.button("Save layout", self.save_layout_snapshot)
+        self.layout_load_button = toolbar.button("Load layout", self.load_layout_snapshot)
+        self.extract_button = toolbar.button("Extract selected", self.extract_selected_pages)
+        self.export_button = toolbar.button("Export images", self.export_selected_images)
 
-        thumb_shell = ttk.Frame(workspace, style="Card.TFrame", padding=0)
-        thumb_shell.grid(row=1, column=0, sticky="nsew", pady=(14, 0))
+        thumb_shell = kit.card(workspace)
+        thumb_shell.grid(row=1, column=0, sticky="nsew", pady=(kit.pad("md"), 0))
         thumb_shell.grid_columnconfigure(0, weight=1)
         thumb_shell.grid_rowconfigure(0, weight=1)
 
         self.thumb_canvas = tk.Canvas(thumb_shell, highlightthickness=0, borderwidth=0, takefocus=1, cursor="arrow")
-        self.thumb_canvas.grid(row=0, column=0, sticky="nsew")
+        self.thumb_canvas.grid(row=0, column=0, sticky="nsew", padx=(kit.pad("sm"), 0), pady=kit.pad("sm"))
         self.thumb_scroll = ttk.Scrollbar(thumb_shell, orient="vertical", command=self.thumb_canvas.yview)
-        self.thumb_scroll.grid(row=0, column=1, sticky="ns")
+        self.thumb_scroll.grid(row=0, column=1, sticky="ns", pady=kit.pad("sm"))
         self.thumb_canvas.configure(yscrollcommand=self.thumb_scroll.set)
 
         self.thumb_inner = tk.Frame(self.thumb_canvas, bd=0, highlightthickness=0)
@@ -237,19 +236,33 @@ class PageOrganizerPanel(ttk.Frame):
         self.thumb_canvas.bind_all("<MouseWheel>", self._on_mousewheel, add="+")
         self.thumb_canvas.bind_all("<Button-4>", self._on_mousewheel_linux, add="+")
         self.thumb_canvas.bind_all("<Button-5>", self._on_mousewheel_linux, add="+")
-        self.bind_all("<Control-z>", self._on_shortcut_undo, add="+")
-        self.bind_all("<Control-y>", self._on_shortcut_redo, add="+")
-        self.bind_all("<Control-a>", self._on_shortcut_select_all, add="+")
-        self.bind_all("<Delete>", self._on_shortcut_remove, add="+")
+        # CustomTkinter forbids bind_all on its widgets, so bind on the toplevel.
+        # The handlers already check _organizer_shortcuts_enabled(), so the scope
+        # is unchanged.
+        root = self.winfo_toplevel()
+        for sequence, handler in (
+            ("<Control-z>", self._on_shortcut_undo),
+            ("<Control-y>", self._on_shortcut_redo),
+            ("<Control-a>", self._on_shortcut_select_all),
+            ("<Delete>", self._on_shortcut_remove),
+        ):
+            root.bind(sequence, handler, add="+")
 
-        self.empty_label = ttk.Label(
+        self.empty_label = self._make_empty_label()
+
+    def _make_empty_label(self):
+        """Placeholder shown in the thumbnail area when no PDF is loaded."""
+        label = tk.Label(
             self.thumb_inner,
-            text="Open a PDF to begin organizing pages visually.",
-            style="CardBody.TLabel",
+            text="Open a PDF to begin organising pages visually.",
             justify="center",
             wraplength=460,
+            background=self.palette.input_bg,
+            foreground=self.palette.text_muted,
+            font=self.kit.font("body"),
         )
-        self.empty_label.grid(row=0, column=0, padx=30, pady=40)
+        label.grid(row=0, column=0, padx=30, pady=40)
+        return label
 
     def apply_theme(self, palette: ThemePalette) -> None:
         self.palette = palette
@@ -489,14 +502,7 @@ class PageOrganizerPanel(ttk.Frame):
             child.destroy()
 
         if not self.page_sequence or self.document is None:
-            self.empty_label = ttk.Label(
-                self.thumb_inner,
-                text="Open a PDF to begin organizing pages visually.",
-                style="CardBody.TLabel",
-                justify="center",
-                wraplength=460,
-            )
-            self.empty_label.grid(row=0, column=0, padx=30, pady=40)
+            self.empty_label = self._make_empty_label()
             return
 
         columns = max(1, self.card_columns)
@@ -585,8 +591,17 @@ class PageOrganizerPanel(ttk.Frame):
                 widget.bind("<ButtonRelease-1>", lambda event, pos=position: self.on_card_release(event, pos))
                 widget.bind("<Double-Button-1>", lambda _event, pos=position: self.open_preview(pos))
 
-        self.thumb_inner.update_idletasks()
-        self.thumb_canvas.configure(scrollregion=self.thumb_canvas.bbox("all"))
+        # Recomputing the scroll region needs current geometry, but calling
+        # update_idletasks() here flushes <Configure> events that re-enter this
+        # renderer. Defer to an idle callback instead, which runs once geometry
+        # has settled and cannot recurse.
+        self.after_idle(self._sync_thumb_scrollregion)
+
+    def _sync_thumb_scrollregion(self) -> None:
+        try:
+            self.thumb_canvas.configure(scrollregion=self.thumb_canvas.bbox("all"))
+        except Exception:
+            return
 
     def _ensure_selection(self) -> bool:
         if not self.selected_positions:
@@ -656,7 +671,7 @@ class PageOrganizerPanel(ttk.Frame):
         if not save_path:
             return
         payload = {
-            "app": "Gokul Omni Convert Lite",
+            "app": "GO Omni Pro",
             "feature": "organizer_layout",
             "created_at": datetime.now().isoformat(timespec="seconds"),
             "source_pdf_name": self.source_pdf.name,

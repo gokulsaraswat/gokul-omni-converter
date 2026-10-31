@@ -39,7 +39,7 @@ class FirstLaunchSplashWindow(tk.Toplevel):
         self._gif_after_id: str | None = None
         self._close_after_id: str | None = None
 
-        self.title("Gokul Omni Convert Lite")
+        self.title("GO Omni Pro")
         self.geometry("620x360")
         self.resizable(False, False)
         self.transient(master)
@@ -58,7 +58,7 @@ class FirstLaunchSplashWindow(tk.Toplevel):
         card.grid_columnconfigure(0, weight=1)
         card.grid_rowconfigure(1, weight=1)
 
-        ttk.Label(card, text="Welcome to Gokul Omni Convert Lite", style="CardTitle.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(card, text="Welcome to GO Omni Pro", style="CardTitle.TLabel").grid(row=0, column=0, sticky="w")
         self.image_label = ttk.Label(card, anchor="center")
         self.image_label.grid(row=1, column=0, sticky="nsew", pady=(14, 8))
         self.caption_label = ttk.Label(

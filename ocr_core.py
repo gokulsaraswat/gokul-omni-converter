@@ -22,7 +22,7 @@ ProgressFn = Callable[[int, int], None]
 LogFn = Callable[[str], None]
 
 
-@dataclass(slots=True)
+@dataclass()
 class OcrConfig:
     language: str = "eng"
     dpi: int = 220
@@ -55,6 +55,28 @@ def _language_tokens(language: str) -> list[str]:
 
 def _is_pytesseract_wrapper(path: Path) -> bool:
     return path.name.strip().lower() == "pytesseract.exe"
+
+
+def _platform_tesseract_paths() -> tuple[str, ...]:
+    """Where Tesseract installs itself when it is not on PATH."""
+    if sys.platform == "darwin":
+        return ("/opt/homebrew/bin/tesseract", "/usr/local/bin/tesseract", "/opt/local/bin/tesseract")
+    if os.name == "nt":
+        return (
+            r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+            r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+        )
+    return ("/usr/bin/tesseract", "/usr/local/bin/tesseract", "/snap/bin/tesseract")
+
+
+_PLATFORM_TESSERACT_PATHS = _platform_tesseract_paths()
+
+
+def _first_existing(candidates: tuple[str, ...]) -> str | None:
+    for candidate in candidates:
+        if Path(candidate).exists():
+            return candidate
+    return None
 
 
 def _candidate_tessdata_dirs(binary_path: Path) -> list[Path]:
@@ -183,7 +205,7 @@ def detect_tesseract_status(configured_path: str | Path | None = None, language:
     if bundled is not None and bool(bundled.get("available")):
         return bundled
 
-    discovered = shutil.which("tesseract")
+    discovered = shutil.which("tesseract") or _first_existing(_PLATFORM_TESSERACT_PATHS)
     if discovered:
         return _validate_tesseract_candidate(discovered, source="PATH", language=language)
 

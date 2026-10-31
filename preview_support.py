@@ -40,7 +40,7 @@ SHEET_EXTENSIONS = {".xlsx", ".xls", ".xlsm", ".csv", ".tsv", ".ods"}
 PRESENTATION_EXTENSIONS = {".pptx", ".ppt", ".odp"}
 
 
-@dataclass(slots=True)
+@dataclass()
 class PreviewResult:
     image: Image.Image
     summary: str

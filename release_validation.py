@@ -20,6 +20,10 @@ CORE_COMPILE_TARGETS = [
     "responsive_ui.py",
     "release_support.py",
     "release_validation.py",
+    "archive_core.py",
+    "rename_organizer_core.py",
+    "ui/kit.py",
+    "ui/dnd.py",
 ]
 
 REQUIRED_RELEASE_FILES = [
@@ -27,16 +31,20 @@ REQUIRED_RELEASE_FILES = [
     "requirements.txt",
     "about_profile.json",
     "remote_assets.json",
+    "LICENSE",
+    "CHANGELOG.md",
     "assets/gokul_header.gif",
     "assets/gokul_splash.gif",
-    "assets/gokul_profile_placeholder.png",
-    "installer/TESSERACT_BUNDLE.md",
-    "installer/PYINSTALLER_BUILD.md",
-    "installer/GokulOmniConvertLite.spec",
+    "assets/logo/go_omni_pro_mark.svg",
+    "assets/logo/go_omni_pro.ico",
+    "assets/logo/go_omni_pro_256.png",
+    "installer/GOOmniPro.spec",
+    "installer/GOOmniPro.iss",
+    "installer/go-omni-pro.desktop",
+    "installer/generate_icons.py",
     "installer/update_manifest.example.json",
     "installer/about_static.json",
     "RELEASE_CHECKLIST.md",
-    "PATCH_37_RELEASE_NOTES.md",
     "build_windows_release.bat",
     "build_linux_release.sh",
 ]
@@ -167,8 +175,8 @@ def _version_consistency(project_root: Path, app_version: str) -> dict[str, Any]
         return _fail("Version consistency", "APP_VERSION not found in app.py")
     required_mentions = [
         "README.md",
-        "PATCH_37_RELEASE_NOTES.md",
-        "installer/INSTALLER_RELEASE_NOTES.md",
+        "CHANGELOG.md",
+        "installer/GOOmniPro.iss",
         "installer/update_manifest.example.json",
         "installer/about_static.json",
     ]
@@ -198,7 +206,7 @@ def run_release_checks(project_root: str | Path | None = None) -> dict[str, Any]
     failed = [item for item in checks if item.get("status") != "passed"]
     return {
         "status": "failed" if failed else "passed",
-        "app": "Gokul Omni Convert Lite",
+        "app": "GO Omni Pro",
         "version": app_version,
         "project_root": str(root),
         "checks": checks,

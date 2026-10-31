@@ -123,7 +123,7 @@ def download_binary_asset(
             raise FileNotFoundError(f"Asset not found: {source_path}")
         data = source_path.read_bytes()
     else:
-        request = urllib.request.Request(normalized, headers={"User-Agent": "GokulOmniConvertLite/2.2"})
+        request = urllib.request.Request(normalized, headers={"User-Agent": "GOOmniPro/2.2"})
         with urllib.request.urlopen(request, timeout=max(3, int(timeout))) as response:
             data = response.read()
 
@@ -153,7 +153,7 @@ def download_text_file(
             raise FileNotFoundError(f"Text source not found: {source_path}")
         text = source_path.read_text(encoding="utf-8")
     else:
-        request = urllib.request.Request(normalized, headers={"User-Agent": "GokulOmniConvertLite/2.2"})
+        request = urllib.request.Request(normalized, headers={"User-Agent": "GOOmniPro/2.2"})
         with urllib.request.urlopen(request, timeout=max(3, int(timeout))) as response:
             text = response.read().decode("utf-8")
 

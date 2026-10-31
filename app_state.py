@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
@@ -9,8 +12,27 @@ from automation_core import add_fingerprints, normalize_preset_record, normalize
 from engagement_core import ensure_install_date, parse_datetime
 from recovery_support import backup_state_file, latest_state_backup, load_latest_backup_json, restore_state_backup, state_backup_dir
 
-APP_NAME = "Gokul Omni Convert Lite"
-APP_STATE_DIR = Path.home() / ".gokul_omni_convert_lite"
+APP_NAME = "GO Omni Pro"
+
+#: Where 2.3.0 and earlier kept state, on every platform. Still read on first launch
+#: so upgrading users keep their presets, history, and settings.
+LEGACY_STATE_DIR = Path.home() / ".gokul_omni_convert_lite"
+
+
+def _default_state_dir() -> Path:
+    """Per-platform state location, following each OS's own convention."""
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "GO Omni Pro"
+    if os.name == "nt":
+        base = os.environ.get("APPDATA")
+        if base:
+            return Path(base) / "GO Omni Pro"
+        return Path.home() / "AppData" / "Roaming" / "GO Omni Pro"
+    base = os.environ.get("XDG_CONFIG_HOME")
+    return (Path(base) if base else Path.home() / ".config") / "go-omni-pro"
+
+
+APP_STATE_DIR = _default_state_dir()
 APP_STATE_PATH = APP_STATE_DIR / "app_state.json"
 MAX_RECENT_JOBS = 30
 MAX_AUTOMATION_EVENTS = 120
@@ -79,7 +101,48 @@ DEFAULT_STATE: dict[str, Any] = {
     "start_page": "home",
     "window_geometry": "",
     "last_page": "home",
+    # Archive tools
+    "archive_output_dir": "",
+    "archive_compression": "normal",
+    "archive_create_subfolder": True,
+    "archive_last_archive": "",
+    # Batch rename & organizer
+    "rename_mode": "pattern",
+    "rename_pattern": "{name}",
+    "rename_find": "",
+    "rename_replace": "",
+    "rename_regex": "",
+    "rename_regex_replacement": "",
+    "rename_case_mode": "lower",
+    "rename_sort_mode": "name",
+    "rename_start_number": 1,
+    "rename_number_padding": 4,
+    "rename_keep_extension": True,
+    "organize_folder": "",
+    "organize_mode": "type",
+    "organize_recursive": False,
 }
+
+
+def migrate_legacy_state_dir(target: Path = APP_STATE_PATH) -> bool:
+    """Copy a pre-2.4.0 state directory to the new location, once.
+
+    Copies rather than moves, so a user who downgrades still has their old data.
+    Returns True when a migration actually happened.
+    """
+    legacy_path = LEGACY_STATE_DIR / "app_state.json"
+    if target.exists() or not legacy_path.exists():
+        return False
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(legacy_path, target)
+        for extra in ("state_backups", "rename_manifests"):
+            source = LEGACY_STATE_DIR / extra
+            if source.is_dir() and not (target.parent / extra).exists():
+                shutil.copytree(source, target.parent / extra)
+    except OSError:
+        return False
+    return True
 
 
 class AppStateStore:
@@ -90,6 +153,7 @@ class AppStateStore:
 
     def load(self) -> dict[str, Any]:
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        migrate_legacy_state_dir(self.path)
         if not self.path.exists():
             self.state = dict(DEFAULT_STATE)
             ensure_install_date(self.state)

@@ -1,6 +1,6 @@
 {
   "theme": "dark",
-  "output_dir": "/mnt/data/work_patch365/gokul_omni_convert_lite_patch36_5/converted_output",
+  "output_dir": "/Users/gokulsaraswat.vc/Documents/Project/gokul-omni-converter/converted_output",
   "recursive_scan": true,
   "image_folder_source_dir": "",
   "image_folder_output_name": "images_combined",
@@ -27,7 +27,7 @@
   "watch_config": {},
   "watch_seen_fingerprints": [],
   "automation_events": [],
-  "install_date": "2026-05-07T08:49:48",
+  "install_date": "2026-08-17T22:17:42",
   "login_popup_dismissed": false,
   "login_popup_completed": false,
   "login_popup_last_shown": "",
@@ -45,13 +45,13 @@
   "restore_last_session": true,
   "cleanup_temp_on_exit": true,
   "recent_outputs": [
-    "/tmp/tmp20i_jd58/outputs/two.pdf",
-    "/tmp/tmp20i_jd58/outputs/one.pdf"
+    "/var/folders/31/hbrv7xq97_5fdb43717hnd4mc61g3c/T/tmp84pnvev3/outputs/two.pdf",
+    "/var/folders/31/hbrv7xq97_5fdb43717hnd4mc61g3c/T/tmp84pnvev3/outputs/one.pdf"
   ],
   "failed_jobs": [
     {
-      "id": "failed_20260507_084948_654827",
-      "timestamp": "2026-05-07 08:49:48",
+      "id": "failed_20260910_225427_274450",
+      "timestamp": "2026-09-10 22:54:27",
       "mode": "PDF Tool -> Compress",
       "job_type": "pdf_tool",
       "input_files": [
@@ -74,8 +74,26 @@
   "activity_report_dir": "",
   "state_backup_enabled": true,
   "state_backup_keep": 12,
-  "last_state_backup": "/tmp/tmp20i_jd58/outputs/state/backups/app_state_20260507_084948_661148.json",
+  "last_state_backup": "/var/folders/31/hbrv7xq97_5fdb43717hnd4mc61g3c/T/tmp84pnvev3/outputs/state/backups/app_state_20260910_225427_286550.json",
   "start_page": "home",
   "window_geometry": "",
-  "last_page": "home"
+  "last_page": "home",
+  "archive_output_dir": "",
+  "archive_compression": "normal",
+  "archive_create_subfolder": true,
+  "archive_last_archive": "",
+  "rename_mode": "pattern",
+  "rename_pattern": "{name}",
+  "rename_find": "",
+  "rename_replace": "",
+  "rename_regex": "",
+  "rename_regex_replacement": "",
+  "rename_case_mode": "lower",
+  "rename_sort_mode": "name",
+  "rename_start_number": 1,
+  "rename_number_padding": 4,
+  "rename_keep_extension": true,
+  "organize_folder": "",
+  "organize_mode": "type",
+  "organize_recursive": false
 }

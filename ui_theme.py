@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
 import tkinter as tk
 from dataclasses import dataclass, replace
 from tkinter import font as tkfont, ttk
@@ -25,46 +27,68 @@ class ThemePalette:
     success: str
     warning: str
     danger: str
+    # Backdrop gradient stops, painted behind the shell and page bodies.
+    gradient_top: str = "#141a3d"
+    gradient_mid: str = "#241a4a"
+    gradient_bottom: str = "#0d1030"
+    #: Light inner edge along the top of a glass card (CSS: inset 0 1px 0 white/20%).
+    glass_highlight: str = "#4e5169"
+    #: Tint used for coloured drop shadows instead of plain black.
+    shadow_tint: str = "#5b63ff"
 
 
 DARK_THEME = ThemePalette(
     name="dark",
-    root_bg="#0f172a",
-    surface="#111827",
-    surface_alt="#1f2937",
-    sidebar="#0b1220",
-    border="#263245",
-    text="#f8fafc",
-    text_muted="#cbd5e1",
-    accent="#3b82f6",
-    accent_hover="#2563eb",
+    # Deep translucent navy/violet field, not flat black.
+    root_bg="#161a3a",
+    # Card colours are the literal result of compositing white over root_bg at the
+    # alphas a CSS glass panel would use -- Tk cannot blur, but on a fixed backdrop
+    # the resulting pixels are identical.
+    surface="#292c4a",       # white 8%
+    surface_alt="#323552",   # white 12%
+    sidebar="#0e1126",
+    border="#3b3f5a",        # white 16%
+    text="#ffffff",
+    text_muted="#a6a8b4",    # white 62%
+    accent="#6d5efc",
+    accent_hover="#8175ff",
     accent_text="#ffffff",
-    selection="#1d4ed8",
-    input_bg="#0b1324",
-    code_bg="#0b1324",
-    success="#22c55e",
-    warning="#f59e0b",
-    danger="#ef4444",
+    selection="#3a3480",
+    input_bg="#1e2142",
+    code_bg="#12152e",
+    success="#4ade80",
+    warning="#fbbf24",
+    danger="#fb7185",
+    gradient_top="#1b2350",
+    gradient_mid="#2a1f52",
+    gradient_bottom="#0b0e26",
+    glass_highlight="#4e5169",
+    shadow_tint="#6d5efc",
 )
 
 LIGHT_THEME = ThemePalette(
     name="light",
-    root_bg="#f3f4f6",
-    surface="#ffffff",
-    surface_alt="#e5e7eb",
-    sidebar="#e5e7eb",
-    border="#d1d5db",
-    text="#111827",
-    text_muted="#4b5563",
-    accent="#2563eb",
-    accent_hover="#1d4ed8",
+    root_bg="#e7ecfb",
+    surface="#f8f9fe",       # white 70%
+    surface_alt="#eef1fb",
+    sidebar="#dde4f7",
+    border="#c9d2ee",
+    text="#10142c",
+    text_muted="#565c7a",
+    accent="#5b4bd6",
+    accent_hover="#4a3ac2",
     accent_text="#ffffff",
-    selection="#bfdbfe",
+    selection="#c7cdfa",
     input_bg="#ffffff",
-    code_bg="#f8fafc",
+    code_bg="#f3f5fd",
     success="#15803d",
     warning="#b45309",
-    danger="#b91c1c",
+    danger="#be123c",
+    gradient_top="#dbe7ff",
+    gradient_mid="#e9dcff",
+    gradient_bottom="#f6f8ff",
+    glass_highlight="#ffffff",
+    shadow_tint="#8b93d6",
 )
 
 HIGH_CONTRAST_DARK_THEME = replace(
@@ -79,12 +103,19 @@ HIGH_CONTRAST_DARK_THEME = replace(
     text_muted="#dfe9f6",
     accent="#5ea7ff",
     accent_hover="#7db9ff",
+    # The bright accent needs dark text on it; white would only reach 2.5:1.
+    accent_text="#00040d",
     selection="#1f6feb",
     input_bg="#000000",
     code_bg="#000000",
     success="#33dd77",
     warning="#ffb020",
     danger="#ff6363",
+    gradient_top="#000000",
+    gradient_mid="#000000",
+    gradient_bottom="#000000",
+    glass_highlight="#5b728f",
+    shadow_tint="#000000",
 )
 
 HIGH_CONTRAST_LIGHT_THEME = replace(
@@ -106,10 +137,28 @@ HIGH_CONTRAST_LIGHT_THEME = replace(
     success="#0f7a36",
     warning="#945200",
     danger="#a40f1a",
+    gradient_top="#ffffff",
+    gradient_mid="#ffffff",
+    gradient_bottom="#ffffff",
+    glass_highlight="#ffffff",
+    shadow_tint="#44556a",
 )
 
 
 def detect_system_theme() -> str:
+    if sys.platform == "darwin":
+        # AppleInterfaceStyle only exists while dark mode is on; `defaults` exits
+        # non-zero in light mode, which is the signal we want.
+        try:
+            result = subprocess.run(
+                ["defaults", "read", "-g", "AppleInterfaceStyle"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+            return "dark" if "dark" in (result.stdout or "").strip().lower() else "light"
+        except Exception:
+            return "light"
     if os.name == "nt":
         try:
             import winreg
@@ -545,3 +594,228 @@ def apply_treeview_tag_colors(tree: ttk.Treeview, palette: ThemePalette) -> None
     tree.tag_configure("success", foreground=palette.success)
     tree.tag_configure("warn", foreground=palette.warning)
     tree.tag_configure("error", foreground=palette.danger)
+
+
+# ---------------------------------------------------------------------------
+# CustomTkinter design system
+#
+# Single source of truth for the CTk widget layer: spacing, radii, fonts, and
+# per-variant widget colours, all derived from the ThemePalette values above so
+# ttk-only widgets (Treeview, Listbox, Text) stay visually consistent with the
+# CTk widgets around them. Pages must read these tokens rather than hardcoding.
+# ---------------------------------------------------------------------------
+
+# 4px base scale.
+SPACING = {"xs": 4, "sm": 8, "md": 14, "lg": 20, "xl": 28, "xxl": 40}
+
+RADIUS = {"none": 0, "sm": 8, "md": 12, "lg": 16, "xl": 20, "pill": 100}
+
+# Preferred UI faces per platform, most-preferred first. resolve_font_family()
+# picks the first one Tk actually has, so a missing font never renders as a
+# fallback serif.
+#: Thin display faces for large hero numerals (Tk only knows normal/bold, so a
+#: lighter *family* is the only way to get a 200-300 weight).
+THIN_FONT_STACK = (
+    "SF Pro Display Thin",
+    "HelveticaNeue-Thin",
+    "Helvetica Neue Thin",
+    "Inter Light",
+    "Segoe UI Light",
+    "Roboto Thin",
+)
+
+FONT_STACK = (
+    "SF Pro Text",
+    "SF Pro Display",
+    "Inter",
+    "Segoe UI Variable Text",
+    "Segoe UI",
+    ".AppleSystemUIFont",
+    "Helvetica Neue",
+    "Ubuntu",
+    "Cantarell",
+    "Noto Sans",
+    "DejaVu Sans",
+)
+
+MONO_FONT_STACK = (
+    "JetBrains Mono",
+    "Cascadia Mono",
+    "Consolas",
+    "SF Mono",
+    "Menlo",
+    "Ubuntu Mono",
+    "DejaVu Sans Mono",
+    "Courier New",
+)
+
+# Logical size names -> base point size at 100% scale, before compact/scale adjustment.
+FONT_SIZES = {
+    "hero": 40,
+    "display": 26,
+    "title": 17,
+    "heading": 13,
+    "subheading": 11,
+    "body": 11,
+    "small": 10,
+    "tiny": 9,
+}
+
+_FONT_FAMILY_CACHE: dict[str, str] = {}
+
+
+def resolve_font_family(root: tk.Misc | None = None, mono: bool = False, thin: bool = False) -> str:
+    """Return the first font in the stack that this Tk install actually has."""
+    cache_key = "mono" if mono else ("thin" if thin else "ui")
+    cached = _FONT_FAMILY_CACHE.get(cache_key)
+    if cached:
+        return cached
+
+    stack = MONO_FONT_STACK if mono else (THIN_FONT_STACK if thin else FONT_STACK)
+    available: set[str] = set()
+    try:
+        available = {name.lower() for name in tkfont.families(root)}
+    except Exception:
+        available = set()
+
+    chosen = ""
+    for candidate in stack:
+        if candidate.lower() in available:
+            chosen = candidate
+            break
+    if not chosen and thin:
+        # No thin face available; fall back to the regular UI family.
+        chosen = resolve_font_family(root, mono=False)
+    if not chosen:
+        try:
+            chosen = tkfont.nametofont("TkFixedFont" if mono else "TkDefaultFont").cget("family")
+        except Exception:
+            chosen = "Courier" if mono else "Helvetica"
+
+    _FONT_FAMILY_CACHE[cache_key] = chosen
+    return chosen
+
+
+def reset_font_cache() -> None:
+    """Drop the resolved-family cache (used by tests and by font-setting changes)."""
+    _FONT_FAMILY_CACHE.clear()
+
+
+def font_spec(
+    role: str = "body",
+    *,
+    weight: str = "normal",
+    compact: bool = False,
+    scale: float = 1.0,
+    mono: bool = False,
+    thin: bool = False,
+    root: tk.Misc | None = None,
+) -> tuple[str, int, str]:
+    """A (family, size, weight) tuple usable anywhere Tk accepts a font."""
+    scale = min(max(float(scale or 1.0), 0.85), 1.6)
+    base = FONT_SIZES.get(role, FONT_SIZES["body"])
+    if compact:
+        base = max(8, base - 1)
+    return (resolve_font_family(root, mono=mono, thin=thin), _scaled(base, scale), weight)
+
+
+def space(name: str, scale: float = 1.0) -> int:
+    """Scaled spacing token. Unknown names fall back to the medium step."""
+    return _scaled(SPACING.get(name, SPACING["md"]), min(max(float(scale or 1.0), 0.85), 1.6))
+
+
+def is_dark(palette: ThemePalette) -> bool:
+    return palette.name.startswith("dark")
+
+
+def appearance_mode(palette: ThemePalette) -> str:
+    """CustomTkinter's global light/dark switch for the given palette."""
+    return "dark" if is_dark(palette) else "light"
+
+
+def surface_hover(palette: ThemePalette) -> str:
+    """Hover tint for neutral surfaces, lightening on dark and darkening on light."""
+    return _mix(palette.surface_alt, palette.text, 0.10 if is_dark(palette) else 0.06)
+
+
+def surface_pressed(palette: ThemePalette) -> str:
+    return _mix(palette.surface_alt, palette.text, 0.18 if is_dark(palette) else 0.12)
+
+
+def button_colors(palette: ThemePalette, variant: str = "primary") -> dict[str, str]:
+    """fg/hover/text/border colours for a CTkButton of the given variant.
+
+    Variants: primary (the one obvious action), secondary (neutral, repeatable),
+    danger (destructive), ghost (low-emphasis / inline), success.
+    """
+    variant = (variant or "primary").strip().lower()
+    if variant == "primary":
+        return {
+            "fg_color": palette.accent,
+            "hover_color": palette.accent_hover,
+            "text_color": palette.accent_text,
+            "border_color": palette.accent,
+        }
+    if variant == "danger":
+        return {
+            "fg_color": palette.danger,
+            "hover_color": _mix(palette.danger, "#000000", 0.18),
+            "text_color": "#ffffff",
+            "border_color": palette.danger,
+        }
+    if variant == "success":
+        return {
+            "fg_color": palette.success,
+            "hover_color": _mix(palette.success, "#000000", 0.18),
+            "text_color": "#ffffff",
+            "border_color": palette.success,
+        }
+    if variant == "ghost":
+        return {
+            "fg_color": "transparent",
+            "hover_color": surface_hover(palette),
+            "text_color": palette.text_muted,
+            "border_color": palette.border,
+        }
+    # secondary
+    return {
+        "fg_color": palette.surface_alt,
+        "hover_color": surface_hover(palette),
+        "text_color": palette.text,
+        "border_color": palette.border,
+    }
+
+
+def entry_colors(palette: ThemePalette) -> dict[str, str]:
+    return {
+        "fg_color": palette.input_bg,
+        "border_color": palette.border,
+        "text_color": palette.text,
+        "placeholder_text_color": palette.text_muted,
+    }
+
+
+def card_colors(palette: ThemePalette) -> dict[str, str]:
+    return {"fg_color": palette.surface, "border_color": palette.border}
+
+
+def apply_ctk_theme(palette: ThemePalette, *, compact: bool = False, scale: float = 1.0) -> None:
+    """Point CustomTkinter's globals at the active palette.
+
+    Widget colours are still passed explicitly by ui/kit.py -- this only covers the
+    handful of places CTk paints from its own globals (dropdown menus, scaling).
+    Import is local so ui_theme stays importable in headless/test contexts.
+    """
+    try:
+        import customtkinter as ctk
+    except Exception:
+        return
+
+    try:
+        ctk.set_appearance_mode(appearance_mode(palette))
+    except Exception:
+        pass
+    # Deliberately NOT calling ctk.set_widget_scaling(): this design system already
+    # scales fonts (font_spec) and spacing (space()) by the same factor, so letting
+    # CustomTkinter rescale as well would double-apply it -- and its global rescale
+    # walks and redraws every widget in the app, which is very slow at this size.

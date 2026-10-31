@@ -36,7 +36,7 @@ ProgressFn = Callable[[int, int], None]
 LogFn = Callable[[str], None]
 
 
-@dataclass(slots=True)
+@dataclass()
 class ImageFolderPdfConfig:
     source_dir: Path
     output_dir: Path

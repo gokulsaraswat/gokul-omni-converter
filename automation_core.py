@@ -14,7 +14,7 @@ from converter_core import ENGINE_AUTO, MODE_ANY_TO_PDF, supported_extensions_fo
 MAX_SEEN_FINGERPRINTS = 5000
 
 
-@dataclass(slots=True)
+@dataclass()
 class PresetRecord:
     name: str
     mode: str = MODE_ANY_TO_PDF
@@ -33,7 +33,7 @@ class PresetRecord:
         return asdict(self)
 
 
-@dataclass(slots=True)
+@dataclass()
 class WatchFolderConfig:
     source_dir: str = ""
     output_dir: str = ""
@@ -210,7 +210,7 @@ def write_run_report(job: dict[str, object], destination: Path) -> Path:
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     lines: list[str] = [
-        "Gokul Omni Convert Lite Run Report",
+        "GO Omni Pro Run Report",
         "=" * 36,
         "",
     ]

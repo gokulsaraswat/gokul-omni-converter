@@ -1,8 +1,8 @@
 {
-  "version": "2.3.0",
-  "published_at": "2026-05-07T09:41:46",
-  "notes": "Patch 37 release-readiness build. Replace this local example with your hosted release manifest when publishing.",
+  "version": "2.4.0",
+  "published_at": "2026-08-18T11:10:41",
+  "notes": "Replace this JSON with your own release feed later. Keep the version string ahead of the app build when you want the checker to surface an update.",
   "download_url": "",
   "changelog_url": "",
-  "min_supported_version": "2.2.6"
+  "min_supported_version": ""
 }

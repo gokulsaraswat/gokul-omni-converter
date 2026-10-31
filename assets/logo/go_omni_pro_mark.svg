@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="GO Omni Pro">
+  <title>GO Omni Pro</title>
+  <desc>Document sheet inside a circular convert arrow, on an indigo-to-violet badge.</desc>
+  <defs>
+    <linearGradient id="gopBadge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="55%" stop-color="#6d28d9"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="gopSheet" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#ede9fe"/>
+    </linearGradient>
+  </defs>
+
+  <!-- badge -->
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#gopBadge)"/>
+  <rect x="9.5" y="9.5" width="237" height="237" rx="54.5" fill="none"
+        stroke="#ffffff" stroke-opacity="0.20" stroke-width="3"/>
+
+  <!-- circular convert arrow: drawn first so the sheet sits inside the ring -->
+  <g stroke-linecap="round">
+    <path d="M196.9 91.9 A76 76 0 1 1 147.7 50.6" fill="none"
+          stroke="#ffffff" stroke-opacity="0.30" stroke-width="15"/>
+    <path d="M196.9 91.9 A76 76 0 1 1 147.7 50.6" fill="none"
+          stroke="#ffffff" stroke-width="15" stroke-dasharray="160 600" stroke-dashoffset="-251"/>
+  </g>
+  <path d="M169 56.3 L137.5 65.4 L146.3 32.6 Z" fill="#ffffff"/>
+
+  <!-- document sheet with folded corner -->
+  <path d="M100 74 H142 L170 102 V160 A14 14 0 0 1 156 174 H100 A14 14 0 0 1 86 160 V88 A14 14 0 0 1 100 74 Z"
+        fill="url(#gopSheet)"/>
+  <path d="M142 74 L170 102 H152 A10 10 0 0 1 142 92 Z" fill="#c4b5fd"/>
+  <g stroke="#7c3aed" stroke-width="8" stroke-linecap="round" opacity="0.5">
+    <line x1="104" y1="118" x2="152" y2="118"/>
+    <line x1="104" y1="138" x2="152" y2="138"/>
+    <line x1="104" y1="158" x2="132" y2="158"/>
+  </g>
+</svg>

@@ -28,7 +28,7 @@ class PreviewCenterWindow(tk.Toplevel):
         self.scale = scale
         self.open_path_callback = open_path_callback
 
-        self.title("Gokul Omni Convert Lite - Preview Center")
+        self.title("GO Omni Pro - Preview Center")
         self.geometry("1240x820")
         self.minsize(980, 620)
 

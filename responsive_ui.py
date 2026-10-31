@@ -148,6 +148,12 @@ def bind_responsive_wrap(
         wrap = max(int(min_wrap), int(available))
         if cap is not None and cap > 0:
             wrap = min(wrap, int(cap))
+        # Setting wraplength resizes the label, which re-fires <Configure> and calls
+        # this again. Without this guard a font change (compact mode, UI scale) can
+        # start a resize loop that never settles.
+        if wrap == getattr(widget, "_gokul_wrap_applied", None):
+            return
+        setattr(widget, "_gokul_wrap_applied", wrap)
         try:
             widget.configure(wraplength=wrap)
         except Exception:
@@ -219,6 +225,7 @@ class FlowButtonBar(ttk.Frame):
     def add(self, widget: tk.Widget) -> tk.Widget:
         if widget not in self._items:
             self._items.append(widget)
+        self._layout_signature = None
         self._schedule_layout()
         return widget
 
@@ -229,6 +236,7 @@ class FlowButtonBar(ttk.Frame):
             except Exception:
                 pass
         self._items.clear()
+        self._layout_signature = None
         self._schedule_layout()
 
     def _schedule_layout(self, _event=None) -> None:
@@ -243,16 +251,27 @@ class FlowButtonBar(ttk.Frame):
         self._layout_after = None
         if not self.winfo_exists():
             return
-        try:
-            self.update_idletasks()
-        except Exception:
-            pass
+        # Deliberately no update_idletasks() here. It used to be called to get exact
+        # widget metrics, but it flushes pending <Configure> events, which schedule
+        # another layout pass -- an event storm that never drains. Slightly stale
+        # metrics are fine: the <Configure> that follows this pass corrects them.
+        if getattr(self, "_relayout_active", False):
+            return
+        self._relayout_active = True
         width = resolve_flow_layout_width(
             self.winfo_width(),
             getattr(self.master, "winfo_width", lambda: 0)(),
             self.winfo_reqwidth(),
             min_width=max(180, self.button_min_width or 0),
         )
+        # Re-gridding fires <Configure>, which schedules another pass. Without this
+        # check two bars can keep re-triggering each other and never settle.
+        signature = (width, len(self._items))
+        if signature == getattr(self, "_layout_signature", None):
+            self._relayout_active = False
+            return
+        self._layout_signature = signature
+
         for widget in self._items:
             widget.grid_forget()
 
@@ -281,6 +300,7 @@ class FlowButtonBar(ttk.Frame):
             self.grid_columnconfigure(0, weight=1)
         for column in range(max_columns):
             self.grid_columnconfigure(column, uniform=str(id(self)))
+        self._relayout_active = False
 
 
 class AnimatedGifLabel(ttk.Label):
