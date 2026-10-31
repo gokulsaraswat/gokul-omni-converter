@@ -6,10 +6,6 @@ from typing import Any
 
 ABOUT_PROFILE_PATH = Path(__file__).with_name("about_profile.json")
 
-#: Development credit shown on the About page. Deliberately separate from the
-#: profile fields so it is never mistaken for the author's own details.
-DEVELOPMENT_CREDIT = "Built with development assistance from Claude (Anthropic)."
-
 #: The only profile fields GO Omni Pro carries: who made it, how to reach them,
 #: and where to find them. There is intentionally no company, job title, handle,
 #: or bio -- those were placeholder fields and have been removed from the model.

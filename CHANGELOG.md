@@ -8,6 +8,7 @@ All notable changes to GO Omni Pro. Format loosely follows
 Product polish release. Renamed, restyled, and given two new tool families.
 
 ### Added
+- `tests/test_cores.py` (archive + rename/organize) and `tests/test_ui_smoke.py` (headless: all pages, themes, scrolling, no input grab).
 - **Archive tools** (`archive_core.py` + Archive page): create `.zip` from files or a
   folder, inspect archive contents before extracting, extract to a chosen folder, and
   batch-compress sibling folders into one archive each. Pure stdlib `zipfile`, with
@@ -65,6 +66,7 @@ Product polish release. Renamed, restyled, and given two new tool families.
   around a hero, three at-a-glance stat tiles, and grouped actions.
 
 ### Fixed
+- Compact mode / UI-scale changes could freeze the app: `bind_responsive_wrap` re-fired `<Configure>` in a loop. It now skips no-op `wraplength` updates.
 - **Redraw loops that could hang the window.** Several widgets called
   `update_idletasks()` from inside a redraw, which flushes the `<Configure>` events that
   trigger that same redraw. A theme, font, or scale change could set off a cascade that
@@ -90,6 +92,7 @@ Product polish release. Renamed, restyled, and given two new tool families.
   handler, which generated further Configure events; it is now debounced and idempotent.
 
 ### Removed
+- Development-credit line from the About page, `installer/about_static.json`, and the README.
 - All Oracle placeholder data from `about_profile.json` and `installer/about_static.json`.
 - Dead modules and docs: `patch10_gui.py`, `patch10_services.py`, `smoke_test_patch10.py`,
   `release_check.py`, `packaging_core.py`, five root-level patch reports, five

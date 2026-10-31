@@ -24,7 +24,6 @@ from PIL import Image, ImageTk
 
 from about_profile import (
     ABOUT_PROFILE_PATH,
-    DEVELOPMENT_CREDIT,
     load_about_profile,
     resolve_profile_image,
     save_about_profile,
@@ -1420,7 +1419,6 @@ class GOOmniProApp(ctk.CTk):
                 "email": str(self.about_profile.get("email", "")),
                 "image_path": str(self.about_profile.get("image_path", "")),
                 "links": list(self.about_profile.get("links", [])),
-                "credit": DEVELOPMENT_CREDIT,
                 "generated_at": datetime.now().isoformat(timespec="seconds"),
             }
             self.static_about_profile_path.write_text(json.dumps(snapshot, indent=2), encoding="utf-8")

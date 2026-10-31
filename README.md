@@ -118,6 +118,4 @@ Built by **Gokul Saraswat** — [gokulsaraswat.com](https://gokulsaraswat.com) �
 [LinkedIn](https://linkedin.com/in/gokulsaraswat) ·
 [gokulsaraswat07@gmail.com](mailto:gokulsaraswat07@gmail.com)
 
-Built with development assistance from Claude (Anthropic).
-
 Licensed under the [MIT License](LICENSE). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
