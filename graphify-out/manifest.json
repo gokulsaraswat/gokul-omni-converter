@@ -1,8 +1,8 @@
 {
   ".claude-session.json": {
-    "mtime": 1789058840.8872757,
-    "seen": 1793116986.152909,
-    "ast_hash": "b6f68e2a7e92a9b177cc57e64b562dc7",
+    "mtime": 1793460656.9283738,
+    "seen": 1793460687.299883,
+    "ast_hash": "5711195cc86162266e9a66d807d5a51e",
     "semantic_hash": ""
   },
   ".claude-session.template.json": {
@@ -18,15 +18,15 @@
     "semantic_hash": ""
   },
   "about_profile.py": {
-    "mtime": 1786985938.2150156,
-    "seen": 1793116986.152915,
-    "ast_hash": "47c46276cc3bf2c5c3bbf2a7113ae860",
+    "mtime": 1793460532.2655013,
+    "seen": 1793460687.299892,
+    "ast_hash": "cbea83347bb85f5f3fb019187c23cba8",
     "semantic_hash": ""
   },
   "app.py": {
-    "mtime": 1787011545.632822,
-    "seen": 1793116986.152915,
-    "ast_hash": "f9ed84279b5a57c3217af8ec800c4b04",
+    "mtime": 1793460516.4073856,
+    "seen": 1793460687.299893,
+    "ast_hash": "d641a4f6d533c9aaef26cf708d98c29c",
     "semantic_hash": ""
   },
   "app_state.py": {
@@ -108,9 +108,9 @@
     "semantic_hash": ""
   },
   "installer/about_static.json": {
-    "mtime": 1789061063.8023841,
-    "seen": 1793116986.1529238,
-    "ast_hash": "4ec89d9baa7a66c2ffd5f3b1a87d9e7d",
+    "mtime": 1793460550.6227894,
+    "seen": 1793460687.299904,
+    "ast_hash": "6e67d7af17cae8f94ef4229ceaaa3bac",
     "semantic_hash": ""
   },
   "installer/generate_icons.py": {
@@ -192,8 +192,8 @@
     "semantic_hash": ""
   },
   "remote_assets.json": {
-    "mtime": 1789061061.2106838,
-    "seen": 1793116986.1529331,
+    "mtime": 1793460547.019107,
+    "seen": 1793460687.299916,
     "ast_hash": "567be2a366551eaf26a70c9069914689",
     "semantic_hash": ""
   },
@@ -213,144 +213,6 @@
     "mtime": 1787004910.6419718,
     "seen": 1793116986.152935,
     "ast_hash": "7e4a29c439e8f958de5010662e46e6df",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/automation_presets/presets.json": {
-    "mtime": 1789061067.2457767,
-    "seen": 1793116986.152935,
-    "ast_hash": "82b82748a142858436c2b73ee3697c92",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/diagnostics/diagnostics.json": {
-    "mtime": 1789061067.979677,
-    "seen": 1793116986.152936,
-    "ast_hash": "1d9ed63f117f835c55d5619abc85d9ed",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/diagnostics/patch15_cache_summary.json": {
-    "mtime": 1789061067.8403225,
-    "seen": 1793116986.152936,
-    "ast_hash": "29f228ef9708290fc8777f80a8511ed5",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/about_profile.json": {
-    "mtime": 1789061067.8423703,
-    "seen": 1793116986.152937,
-    "ast_hash": "6734a76365b53cdf93d7c2656d756667",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/app_state.json": {
-    "mtime": 1789061067.8417122,
-    "seen": 1793116986.152937,
-    "ast_hash": "7fd79d281b4caea0e90ce0e0035df52a",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/imported_bundle/about_profile.json": {
-    "mtime": 1789061067.8974144,
-    "seen": 1793116986.152938,
-    "ast_hash": "6734a76365b53cdf93d7c2656d756667",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/imported_bundle/app_state.json": {
-    "mtime": 1789061067.8963656,
-    "seen": 1793116986.152939,
-    "ast_hash": "7fd79d281b4caea0e90ce0e0035df52a",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/imported_bundle/installer/about_static.json": {
-    "mtime": 1789061067.8982882,
-    "seen": 1793116986.152939,
-    "ast_hash": "b5f40603fcf2e2c5533c389f4eea8f31",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/imported_bundle/installer/about_static_7.json": {
-    "mtime": 1789061067.8999527,
-    "seen": 1793116986.15294,
-    "ast_hash": "b5f40603fcf2e2c5533c389f4eea8f31",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/imported_bundle/installer/update_manifest.example.json": {
-    "mtime": 1789061067.9002473,
-    "seen": 1793116986.152941,
-    "ast_hash": "be445cd26cce1d2a926378a73149e8d3",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/imported_bundle/installer/update_manifest.example_10.json": {
-    "mtime": 1789061067.900913,
-    "seen": 1793116986.152941,
-    "ast_hash": "be445cd26cce1d2a926378a73149e8d3",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/imported_bundle/remote_assets.json": {
-    "mtime": 1789061067.898738,
-    "seen": 1793116986.1529422,
-    "ast_hash": "567be2a366551eaf26a70c9069914689",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/imported_bundle/workspace_manifest.json": {
-    "mtime": 1789061067.8957744,
-    "seen": 1793116986.1529431,
-    "ast_hash": "6a861556a14f502431ca72651798e3d9",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/installer/about_static.json": {
-    "mtime": 1789061067.8431833,
-    "seen": 1793116986.1529431,
-    "ast_hash": "b5f40603fcf2e2c5533c389f4eea8f31",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/installer/update_manifest.example.json": {
-    "mtime": 1789061067.851243,
-    "seen": 1793116986.152944,
-    "ast_hash": "be445cd26cce1d2a926378a73149e8d3",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/remote_assets.json": {
-    "mtime": 1789061067.8435578,
-    "seen": 1793116986.152944,
-    "ast_hash": "567be2a366551eaf26a70c9069914689",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch18_accessibility/app_state.json": {
-    "mtime": 1789061067.9111114,
-    "seen": 1793116986.1529448,
-    "ast_hash": "4738476902fad47a43b4ecc5bf9f9feb",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch18_accessibility/backup_report.json": {
-    "mtime": 1789061067.932467,
-    "seen": 1793116986.1529448,
-    "ast_hash": "7c78c57772d9cb111bbd4dd04008d8ae",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pulled_about.json": {
-    "mtime": 1789061066.2241938,
-    "seen": 1793116986.152946,
-    "ast_hash": "28a8cb40adc030b5ec28ee64715eb60c",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/remote_assets.json": {
-    "mtime": 1789061066.1929402,
-    "seen": 1793116986.152946,
-    "ast_hash": "661fab96431fc6a6a617c59966a7f7d0",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/state/app_state.json": {
-    "mtime": 1789061067.2927945,
-    "seen": 1793116986.152947,
-    "ast_hash": "b2d1ba5f2f9cbf38fe41ed870a1f927c",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/state/patch15_app_state.json": {
-    "mtime": 1789061067.8393388,
-    "seen": 1793116986.152948,
-    "ast_hash": "33778c1267412d44e757f34ed99444f2",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/state_snapshot/settings_snapshot.json": {
-    "mtime": 1789061067.250551,
-    "seen": 1793116986.152948,
-    "ast_hash": "97726e83a3b7a423f2e6a5f810a0fb73",
     "semantic_hash": ""
   },
   "start_linux.sh": {
@@ -498,8 +360,8 @@
     "semantic_hash": ""
   },
   ".project-architecture.md": {
-    "mtime": 1793460261.4209032,
-    "seen": 1793460270.603015,
+    "mtime": 1793460698.4321055,
+    "seen": 1793460700.539713,
     "ast_hash": "5b9d2da8a9a8810f560f8909dde43d7b",
     "semantic_hash": ""
   },
@@ -510,9 +372,9 @@
     "semantic_hash": ""
   },
   "CHANGELOG.md": {
-    "mtime": 1787011645.2065077,
-    "seen": 1793116986.152979,
-    "ast_hash": "0a79fffd6c80bbeb9d2569932a06101b",
+    "mtime": 1793460532.268458,
+    "seen": 1793460687.299941,
+    "ast_hash": "7ebf7a984ee5f51e6150eaf8a92d118b",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -522,9 +384,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1786987926.9489577,
-    "seen": 1793116986.152982,
-    "ast_hash": "d04cae3e39060edb297f40ca8cdc5951",
+    "mtime": 1793460516.4175007,
+    "seen": 1793460687.299943,
+    "ast_hash": "ea702b6f9178a232058330e0a290b432",
     "semantic_hash": ""
   },
   "RELEASE_CHECKLIST.md": {
@@ -540,9 +402,9 @@
     "semantic_hash": ""
   },
   "gsclaude/.prompts.md": {
-    "mtime": 1789058276.9036605,
-    "seen": 1793116986.1529841,
-    "ast_hash": "3d356e5edfc4f642c778a69db1a3be8e",
+    "mtime": 1793460656.8471868,
+    "seen": 1793460687.2999501,
+    "ast_hash": "fbb1d490639b438189cc7f902b864145",
     "semantic_hash": ""
   },
   "gsclaude/CLAUDE.md": {
@@ -561,324 +423,6 @@
     "mtime": 1786987938.4424446,
     "seen": 1793116986.152985,
     "ast_hash": "341689402860b006ab6e78459515112c",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/automation_report/last_run_report.txt": {
-    "mtime": 1789061067.241243,
-    "seen": 1793116986.152986,
-    "ast_hash": "e7dc921bb7d12a31493cb7f6c9f505fe",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/html_to_md/sample.md": {
-    "mtime": 1789061066.851804,
-    "seen": 1793116986.1529868,
-    "ast_hash": "25e840900922316dda36b4715bfcb3f3",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/link_cache/sample.html": {
-    "mtime": 1789061067.3211591,
-    "seen": 1793116986.1529868,
-    "ast_hash": "6f66ba3fbf1baa752e32521c4ae1cc51",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/link_cache/sample.md": {
-    "mtime": 1789061067.3196502,
-    "seen": 1793116986.152988,
-    "ast_hash": "9a8eb5f269c11f4f9c10e93789d12ff4",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/links_md_to_html/sample.html": {
-    "mtime": 1789061067.3258355,
-    "seen": 1793116986.152988,
-    "ast_hash": "53b7e21a85ec122cf945bc4ea72e8f32",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/logs/patch14_logs.txt": {
-    "mtime": 1789061067.3074574,
-    "seen": 1793116986.152989,
-    "ast_hash": "9f13bb2125f7451e3f846508c136f82f",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/md_to_html/sample.html": {
-    "mtime": 1789061066.855385,
-    "seen": 1793116986.1529899,
-    "ast_hash": "53b7e21a85ec122cf945bc4ea72e8f32",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/footer_notes.md": {
-    "mtime": 1789061067.841995,
-    "seen": 1793116986.1529899,
-    "ast_hash": "71c3d7ed3c80b2def4513f0dad5ce0b0",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/imported_bundle/footer_notes.md": {
-    "mtime": 1789061067.8968954,
-    "seen": 1793116986.152991,
-    "ast_hash": "71c3d7ed3c80b2def4513f0dad5ce0b0",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/imported_bundle/installer/BUILDING.md": {
-    "mtime": 1789061067.8991373,
-    "seen": 1793116986.152991,
-    "ast_hash": "36d5548ffe59a5278f72ca5619290da3",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/installer/BUILDING.md": {
-    "mtime": 1789061067.8438087,
-    "seen": 1793116986.152992,
-    "ast_hash": "36d5548ffe59a5278f72ca5619290da3",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_to_html/sample_multi.html": {
-    "mtime": 1789061066.7995174,
-    "seen": 1793116986.152993,
-    "ast_hash": "4582540d30cc6e936f0c89405ea884ea",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/reports/activity_report.html": {
-    "mtime": 1789061067.9868042,
-    "seen": 1793116986.152993,
-    "ast_hash": "89f9a779e6782ae7099d4f76372ec289",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/any_to_pdf/combined.pdf": {
-    "mtime": 1789061066.7561364,
-    "seen": 1793116986.1529942,
-    "ast_hash": "cce05c6a0b7aeb2dbf9699e3252ae090",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/docx_to_pdf_libreoffice/sample.pdf": {
-    "mtime": 1789061066.932111,
-    "seen": 1793116986.152995,
-    "ast_hash": "0f05c4fd30bde60ccff7d6e351e88b68",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/docx_to_pdf_pure_python/sample.pdf": {
-    "mtime": 1789061066.8856454,
-    "seen": 1793116986.152995,
-    "ast_hash": "0f9f919eb3a0ba2333116aa53ba67399",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/html_to_pdf_explicit/sample.pdf": {
-    "mtime": 1789061066.8762155,
-    "seen": 1793116986.152996,
-    "ast_hash": "a25e07603df063e2cfa1414901aeafad",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/html_to_pdf_pure_python/sample.pdf": {
-    "mtime": 1789061066.896689,
-    "seen": 1793116986.152996,
-    "ast_hash": "63f339f1a35498ca25386f4de7bb781f",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/image_folder_all/all_images.pdf": {
-    "mtime": 1789061066.1030622,
-    "seen": 1793116986.152997,
-    "ast_hash": "867369c8b89ae48a41d7c7aec2d43e0c",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/image_folder_per_folder/nested.pdf": {
-    "mtime": 1789061066.1231773,
-    "seen": 1793116986.152998,
-    "ast_hash": "0189899dc50db8ed85ce0bb34a5c39fc",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/image_folder_per_folder/root_images.pdf": {
-    "mtime": 1789061066.1161454,
-    "seen": 1793116986.152998,
-    "ast_hash": "8920ac514ed8461c4dbcca0c342f3062",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/link_cache/sample.pdf": {
-    "mtime": 1789061067.3174262,
-    "seen": 1793116986.152999,
-    "ast_hash": "e1a9154b0e66c26e221fc390484df53a",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/links_html_to_pdf/sample.pdf": {
-    "mtime": 1789061067.3323767,
-    "seen": 1793116986.152999,
-    "ast_hash": "f6b59d3325818833fb9308e8dbff66a3",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/markdown_to_pdf_pure_python/sample.pdf": {
-    "mtime": 1789061066.8939412,
-    "seen": 1793116986.1529999,
-    "ast_hash": "47adc2c0180a23199e93a6610d353f27",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/md_to_pdf_explicit/sample.pdf": {
-    "mtime": 1789061066.8546076,
-    "seen": 1793116986.1529999,
-    "ast_hash": "dc380a6e30405f099bc73279914bb59f",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/organizer_extract/sample_multi_selected.pdf": {
-    "mtime": 1789061067.1270494,
-    "seen": 1793116986.153001,
-    "ast_hash": "fe6be05a51fb8187baa922ed9f28e5ed",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/organizer_save/sample_multi_organized.pdf": {
-    "mtime": 1789061067.125189,
-    "seen": 1793116986.153002,
-    "ast_hash": "1a93b9bbc74ab652829368c1ab5b61b2",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch365_stability/pngs_to_pdf.pdf": {
-    "mtime": 1789061066.1422808,
-    "seen": 1793116986.153002,
-    "ast_hash": "a27e589f94ea828525cfad36898fce6c",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_compress/sample_multi_compressed.pdf": {
-    "mtime": 1789061067.1225712,
-    "seen": 1793116986.153003,
-    "ast_hash": "4356e674b605c0aec11d691dedc4fdeb",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_edit_metadata/sample_metadata.pdf": {
-    "mtime": 1789061067.0690498,
-    "seen": 1793116986.153003,
-    "ast_hash": "41130fa4fd1c8eeb373482a5111efbeb",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_edit_text/sample_multi_edited_replace.pdf": {
-    "mtime": 1789061067.0581264,
-    "seen": 1793116986.153004,
-    "ast_hash": "389cfae1261e58bafa78bea40b272943",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_extract/sample_multi_extracted.pdf": {
-    "mtime": 1789061066.9515543,
-    "seen": 1793116986.1530051,
-    "ast_hash": "592659f7078bf8c9e18f2bfc7d6c6eec",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_image_overlay/sample_edited_image.pdf": {
-    "mtime": 1789061067.0385609,
-    "seen": 1793116986.1530051,
-    "ast_hash": "050e011691b0833be2a62cb33458bba6",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_lock/sample_locked.pdf": {
-    "mtime": 1789061067.0808413,
-    "seen": 1793116986.153006,
-    "ast_hash": "4bb1294619cd56a4ae4831450d83b7c4",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_merge/merged_tool_output.pdf": {
-    "mtime": 1789061066.9372635,
-    "seen": 1793116986.153006,
-    "ast_hash": "48affaf6e309374283a903f44cdaaa82",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_redact_area/sample_multi_redacted_area.pdf": {
-    "mtime": 1789061067.0521045,
-    "seen": 1793116986.153007,
-    "ast_hash": "b178f7dfb5e82cc193574621e7ab63d0",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_redact_text/sample_multi_redacted.pdf": {
-    "mtime": 1789061067.0486486,
-    "seen": 1793116986.153007,
-    "ast_hash": "6ee1ba0faa298b0531357b2bba7d8280",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_remove/sample_multi_removed.pdf": {
-    "mtime": 1789061066.9638383,
-    "seen": 1793116986.1530082,
-    "ast_hash": "592659f7078bf8c9e18f2bfc7d6c6eec",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_reorder/sample_multi_reordered.pdf": {
-    "mtime": 1789061066.9708915,
-    "seen": 1793116986.153009,
-    "ast_hash": "ab740844245fc8de35f6ee00c51f3420",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_sign_visible/sample_signed.pdf": {
-    "mtime": 1789061067.0670729,
-    "seen": 1793116986.153009,
-    "ast_hash": "8cec6eb7ea6aac356782772c1e888fdb",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_split_every_n/sample_multi_part_001_p1-2.pdf": {
-    "mtime": 1789061066.9440536,
-    "seen": 1793116986.15301,
-    "ast_hash": "6da3088a31c20eed8a21e159a2e2996e",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_split_every_n/sample_multi_part_002_p3-4.pdf": {
-    "mtime": 1789061066.9471889,
-    "seen": 1793116986.15301,
-    "ast_hash": "b78ef4e129552f4b9d4ef35cc44989da",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_split_every_n/sample_multi_part_003_p5-6.pdf": {
-    "mtime": 1789061066.9492881,
-    "seen": 1793116986.1530108,
-    "ast_hash": "db3a686fefeb765c9cdafbb3afb10ee3",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_split_ranges/sample_multi_split_001_p1-2.pdf": {
-    "mtime": 1789061066.9404662,
-    "seen": 1793116986.153012,
-    "ast_hash": "6da3088a31c20eed8a21e159a2e2996e",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_split_ranges/sample_multi_split_002_p3-4.pdf": {
-    "mtime": 1789061066.9413955,
-    "seen": 1793116986.153012,
-    "ast_hash": "b78ef4e129552f4b9d4ef35cc44989da",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_split_ranges/sample_multi_split_003_p5-6.pdf": {
-    "mtime": 1789061066.9423048,
-    "seen": 1793116986.153013,
-    "ast_hash": "db3a686fefeb765c9cdafbb3afb10ee3",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_text_overlay/sample_edited_text.pdf": {
-    "mtime": 1789061067.0296535,
-    "seen": 1793116986.153013,
-    "ast_hash": "3c69a71bd0f0c4eba90583ab0359d53e",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_unlock/sample_locked_unlocked.pdf": {
-    "mtime": 1789061067.1211689,
-    "seen": 1793116986.153014,
-    "ast_hash": "7d47dc2a2d231b2a8b44a870048b7513",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_watermark_image/sample_multi_watermarked.pdf": {
-    "mtime": 1789061067.0251093,
-    "seen": 1793116986.1530151,
-    "ast_hash": "93829a747bc9f8bd3489e92665f5b8ee",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_tool_watermark_text/sample_multi_watermarked.pdf": {
-    "mtime": 1789061066.982615,
-    "seen": 1793116986.1530151,
-    "ast_hash": "d07e1ca69e6a3c4634412423a34f047d",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/presentations_to_pdf_pure_python/sample_presentation.pdf": {
-    "mtime": 1789061066.9029222,
-    "seen": 1793116986.153016,
-    "ast_hash": "18737867075ec124c5e6b8d1f829197f",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/sheets_to_pdf_pure_python/sample.pdf": {
-    "mtime": 1789061066.8917058,
-    "seen": 1793116986.153016,
-    "ast_hash": "057440f9f395328765fadcd51be250ec",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/text_to_pdf/sample.pdf": {
-    "mtime": 1789061066.7588863,
-    "seen": 1793116986.153017,
-    "ast_hash": "d21db71d84e72f7d429a56cf52baf57a",
     "semantic_hash": ""
   },
   "assets/gokul_header.gif": {
@@ -921,60 +465,6 @@
     "mtime": 1786985465.3400958,
     "seen": 1793116986.1530209,
     "ast_hash": "41eea5dba7fb1a3cd457aff94d357fbb",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/links_pdf_to_images/sample_images/sample_page_1.png": {
-    "mtime": 1793440689.641316,
-    "seen": 1793460270.603082,
-    "ast_hash": "37ca26a714b7c688886c1ccccb81c525",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/organizer_export_images/page_001.png": {
-    "mtime": 1793440689.6427412,
-    "seen": 1793460270.603083,
-    "ast_hash": "f898d90a682b489e8ce7d4bd1c18edbc",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/organizer_export_images/page_002.png": {
-    "mtime": 1793440689.6438315,
-    "seen": 1793460270.603084,
-    "ast_hash": "e827ba5675ce2eed8498c77ee666d33e",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/imported_bundle/profile.png": {
-    "mtime": 1789061067.9005673,
-    "seen": 1793116986.153024,
-    "ast_hash": "2986a00b3cd11fa8b3ac079b879af8d3",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch16_release/profile.png": {
-    "mtime": 1789061067.8429115,
-    "seen": 1793116986.153024,
-    "ast_hash": "2986a00b3cd11fa8b3ac079b879af8d3",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch365_stability/plain.png": {
-    "mtime": 1793440689.6450877,
-    "seen": 1793460270.603086,
-    "ast_hash": "421c0a4231e4bae8becdb46642290899",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/patch365_stability/transparent.png": {
-    "mtime": 1793440689.6461823,
-    "seen": 1793460270.6030872,
-    "ast_hash": "811074fc27ee6e0a12c38ff9162eb807",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/pdf_to_images/sample_images/sample_page_1.png": {
-    "mtime": 1793440689.649099,
-    "seen": 1793460270.6030872,
-    "ast_hash": "e2b19dba623383ba1bbde73046e5c666",
-    "semantic_hash": ""
-  },
-  "smoke_test_output_example/presentations_to_images/sample_presentation/sample_presentation_page_1.png": {
-    "mtime": 1793440689.6511908,
-    "seen": 1793460270.603088,
-    "ast_hash": "097d195aaba8ab14902ebef8a15e15c3",
     "semantic_hash": ""
   },
   "AGENTS.md": {
