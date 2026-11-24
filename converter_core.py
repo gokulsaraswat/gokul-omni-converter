@@ -2188,10 +2188,10 @@ def _apply_overlay_to_pages(
     try:
         _copy_pdf_metadata(reader, writer)
         for page_index, page in enumerate(reader.pages):
+            writer.add_page(page)
             if page_index in target_set:
                 overlay_page = overlay_builder(page_index, page)
-                page.merge_page(overlay_page)
-            writer.add_page(page)
+                writer.pages[-1].merge_page(overlay_page)
         with output_pdf.open("wb") as handle:
             writer.write(handle)
     finally:
