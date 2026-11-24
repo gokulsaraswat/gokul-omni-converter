@@ -26,3 +26,7 @@ smoke_test_output/
 # OS
 .DS_Store
 Thumbs.db
+
+# graphify churn
+graphify-out/cache/
+graphify-out/manifest.json
