@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.argv = ["app.py"]
 
 # os._exit() below skips normal flushing; keep stdout unbuffered.
-sys.stdout.reconfigure(line_buffering=True)
+sys.stdout.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
 
 FAILURES: list[str] = []
 

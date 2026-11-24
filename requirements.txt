@@ -1,5 +1,5 @@
 # UI
-customtkinter>=5.2
+customtkinter>=5.2,<6     # 6.0 breaks theme switching (OMN-B-002, OMN-D-004)
 tkinterdnd2>=0.4        # optional: drag-and-drop. The app degrades to click-to-browse without it.
 
 # Conversion engine
