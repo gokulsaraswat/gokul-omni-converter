@@ -1,17 +1,17 @@
-# Graph Report - gokul-omni-converter  (2026-10-31)
+# Graph Report - gokul-omni-converter  (2026-11-24)
 
 ## Corpus Check
-- 78 files · ~100,661 words
+- 78 files · ~101,349 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: (none) 3, .bat 2, .ico 1)
 
 ## Summary
-- 1757 nodes · 4351 edges · 132 communities (78 shown, 54 thin omitted)
+- 1762 nodes · 4356 edges · 132 communities (77 shown, 55 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 79 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9895016d`
+- Built from commit: `ac3d22e9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -27,13 +27,13 @@
 - AppStateStore
 - ocr_core.py
 - ScrollablePage
-- Path
+- converter_core.py
 - ConversionError
 - ._show_page
 - Misc
 - ._log_automation
-- converter_core.py
-- smoke_test.py
+- Path
+- run
 - UIKit
 - REPO SECTIONS
 - ._persist_state
@@ -42,30 +42,30 @@
 - RenameOrganizePage
 - automation_core.py
 - render
-- image_folder_pdf.py
+- PreviewCenterWindow
 - test_cores.py
 - link_ingest.py
 - mail_core.py
-- ._image_folder_worker_run
+- ._resolve_link_cache_dir
 - Animator
 - ._refresh_about_profile
 - build_support.py
-- .configure
+- Any
 - .__init__
-- asset_support.py
+- smoke_test.py
 - FirstLaunchSplashWindow
 - visit
 - load_about_profile
-- MarkdownNotesWindow
-- release_support.py
+- ._current_palette
+- _apply_overlay_to_pages
 - Tooltip
 - ScrollArea
-- kit.py
-- _StructuredHTMLParser
+- .radio
+- html_to_docx
 - packages
 - smtp
-- format_engine_label
-- ui_theme.py
+- pure_python_file_to_pdf
+- kit.py
 - WORKLOG: gokul-omni-converter
 - settings.py
 - ._apply_state_snapshot
@@ -73,7 +73,7 @@
 - GO Omni Pro Activity Report
 - Kickoff prompt: gokul-omni-converter
 - ._start_ocr_job
-- convert.py
+- PreviewWindow
 - ButtonBar
 - app.py
 - _BasicHTMLTextExtractor
@@ -133,15 +133,15 @@
 - PLANNING-CHAT-PROMPT.md
 - GO Omni Pro Notes
 - sync-architecture.sh
-- test_ui_smoke.py
+- resolve_flow_layout_width
 - workflow_support.py
-- ocr.py
+- home.py
 - html_to_md/sample.md
 - link_cache/sample.md
 - patch16_release/footer_notes.md
 - imported_bundle/footer_notes.md
 - BUILDING.md
-- font_spec
+- apply_ttk_theme
 - .treeview
 - Any
 - CTkFrame
@@ -162,11 +162,11 @@
 10. `process_batch()` - 30 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `_handle()` --calls--> `on_leave()`  [INFERRED]
-  ui/dnd.py → app.py
-- `main()` --calls--> `run_release_checks()`  [INFERRED]
-  app.py → release_validation.py
+- `frame()` --indirect_call--> `key()`  [INFERRED]
+  ui/kit.py → rename_organizer_core.py
 - `PageOrganizerPanel` --uses--> `ThemePalette`  [INFERRED]
+  page_organizer.py → ui_theme.py
+- `PreviewWindow` --uses--> `ThemePalette`  [INFERRED]
   page_organizer.py → ui_theme.py
 - `ArchivePage` --uses--> `ConversionError`  [INFERRED]
   ui/pages/archive.py → converter_core.py
@@ -176,11 +176,11 @@
 ## Import Cycles
 - None detected.
 
-## Communities (132 total, 54 thin omitted)
+## Communities (132 total, 55 thin omitted)
 
 ### Community 0 - "PageOrganizerPanel"
-Cohesion: 0.05
-Nodes (41): Document, OrganizedPage, build_default_sequence(), duplicate_positions(), export_pages_as_images(), extract_selected_pdf(), move_positions_down(), move_positions_to_index() (+33 more)
+Cohesion: 0.06
+Nodes (40): Document, OrganizedPage, build_default_sequence(), duplicate_positions(), export_pages_as_images(), extract_selected_pdf(), move_positions_down(), move_positions_to_index() (+32 more)
 
 ### Community 1 - "ArchivePage"
 Cohesion: 0.05
@@ -188,27 +188,27 @@ Nodes (34): ArchiveEntry, ArchiveSummary, batch_compress(), _collect_folder_file
 
 ### Community 2 - "GOOmniProApp"
 Cohesion: 0.05
-Nodes (3): GOOmniProApp, StringVar, Widget
+Nodes (5): GOOmniProApp, Create (and register) the container for one page. ``padding`` and ``style`` are…, CTkFrame, StringVar, Widget
 
 ### Community 3 - "release_validation.py"
-Cohesion: 0.21
-Nodes (23): main(), discover_image_files(), group_images_by_folder(), ImageFolderPdfConfig, _is_hidden(), _natural_key(), Path, sort_image_paths() (+15 more)
+Cohesion: 0.13
+Nodes (35): main(), build_image_folder_pdfs(), discover_image_files(), _emit_log(), _emit_progress(), group_images_by_folder(), ImageFolderPdfConfig, _is_hidden() (+27 more)
 
 ### Community 4 - "rename_organizer_core.py"
 Cohesion: 0.09
-Nodes (35): apply_case(), apply_plan(), _bucket_for(), describe_manifest(), _file_dates(), latest_manifest(), _log(), manifest_dir() (+27 more)
+Nodes (36): apply_case(), apply_plan(), _bucket_for(), describe_manifest(), _file_dates(), latest_manifest(), _log(), manifest_dir() (+28 more)
 
 ### Community 5 - "pure_python_renderers.py"
-Cohesion: 0.09
-Nodes (38): _Cell, csv, docx, docx_document, docx_oxml_table, docx_oxml_text_paragraph, docx_shared, docx_table (+30 more)
+Cohesion: 0.07
+Nodes (44): _Cell, markdown_to_pdf(), csv, docx, docx_document, docx_oxml_table, docx_oxml_text_paragraph, docx_shared (+36 more)
 
 ### Community 6 - "WORKLOG"
-Cohesion: 0.08
-Nodes (23): Agreed order, Architecture (agreed 2026-10-31), Cleanup scan: `/cleanscan` (Claude slash command), Commit + push everything: `/gitmd` (Claude slash command), Current focus, Decisions, Dropped, Far later (+15 more)
+Cohesion: 0.07
+Nodes (28): Agreed order, Architecture (agreed 2026-10-31), Cleanup scan: `/cleanscan` (Claude slash command), Commit + push everything: `/gitmd` (Claude slash command), Current focus, Decisions, Dropped, Far later (+20 more)
 
 ### Community 7 - "register_drop_target"
-Cohesion: 0.12
-Nodes (18): threading, tkinterdnd2, dnd_available(), DropZone, init_root(), parse_drop_paths(), Misc, Path (+10 more)
+Cohesion: 0.09
+Nodes (29): tkinterdnd2, dnd_available(), DropZone, init_root(), parse_drop_paths(), Misc, Path, Drag-and-drop file input, with a working fallback when tkdnd is absent.… (+21 more)
 
 ### Community 8 - "AppStateStore"
 Cohesion: 0.08
@@ -222,29 +222,29 @@ Nodes (36): contextlib, fitz, io, _candidate_tessdata_dirs(), detect_tesseract_s
 Cohesion: 0.09
 Nodes (12): visit(), AnimatedGifLabel, bind_responsive_wrap(), FlowButtonBar, Misc, Path, Widget, A simple responsive page shell with a vertical scrollbar. The inner frame… (+4 more)
 
-### Community 11 - "Path"
-Cohesion: 0.16
-Nodes (30): build_conversion_route_preview(), convert_images_to_single_pdf(), convert_input_to_pdf_for_mode(), copy_as_pdf(), describe_input_route_for_mode(), describe_pdf_output_route(), document_to_plain_text(), _draw_images_to_pdf_with_reportlab() (+22 more)
+### Community 11 - "converter_core.py"
+Cohesion: 0.12
+Nodes (27): _autosize_columns(), build_conversion_route_preview(), _choose_blank_slide_layout(), describe_input_route_for_mode(), describe_pdf_output_route(), document_to_plain_text(), _extract_text_from_odf_document(), _extract_text_from_xml_string() (+19 more)
 
 ### Community 12 - "ConversionError"
-Cohesion: 0.12
-Nodes (39): _anchor_point(), _anchor_rect(), apply_image_overlay(), apply_image_watermark(), _apply_overlay_to_pages(), apply_text_overlay(), apply_text_watermark(), apply_visible_signature() (+31 more)
+Cohesion: 0.19
+Nodes (17): _coerce_rect_value(), ConversionError, extract_pdf_pages(), page_indices_to_label(), parse_page_groups(), _parse_page_number(), parse_page_spec(), parse_rect_spec() (+9 more)
 
 ### Community 14 - "Misc"
-Cohesion: 0.14
-Nodes (13): CTkLabel, InfoDot, Any, CTkFrame, Misc, A small ⓘ that reveals its explanation on hover. Used instead of printing a…, A bordered surface panel. When ``title`` is given the card exposes ``.body`` --…, Small ⓘ carrying help text on hover, instead of a wall of static prose. (+5 more)
+Cohesion: 0.17
+Nodes (11): CTkLabel, CTkFrame, Misc, A bordered surface panel. When ``title`` is given the card exposes ``.body`` --…, Small ⓘ carrying help text on hover, instead of a wall of static prose., A label with an optional ⓘ beside it., A card whose border warms toward the accent while the pointer is over it., Label on the left, control on the right, optional hint underneath. Returns the… (+3 more)
 
-### Community 16 - "converter_core.py"
-Cohesion: 0.10
-Nodes (50): CompletedProcess, _autosize_columns(), _choose_blank_slide_layout(), collect_files_from_folder(), dedupe_paths(), _docx_apply_runs(), edit_pdf_metadata(), ensure_directory() (+42 more)
+### Community 16 - "Path"
+Cohesion: 0.21
+Nodes (30): collect_files_from_folder(), compress_pdf(), copy_as_pdf(), dedupe_paths(), _docx_apply_runs(), edit_pdf_metadata(), edit_pdf_text_best_effort(), ensure_directory() (+22 more)
 
-### Community 17 - "smoke_test.py"
-Cohesion: 0.15
-Nodes (28): add_fingerprints(), BatchConfig, dependency_status(), PdfToolConfig, functools, http_server, cache_root_from_setting(), extract_urls() (+20 more)
+### Community 17 - "run"
+Cohesion: 0.23
+Nodes (16): BatchConfig, dependency_status(), PdfToolConfig, build_conversion_jobs(), build_pdf_tool_jobs(), create_sample_files(), Path, run() (+8 more)
 
 ### Community 18 - "UIKit"
-Cohesion: 0.10
-Nodes (20): Combobox, CTkButton, CTkCheckBox, CTkEntry, CTkRadioButton, CTkSegmentedButton, CTkSlider, CTkSwitch (+12 more)
+Cohesion: 0.09
+Nodes (21): Combobox, CTkButton, CTkCheckBox, CTkEntry, CTkSegmentedButton, CTkSlider, CTkSwitch, attach_tooltip() (+13 more)
 
 ### Community 19 - "REPO SECTIONS"
 Cohesion: 0.14
@@ -252,11 +252,11 @@ Nodes (13): 1. platform (first), 2. admin, 3. gokulmobilize, 4. bestportofolio, 
 
 ### Community 21 - "open_path"
 Cohesion: 0.08
-Nodes (6): compact_display_path(), open_path(), Path, Create (and register) the container for one page. ``padding`` and ``style`` are…, export_text_file(), CTkFrame
+Nodes (3): compact_display_path(), open_path(), Path
 
 ### Community 22 - "preview_support.py"
-Cohesion: 0.10
-Nodes (31): ImageDraw, ImageFont, math, pptx, _doc_preview(), _docx_excerpt(), _font(), _generic_summary() (+23 more)
+Cohesion: 0.20
+Nodes (27): ImageDraw, ImageFont, pptx, _doc_preview(), _docx_excerpt(), _font(), _generic_summary(), _html_to_text() (+19 more)
 
 ### Community 23 - "RenameOrganizePage"
 Cohesion: 0.14
@@ -264,47 +264,51 @@ Nodes (4): build(), Path, Only show the inputs the selected rule actually uses.,
 
 ### Community 24 - "automation_core.py"
 Cohesion: 0.18
-Nodes (11): bundle_paths_as_zip(), discover_watch_candidates(), export_presets_to_json(), fingerprint_file(), import_presets_from_json(), move_files_to_archive(), Path, WatchFolderConfig (+3 more)
+Nodes (11): add_fingerprints(), bundle_paths_as_zip(), discover_watch_candidates(), export_presets_to_json(), fingerprint_file(), import_presets_from_json(), move_files_to_archive(), Path (+3 more)
 
 ### Community 25 - "render"
-Cohesion: 0.16
-Nodes (19): _arc_box(), _gradient(), _hex_to_rgb(), main(), _masked(), Image, Rasterise the GO Omni Pro mark into the icon files the installers need. The…, Draw the mark at ``size`` pixels, supersampled then downscaled for smooth edges. (+11 more)
+Cohesion: 0.12
+Nodes (22): _arc_box(), _gradient(), _hex_to_rgb(), main(), _masked(), Image, Rasterise the GO Omni Pro mark into the icon files the installers need. The…, Draw the mark at ``size`` pixels, supersampled then downscaled for smooth edges. (+14 more)
 
-### Community 26 - "image_folder_pdf.py"
-Cohesion: 0.39
-Nodes (8): pdf_to_images(), presentation_to_images(), safe_name(), build_image_folder_pdfs(), _emit_log(), _emit_progress(), LogFn, ProgressFn
+### Community 26 - "PreviewCenterWindow"
+Cohesion: 0.19
+Nodes (3): PreviewCenterWindow, Misc, Path
 
 ### Community 27 - "test_cores.py"
-Cohesion: 0.54
-Nodes (7): check(), main(), make_tree(), Path, Headless tests for archive_core and rename_organizer_core. These two modules…, test_archive(), test_rename()
+Cohesion: 0.44
+Nodes (8): tempfile, check(), main(), make_tree(), Path, Headless tests for archive_core and rename_organizer_core. These two modules…, test_archive(), test_rename()
 
 ### Community 28 - "link_ingest.py"
 Cohesion: 0.16
-Nodes (19): CancelFn, hashlib, clear_cache_dir(), download_many_urls(), emit(), wait_while_paused(), _guess_extension_from_content_type(), LinkDownloadResult (+11 more)
+Nodes (20): CancelFn, hashlib, cache_root_from_setting(), clear_cache_dir(), download_many_urls(), emit(), wait_while_paused(), extract_urls() (+12 more)
 
 ### Community 29 - "mail_core.py"
 Cohesion: 0.17
-Nodes (17): email_message, EmailMessage, build_email_message(), build_eml_draft(), _connect(), create_mailto_url(), open_mailto_draft(), _parse_recipients() (+9 more)
+Nodes (15): email_message, EmailMessage, build_email_message(), build_eml_draft(), _connect(), create_mailto_url(), open_mailto_draft(), _parse_recipients() (+7 more)
 
-### Community 30 - "._image_folder_worker_run"
-Cohesion: 0.16
+### Community 30 - "._resolve_link_cache_dir"
+Cohesion: 0.12
 Nodes (5): log(), progress(), BatchConfig, ImageFolderPdfConfig, PdfToolConfig
 
 ### Community 31 - "Animator"
-Cohesion: 0.15
-Nodes (13): key(), Animator, apply(), apply(), frame(), ease_out(), StringVar, cubic-bezier(0.4, 0, 0.2, 1)-ish: fast start, gentle settle. (+5 more)
+Cohesion: 0.16
+Nodes (12): Animator, apply(), apply(), frame(), ease_out(), StringVar, cubic-bezier(0.4, 0, 0.2, 1)-ish: fast start, gentle settle., Frame-based tweening on Tk's event loop. Every animation checks… (+4 more)
 
 ### Community 33 - "build_support.py"
-Cohesion: 0.23
-Nodes (15): main(), collect_installer_assets(), collect_package_versions(), export_diagnostics_report(), export_json(), export_state_snapshot(), export_support_bundle(), import_state_snapshot() (+7 more)
+Cohesion: 0.18
+Nodes (15): collect_installer_assets(), collect_package_versions(), export_diagnostics_report(), export_json(), export_state_snapshot(), export_support_bundle(), export_text_file(), import_state_snapshot() (+7 more)
 
-### Community 34 - ".configure"
-Cohesion: 0.16
-Nodes (6): LogBox, ProgressBar, Text-only options (state, font, wrap) are forwarded to the inner Text., CTkProgressBar that also speaks the ttk.Progressbar API. The conversion/OCR/PDF…, Ease toward ``value`` (0..1) so batch progress glides rather than jumps., A ``tk.Text`` plus a ttk scrollbar, proxying the Text API. Used wherever the…
+### Community 34 - "Any"
+Cohesion: 0.13
+Nodes (10): InfoDot, LogBox, ProgressBar, Any, Text-only options (state, font, wrap) are forwarded to the inner Text., CTkProgressBar that also speaks the ttk.Progressbar API. The conversion/OCR/PDF…, Ease toward ``value`` (0..1) so batch progress glides rather than jumps., A small ⓘ that reveals its explanation on hover. Used instead of printing a… (+2 more)
 
-### Community 36 - "asset_support.py"
-Cohesion: 0.38
-Nodes (14): asset_cache_root(), cache_summary(), cached_asset_path(), clear_asset_cache(), download_binary_asset(), download_text_file(), is_cache_fresh(), load_asset_config() (+6 more)
+### Community 35 - ".__init__"
+Cohesion: 0.11
+Nodes (3): Set the window/taskbar icon from the app mark, per-platform., default_merged_name(), outputs_pdf()
+
+### Community 36 - "smoke_test.py"
+Cohesion: 0.15
+Nodes (32): main(), asset_cache_root(), cache_summary(), cached_asset_path(), clear_asset_cache(), download_binary_asset(), download_text_file(), is_cache_fresh() (+24 more)
 
 ### Community 37 - "FirstLaunchSplashWindow"
 Cohesion: 0.20
@@ -315,28 +319,28 @@ Cohesion: 0.33
 Nodes (8): cancel_pending(), visit(), on_enter(), on_leave(), on_press(), on_release(), widget_contains_pointer(), Button
 
 ### Community 39 - "load_about_profile"
-Cohesion: 0.36
+Cohesion: 0.42
 Nodes (8): load_about_profile(), _normalize_links(), Path, Read the profile, dropping any retired fields left over from older versions., Write only the supported fields back out, so retired keys never reappear., resolve_profile_image(), save_about_profile(), Any
 
-### Community 40 - "MarkdownNotesWindow"
-Cohesion: 0.12
+### Community 40 - "._current_palette"
+Cohesion: 0.10
 Nodes (7): AboutProfileEditorWindow, BuildCenterWindow, MarkdownNotesWindow, Editor for the four profile fields plus the social links. Company, job title,…, SMTPSettingsWindow, Misc, ThemePalette
 
-### Community 41 - "release_support.py"
-Cohesion: 0.29
-Nodes (12): build_example_update_manifest(), check_for_updates(), compare_versions(), export_workspace_bundle(), import_workspace_bundle(), load_update_manifest(), Any, Path (+4 more)
+### Community 41 - "_apply_overlay_to_pages"
+Cohesion: 0.24
+Nodes (16): _anchor_point(), _anchor_rect(), apply_image_overlay(), apply_image_watermark(), _apply_overlay_to_pages(), apply_text_overlay(), apply_text_watermark(), apply_visible_signature() (+8 more)
 
 ### Community 43 - "ScrollArea"
 Cohesion: 0.21
 Nodes (4): A vertically scrolling page body. Deliberately *not* CTkScrollableFrame: in…, Vertically scrolling container that hosts CustomTkinter children. Mirrors the…, Coalesce Configure bursts into one geometry pass. Resizing the canvas window…, ScrollArea
 
-### Community 44 - "kit.py"
-Cohesion: 0.14
-Nodes (17): ConversionError, CustomTkinter widgets avoided due to redraw loop, Design tokens via ui_theme for dependency inversion, Layered architecture dependency rule, Button, CheckBox, Entry, lerp_color() (+9 more)
+### Community 44 - ".radio"
+Cohesion: 0.22
+Nodes (8): CTkRadioButton, Button, Entry, RadioButton, Stops CustomTkinter's redraw from recursing into itself. Several CTk widgets…, Adds ttk's ``state([...])`` to a CustomTkinter widget. _update_mode_controls…, SafeDrawMixin, TtkStateMixin
 
-### Community 45 - "_StructuredHTMLParser"
-Cohesion: 0.36
-Nodes (4): _html_to_blocks(), HtmlBlock, HTMLParser, _StructuredHTMLParser
+### Community 45 - "html_to_docx"
+Cohesion: 0.25
+Nodes (15): CompletedProcess, extract_html_title(), extract_pdf_pages_as_text(), extract_text_from_html_string(), find_command(), _html_blocks_to_markdown_lines(), html_to_docx(), html_to_markdown() (+7 more)
 
 ### Community 46 - "packages"
 Cohesion: 0.18
@@ -346,13 +350,13 @@ Nodes (11): packages, openpyxl, pdfplumber, Pillow, PyMuPDF, pypdf, pytesseract,
 Cohesion: 0.18
 Nodes (11): smtp, default_to, host, password, port, save_password, sender, timeout_seconds (+3 more)
 
-### Community 48 - "format_engine_label"
-Cohesion: 0.57
-Nodes (5): validate_ui_text_helpers(), format_engine_label(), format_flag(), humanize_identifier(), _split_identifier()
+### Community 48 - "pure_python_file_to_pdf"
+Cohesion: 0.21
+Nodes (14): convert_images_to_single_pdf(), convert_input_to_pdf_for_mode(), _draw_images_to_pdf_with_reportlab(), file_to_pdf(), _image_to_pdf_ready_rgb(), looks_like_text(), _markdown_inline_to_html(), office_like_to_pdf() (+6 more)
 
-### Community 49 - "ui_theme.py"
-Cohesion: 0.09
-Nodes (39): dataclasses, Style, subprocess, Push the palette into CustomTkinter's and ttk's global state., Repaint every widget this kit created for the new palette., appearance_mode(), apply_ctk_theme(), apply_menu_theme() (+31 more)
+### Community 49 - "kit.py"
+Cohesion: 0.10
+Nodes (34): ConversionError, CustomTkinter widgets avoided due to redraw loop, Design tokens via ui_theme for dependency inversion, Layered architecture dependency rule, lerp_color(), CustomTkinter widget kit for GO Omni Pro. Every screen builds from…, Blend two hex colours. Used by the animation helpers., appearance_mode() (+26 more)
 
 ### Community 50 - "WORKLOG: gokul-omni-converter"
 Cohesion: 0.29
@@ -363,7 +367,7 @@ Cohesion: 0.31
 Nodes (8): build(), _build_appearance(), _build_engine(), _build_files(), _build_quick_actions(), Settings page: appearance, engine, local files and folders, and quick actions., An entry that shows a path but cannot be edited., _readonly()
 
 ### Community 53 - "GradientBackdrop"
-Cohesion: 0.32
+Cohesion: 0.28
 Nodes (4): Canvas, GradientBackdrop, Paints the palette's gradient onto a tk.Canvas and keeps it sized. Tk has no…, Force a repaint, e.g. after the palette changed.
 
 ### Community 54 - "GO Omni Pro Activity Report"
@@ -374,17 +378,13 @@ Nodes (9): LibreOffice Engine, Pure Python Engine, Smoke Test Output, DOCX to PD
 Cohesion: 0.33
 Nodes (5): 8. gokul-omni-converter  (TO BE UPDATED: standalone, not part of the web platform), COLLABORATOR ADD-ON, Kickoff prompt: gokul-omni-converter, REPO SECTION, SHARED BLOCK
 
-### Community 57 - "convert.py"
-Cohesion: 0.36
-Nodes (9): build(), _build_center(), _build_image_folder_card(), _build_inputs(), _build_links(), _build_log_card(), _build_mode_card(), _build_options() (+1 more)
-
 ### Community 58 - "ButtonBar"
-Cohesion: 0.32
+Cohesion: 0.27
 Nodes (4): ButtonBar, Widget, Wrapping row of buttons, API-compatible with the old FlowButtonBar. ``add``…, Wrapping action row. Replaces the ttk-era FlowButtonBar.
 
 ### Community 59 - "app.py"
-Cohesion: 0.15
-Nodes (15): open_url(), argparse, customtkinter, json, os, pathlib, pil, queue (+7 more)
+Cohesion: 0.11
+Nodes (25): argparse, customtkinter, dataclasses, faulthandler, json, os, pathlib, pil (+17 more)
 
 ### Community 61 - "diagnostics.json"
 Cohesion: 0.25
@@ -474,41 +474,37 @@ Nodes (4): GO Omni Pro Notes, Next patch ideas, Patch 8 highlights, Suggested us
 Cohesion: 0.70
 Nodes (3): edge(), node(), sync-architecture.sh script
 
-### Community 117 - "test_ui_smoke.py"
-Cohesion: 0.25
-Nodes (6): faulthandler, main(), count_info_dots(), Headless UI smoke test: build every page, switch every theme, check the…, _watchdog(), traceback
+### Community 117 - "resolve_flow_layout_width"
+Cohesion: 0.50
+Nodes (3): Prefer the real allocated width so wrapping still works on narrow screens., resolve_flow_layout_width(), validate_flow_wrap_helper()
 
 ### Community 118 - "workflow_support.py"
 Cohesion: 0.42
 Nodes (7): run_patch15_workflow_smoke(), directory_stats(), DirectoryStats, format_bytes(), prune_directory(), Path, summarize_directory()
 
-### Community 119 - "ocr.py"
-Cohesion: 0.53
-Nodes (5): build(), _build_log(), _build_settings(), _build_source(), OCR page. Written for someone who does not know what OCR, DPI, or a page-…
-
-### Community 125 - "font_spec"
-Cohesion: 0.50
-Nodes (5): font_spec(), Misc, Return the first font in the stack that this Tk install actually has., A (family, size, weight) tuple usable anywhere Tk accepts a font., resolve_font_family()
+### Community 125 - "apply_ttk_theme"
+Cohesion: 0.23
+Nodes (12): Style, apply_ttk_theme(), _configure_fonts(), font_spec(), Misc, Return the first font in the stack that this Tk install actually has., A (family, size, weight) tuple usable anywhere Tk accepts a font., Scaled spacing token. Unknown names fall back to the medium step. (+4 more)
 
 ## Knowledge Gaps
-- **181 isolated node(s):** `1. Starting a New Folder / Project`, `2. Starting with an Existing Project`, `3. The "After-Command" Chaser`, `4. Start / Debug Prompt Template`, `5. Session Wrap-Up Prompt Template` (+176 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 502 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **54 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **185 isolated node(s):** `Planning Chat: resume prompt`, `URGENT (Gokul only)`, `Where each repo stands`, `Requests waiting for the `platform` repo (collected from repo logs; platform chat applies, planning chat syncs)`, `GitHub / sync status (2026-11-14)` (+180 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 506 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **55 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `GOOmniProApp` connect `GOOmniProApp` to `._refresh_about_profile`, `build_support.py`, `.__init__`, `visit`, `ScrollablePage`, `._show_page`, `._log_automation`, `format_engine_label`, `._apply_state_snapshot`, `open_path`, `._persist_state`, `._start_ocr_job`, `automation_core.py`, `app.py`, `._image_folder_worker_run`?**
-  _High betweenness centrality (0.208) - this node is a cross-community bridge._
-- **Why does `PageOrganizerPanel` connect `PageOrganizerPanel` to `ui_theme.py`, `app.py`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
-- **Why does `UIKit` connect `UIKit` to `.configure`, `.__init__`, `Tooltip`, `ScrollArea`, `kit.py`, `Misc`, `ui_theme.py`, `ButtonBar`, `.treeview`?**
-  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+- **Why does `GOOmniProApp` connect `GOOmniProApp` to `release_validation.py`, `AppStateStore`, `ScrollablePage`, `._show_page`, `._log_automation`, `._persist_state`, `open_path`, `automation_core.py`, `mail_core.py`, `._resolve_link_cache_dir`, `._refresh_about_profile`, `build_support.py`, `.__init__`, `smoke_test.py`, `visit`, `._current_palette`, `._apply_state_snapshot`, `._start_ocr_job`, `app.py`?**
+  _High betweenness centrality (0.215) - this node is a cross-community bridge._
+- **Why does `UIKit` connect `UIKit` to `Any`, `.__init__`, `Tooltip`, `ScrollArea`, `.radio`, `Misc`, `kit.py`, `GradientBackdrop`, `ButtonBar`, `.treeview`?**
+  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+- **Why does `ArchivePage` connect `ArchivePage` to `app.py`, `ConversionError`, `register_drop_target`?**
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **Are the 4 inferred relationships involving `ConversionError` (e.g. with `test_archive()` and `test_rename()`) actually correct?**
   _`ConversionError` has 4 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `1. Starting a New Folder / Project`, `2. Starting with an Existing Project`, `3. The "After-Command" Chaser` to the rest of the system?**
-  _181 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `Planning Chat: resume prompt`, `URGENT (Gokul only)`, `Where each repo stands` to the rest of the system?**
+  _185 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `PageOrganizerPanel` be split into smaller, more focused modules?**
-  _Cohesion score 0.05207920792079208 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.055412371134020616 - nodes in this community are weakly interconnected._
 - **Should `ArchivePage` be split into smaller, more focused modules?**
   _Cohesion score 0.05403348554033485 - nodes in this community are weakly interconnected._
