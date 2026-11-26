@@ -21,3 +21,5 @@ Master status of all repos: platform/docs/WORKLOG.md. Update this file after eve
 
 ## Reminders
 - Scope: standalone desktop app; hub links to it only.
+
+- 2026-11-26 Upgrade program: status of all 7 repos and how to resume is in platform/docs/UPGRADE-PROGRAM.md (read it first).
